@@ -1,11 +1,11 @@
 import { Hono, type Context, type Next } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { cors } from 'hono/cors';
-import { handleEvent } from './collect';
-import { forgetSite, type AppEnv, type Site } from './env';
-import { passwordsMatch, randomId, signToken, verifyToken } from './lib/crypto';
-import { handleDodoWebhook, handleGoalApi, handlePaymentApi, rematchPayments } from './payments';
-import { breakdown, customers, funnel, makeCtx, overview, visitorProfile, visitors, type FunnelStep } from './stats';
+import { handleEvent } from './collect.js';
+import { forgetSite, type AppEnv, type Site } from './env.js';
+import { passwordsMatch, randomId, signToken, verifyToken } from './lib/crypto.js';
+import { handleDodoWebhook, handleGoalApi, handlePaymentApi, rematchPayments } from './payments.js';
+import { breakdown, customers, funnel, makeCtx, overview, visitorProfile, visitors, type FunnelStep } from './stats.js';
 
 const app = new Hono<AppEnv>();
 const AUTH_COOKIE = 'ml_auth';

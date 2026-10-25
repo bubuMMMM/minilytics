@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
-import type { AppEnv, Site } from './env';
-import { bucketLabels, bucketSql, resolveRange, tzOffset, type Range } from './lib/time';
-import { currencyDecimals } from './payments';
+import type { AppEnv, Site } from './env.js';
+import { bucketLabels, bucketSql, resolveRange, tzOffset, type Range } from './lib/time.js';
+import { currencyDecimals } from './payments.js';
 
 /** Filters that live on the session row (clicking a row in the dashboard adds one of these). */
 const SESSION_FILTERS = [

@@ -1,5 +1,5 @@
-import app from '../src/worker/index';
-import { getDb } from '../src/server/pgd1';
+import app from '../src/worker/index.js';
+import { getDb } from '../src/server/pgd1.js';
 
 export const config = { runtime: 'nodejs' };
 

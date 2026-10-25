@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
-import { getSite, type AppEnv, type Site } from './env';
-import { verifyStandardWebhook } from './lib/crypto';
+import { getSite, type AppEnv, type Site } from './env.js';
+import { verifyStandardWebhook } from './lib/crypto.js';
 
 export function currencyDecimals(currency: string): number {
   try {

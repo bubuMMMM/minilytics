@@ -1,8 +1,8 @@
 import type { Context } from 'hono';
-import { classify } from '../shared/sources';
-import { getSite, type AppEnv, type Site } from './env';
-import { isBot, parseUA } from './lib/ua';
-import { creditedSessionSql } from './payments';
+import { classify } from '../shared/sources.js';
+import { getSite, type AppEnv, type Site } from './env.js';
+import { isBot, parseUA } from './lib/ua.js';
+import { creditedSessionSql } from './payments.js';
 
 const TYPES = new Set(['pageview', 'goal', 'outbound', 'ping', 'identify']);
 const MAX_PING_MS = 10 * 60_000;
