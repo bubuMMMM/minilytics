@@ -176,6 +176,15 @@ curl -X POST https://YOUR-HOST/api/v1/payments -H "Authorization: Bearer ml_..."
   -d '{"transaction_id":"txn_1","amount":29.99,"currency":"USD","visitor_id":"<ml_vid cookie>","email":"jane@acme.com"}'
 ```
 
+## Tracker reliability
+
+- Duplicate script tags for the same website are ignored to prevent duplicate listeners and pageviews.
+- When cookies are blocked or throw, IDs remain stable in memory for the current document. Reloads and other tabs may still count as different visitors; no fingerprinting is used.
+- Browser back/forward-cache restores count a new pageview without adding time spent away to engaged time.
+- Outbound links use exact domain/subdomain boundaries, and right-clicking is not counted as a click-through.
+- Sensitive query parameters, URL credentials and fragments are stripped from collected page URLs and referrers. This is not a guarantee against personal data embedded in paths or custom parameters.
+- Custom goal properties retain valid JSON within a 1,000-byte budget. Oversized properties are shortened or omitted instead of truncating JSON mid-string.
+
 ## Accuracy notes
 
 No analytics tool is 100% accurate. These are the main gaps and how this project handles them:
