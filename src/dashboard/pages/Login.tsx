@@ -30,8 +30,8 @@ export function Login({ onLogin }: { onLogin: () => void }) {
         <label className="label mt-6" htmlFor="pw">
           Password
         </label>
-        <input id="pw" type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        <input id="pw" type="password" autoComplete="current-password" required className="input" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
+        {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
         <button className="btn-dark mt-6 w-full" disabled={busy || !password}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
