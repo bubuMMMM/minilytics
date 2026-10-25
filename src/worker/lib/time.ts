@@ -105,18 +105,18 @@ export function resolveRange(
   return { from, to, granularity };
 }
 
-/** SQLite expression that turns a ms timestamp column into a bucket label in site time. */
+/** Postgres expression that turns a ms timestamp column into a bucket label in site time. */
 export function bucketSql(col: string, g: Granularity, offsetMs: number): string {
   const t = `((${col} + ${Math.trunc(offsetMs)}) / 1000)`;
   switch (g) {
     case 'hour':
-      return `strftime('%Y-%m-%dT%H:00', ${t}, 'unixepoch')`;
+      return `to_char(to_timestamp(${t}) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:00')`;
     case 'day':
-      return `strftime('%Y-%m-%d', ${t}, 'unixepoch')`;
+      return `to_char(to_timestamp(${t}) AT TIME ZONE 'UTC', 'YYYY-MM-DD')`;
     case 'week':
-      return `date(${t}, 'unixepoch', 'weekday 0', '-6 days')`;
+      return `to_char(date_trunc('week', to_timestamp(${t}) AT TIME ZONE 'UTC'), 'YYYY-MM-DD')`;
     case 'month':
-      return `strftime('%Y-%m', ${t}, 'unixepoch')`;
+      return `to_char(to_timestamp(${t}) AT TIME ZONE 'UTC', 'YYYY-MM')`;
   }
 }
 

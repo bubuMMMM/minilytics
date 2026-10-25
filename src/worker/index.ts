@@ -34,7 +34,7 @@ app.post('/api/auth/login', async (c) => {
     return c.json({ error: 'Set ADMIN_PASSWORD and SESSION_SECRET (see README).' }, 500);
   }
   // Lock an IP out after too many wrong passwords, so a public dashboard can't be brute-forced.
-  const ip = c.req.header('cf-connecting-ip') ?? 'unknown';
+  const ip = c.req.header('cf-connecting-ip') ?? c.req.header('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
   const now = Date.now();
   const recent = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM login_failures WHERE ip = ? AND ts > ?')
     .bind(ip, now - LOCKOUT_MS)

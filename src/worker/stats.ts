@@ -366,8 +366,9 @@ export async function visitors(ctx: Ctx) {
               (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.site_id = t.site_id AND p.visitor_id = t.visitor_id) AS spent
        FROM (
          SELECT s.site_id, s.visitor_id, MAX(s.last_seen_at) AS last_seen, COUNT(*) AS sessions, SUM(s.pageviews) AS pageviews,
-                SUM(s.duration) AS duration, s.source, s.referrer_domain, s.country, s.city, s.device, s.os, s.browser
-         FROM sessions s WHERE ${w.sql} GROUP BY s.visitor_id ORDER BY last_seen DESC LIMIT 200
+                SUM(s.duration) AS duration, MAX(s.source) AS source, MAX(s.referrer_domain) AS referrer_domain, MAX(s.country) AS country,
+                MAX(s.city) AS city, MAX(s.device) AS device, MAX(s.os) AS os, MAX(s.browser) AS browser
+         FROM sessions s WHERE ${w.sql} GROUP BY s.site_id, s.visitor_id ORDER BY last_seen DESC LIMIT 200
        ) t LEFT JOIN visitors v ON v.site_id = t.site_id AND v.id = t.visitor_id
        ORDER BY t.last_seen DESC`,
     )
@@ -414,8 +415,8 @@ export async function funnel(ctx: Ctx, steps: FunnelStep[]) {
       conds.push(`(e.type = 'goal' AND e.name = ?)`);
       params.push(st.value);
     } else {
-      conds.push(`(e.type = 'pageview' AND e.path GLOB ?)`);
-      params.push(st.value);
+      conds.push(`(e.type = 'pageview' AND e.path LIKE ?)`);
+      params.push(st.value.replace(/[\\%_]/g, '\\$&').replace(/\*/g, '%'));
     }
   }
   const rows = (
