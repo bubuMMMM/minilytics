@@ -1,0 +1,31 @@
+type IconName = 'arrow-up-right' | 'arrow-right' | 'activity' | 'eye' | 'users' | 'clock' | 'refresh' | 'globe' | 'mouse' | 'target' | 'layers' | 'check' | 'plus' | 'logout' | 'search' | 'shield' | 'bar-chart' | 'sparkles' | 'external' | 'calendar' | 'menu' | 'chevron-down' | 'link';
+
+export function UiIcon({ name, size = 20, className = '' }: { name: IconName; size?: number; className?: string }) {
+  const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  const paths: Record<IconName, React.ReactNode> = {
+    'arrow-up-right': <><path d="M7 17 17 7M8 7h9v9"/></>,
+    'arrow-right': <><path d="M4 12h16m-7-7 7 7-7 7"/></>,
+    activity: <><path d="M3 12h4l3-7 4 14 3-7h4"/></>,
+    eye: <><path d="M2 12s3.7-7 10-7 10 7 10 7-3.7 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></>,
+    users: <><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6m3 9v-2a5 5 0 0 0-4-4.9"/></>,
+    clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></>,
+    refresh: <><path d="M20 11a8 8 0 0 0-14-5L3 9m0-5v5h5M4 13a8 8 0 0 0 14 5l3-3m0 5v-5h-5"/></>,
+    globe: <><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-6 5-6 13 0 18m0-18c6 5 6 13 0 18"/></>,
+    mouse: <><path d="M6 3v10l3 2 2.5-3 4.5 7 3-2-4.5-7 4-1L6 3Z"/></>,
+    target: <><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></>,
+    layers: <><path d="m12 2 9 5-9 5-9-5 9-5Zm-9 10 9 5 9-5M3 17l9 5 9-5"/></>,
+    check: <path d="m5 12 4 4L19 6"/>,
+    plus: <path d="M12 5v14M5 12h14"/>,
+    logout: <><path d="M10 4H5v16h5m5-4 4-4-4-4m4 4H9"/></>,
+    search: <><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></>,
+    shield: <><path d="M12 2 4 5v6c0 5 3 9 8 11 5-2 8-6 8-11V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></>,
+    'bar-chart': <><path d="M4 20v-5m5 5V9m5 11V4m5 16v-8" strokeWidth="3"/></>,
+    sparkles: <><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/></>,
+    external: <><path d="M14 4h6v6M20 4l-9 9"/><path d="M20 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h5"/></>,
+    calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18"/></>,
+    menu: <><path d="M4 7h16M4 12h16M4 17h16"/></>,
+    'chevron-down': <path d="m6 9 6 6 6-6"/>,
+    link: <><path d="M10 13a5 5 0 0 0 8.6 2l2-2a5 5 0 0 0-7-7l-1.1 1.1M14 11a5 5 0 0 0-8.6-2l-2 2a5 5 0 0 0 7 7l1.1-1.1"/></>,
+  };
+  return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className} {...common}>{paths[name]}</svg>;
+}
