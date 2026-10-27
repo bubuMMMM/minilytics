@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { navigate } from '../App';
 import { Logo } from '../components/Logo';
@@ -51,7 +51,7 @@ function InsightPanel({ title, subtitle, icon, rows, empty }: { title: string; s
   );
 }
 
-function SectionHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
+function SectionHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: ReactNode }) {
   return <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
     <div>
       <span className="ml-mini-label text-[#5870e8]">{eyebrow}</span>

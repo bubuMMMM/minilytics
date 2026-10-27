@@ -272,7 +272,7 @@ function AiSetup({ site, origin }: { site: Site; origin: string }) {
   const [open, setOpen] = useState(false);
   const prompt = buildAiPrompt(site, origin);
   return (
-    <section className="card border-violet-200 bg-gradient-to-br from-violet-50 to-white p-6">
+    <section className="card border-[#e4e9ff] bg-gradient-to-br from-[#f7f9ff] to-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">✨ Set up with AI</h2>
@@ -292,7 +292,7 @@ function AiSetup({ site, origin }: { site: Site; origin: string }) {
           {copied ? '✓ Copied' : 'Copy AI prompt'}
         </button>
       </div>
-      <button className="mt-3 text-sm font-medium text-violet-700 hover:underline" onClick={() => setOpen((o) => !o)}>
+      <button className="mt-3 text-sm font-medium text-[#4f62ef] hover:underline" onClick={() => setOpen((o) => !o)}>
         {open ? 'Hide prompt' : 'Preview prompt'}
       </button>
       {open && <pre className="code mt-3 max-h-96 whitespace-pre-wrap">{prompt}</pre>}
