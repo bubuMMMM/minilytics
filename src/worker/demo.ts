@@ -68,7 +68,7 @@ export async function publicDemoStats(db: D1Database, days = 7) {
       COALESCE(SUM(pageviews), 0) AS pageviews FROM sessions
       WHERE site_id = ? AND started_at >= ? AND started_at < ?
       GROUP BY bucket ORDER BY bucket`).bind(id, dayStart * 86400000, now + 1),
-    db.prepare(`SELECT source AS label, COUNT(DISTINCT visitor_id) AS visitors FROM sessions
+    db.prepare(`SELECT channel AS label, COUNT(DISTINCT visitor_id) AS visitors FROM sessions
       WHERE site_id = ? AND started_at >= ? AND started_at < ?
       GROUP BY source ORDER BY visitors DESC LIMIT 6`).bind(id, from, now + 1),
     db.prepare(`SELECT path AS label, COUNT(*) AS pageviews FROM events WHERE site_id = ?

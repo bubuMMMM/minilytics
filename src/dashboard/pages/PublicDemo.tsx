@@ -64,6 +64,11 @@ export function PublicDemo() {
     return () => controller.abort();
   }, [days, retry]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 30000);
+    return () => window.clearInterval(timer);
+  }, [refresh]);
+
   const view = data?.days === days ? data : null;
   const stats = [
     { label: 'Visiteurs uniques', value: view ? number(view.current.visitors) : '—', detail: 'Sur ' + days + ' jours' },
@@ -90,7 +95,7 @@ export function PublicDemo() {
         <div className="max-w-3xl">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#f4d4c9] bg-[#fff0e9] px-3 py-1.5 text-xs font-semibold text-[#aa5b41]"><span className="h-1.5 w-1.5 rounded-full bg-[#e07b5f]" /> Analytics sans chiffres inventés</div>
           <h1 className="text-[clamp(2.5rem,6vw,5.25rem)] font-semibold leading-[1.05] tracking-[-0.055em]">Chaque visite raconte <span className="text-[#e07b5f]">une histoire.</span></h1>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-stone-600 sm:text-lg">Découvre d'où viennent tes visiteurs, quelles pages les intéressent et ce qu'ils font. Ce dashboard suit <strong>Minilytics lui-même</strong> : uniquement de vraies données, actualisées à la demande.</p>
+          <p className="mt-5 max-w-2xl text-base leading-relaxed text-stone-600 sm:text-lg">Découvre d'où viennent tes visiteurs, quelles pages les intéressent et ce qu'ils font. Ce dashboard suit <strong>Minilytics lui-même</strong> : uniquement de vraies données, actualisées automatiquement.</p>
         </div>
 
         <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 pb-5 sm:mt-12">
@@ -123,7 +128,7 @@ export function PublicDemo() {
                   <CartesianGrid strokeDasharray="3 5" vertical={false} stroke="#eee9e3" />
                   <XAxis dataKey="date" tickFormatter={dateLabel} tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} minTickGap={18} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} />
-                  <Tooltip labelFormatter={(v) => dateLabel(String(v))} formatter={(value: number) => [number(value), 'Visiteurs']} />
+                  <Tooltip labelFormatter={(v) => dateLabel(String(v))} formatter={(value) => [number(Number(value ?? 0)), 'Visiteurs']} />
                   <Area type="monotone" dataKey="visitors" stroke="#e07b5f" strokeWidth={2.5} fill="url(#public-visitors)" dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
                 </AreaChart>
               </ResponsiveContainer> : <div className="h-full animate-pulse rounded-xl bg-stone-50" />}
@@ -143,7 +148,7 @@ export function PublicDemo() {
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <Breakdown title="Sources de trafic" detail="D'où viennent tes visiteurs ?" rows={view?.sources ?? []} empty="Les premières sources apparaîtront après des visites." />
+          <Breakdown title="Canaux d’acquisition" detail="D'où viennent tes visiteurs ?" rows={view?.sources ?? []} empty="Les premières sources apparaîtront après des visites." />
           <Breakdown title="Pages populaires" detail="Ce que les visiteurs consultent" rows={view?.pages ?? []} empty="Aucune page vue sur cette période." />
           <Breakdown title="Appareils" detail="Mobile, ordinateur ou tablette" rows={view?.devices ?? []} empty="En attente de données d’appareil." />
         </div>

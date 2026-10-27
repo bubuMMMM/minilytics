@@ -8,6 +8,7 @@
   var siteId = script.getAttribute('data-website-id');
   var endpoint = script.getAttribute('data-api') || new URL(script.src).origin + '/api/event';
   var allowLocal = script.hasAttribute('data-allow-localhost');
+  var onlyHost = script.getAttribute('data-only-host');
   var excludedPaths = (script.getAttribute('data-exclude-paths') || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
   function isExcluded() {
     return excludedPaths.some(function (p) { return loc.pathname === p || loc.pathname.indexOf(p + '/') === 0; });
@@ -31,7 +32,7 @@
   var ignored = false;
   try { ignored = localStorage.getItem('ml_ignore') === '1'; } catch (e) {}
   var local = /^(localhost|127\.|0\.0\.0\.0|\[::1\]|.*\.local$)/.test(loc.hostname) || loc.protocol === 'file:';
-  if (!siteId || ignored || nav.webdriver || (local && !allowLocal)) {
+  if (!siteId || ignored || nav.webdriver || (local && !allowLocal) || (onlyHost && loc.hostname !== onlyHost)) {
     w.minilytics = noop;
     w.minilytics.attribution = function () { return {}; };
     return;
