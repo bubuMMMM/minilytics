@@ -2,7 +2,8 @@ import { Hono, type Context, type Next } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { cors } from 'hono/cors';
 import { handleEvent } from './collect.js';
-import { publicDemoStats } from './demo.js';
+import { publicDemoStats, DEMO_SITE_ID, ensureDemoSite } from './demo.js';
+import { liveGlobeStats } from './live-globe.js';
 import { forgetSite, type AppEnv, type Site } from './env.js';
 import { passwordsMatch, randomId, signToken, verifyToken } from './lib/crypto.js';
 import { handleDodoWebhook, handleGoalApi, handlePaymentApi, rematchPayments } from './payments.js';
@@ -27,6 +28,17 @@ app.get('/api/public/demo', async (c) => {
   } catch (error) {
     console.error('Public demo statistics failed', error);
     return c.json({ error: 'Analytics temporarily unavailable' }, 503);
+  }
+});
+// Public read-only location aggregates, scoped to Minilytics itself.
+app.get('/api/public/live-globe', async (c) => {
+  try {
+    await ensureDemoSite(c.env.DB);
+    c.header('Cache-Control', 'no-store, max-age=0');
+    return c.json(await liveGlobeStats(c.env.DB, DEMO_SITE_ID));
+  } catch (error) {
+    console.error('Live globe failed', error);
+    return c.json({ error: 'Live activity temporarily unavailable' }, 503);
   }
 });
 app.post('/api/webhooks/dodo/:siteId', handleDodoWebhook);
@@ -209,6 +221,11 @@ app.delete('/api/sites/:id', async (c) => {
 
 // ---------- stats
 
+// Private live globe uses the same aggregates, but requires existing admin auth.
+app.get('/api/sites/:id/live-globe', async (c) => {
+  c.header('Cache-Control', 'no-store, max-age=0');
+  return c.json(await liveGlobeStats(c.env.DB, c.get('site').id));
+});
 app.get('/api/sites/:id/overview', async (c) => c.json(await overview(makeCtx(c))));
 
 app.get('/api/sites/:id/breakdown', async (c) => {
