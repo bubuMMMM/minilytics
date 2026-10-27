@@ -124,18 +124,18 @@ export function OverviewCard({ data }: { data: Overview | null }) {
                 }}
               />
               {!hidden.revenue && (
-                <Bar yAxisId="r" dataKey="revenue" fill="#e07b5f" radius={[4, 4, 0, 0]} maxBarSize={36} isAnimationActive={false} />
+                <Bar yAxisId="r" dataKey="revenue" fill="#4f62ef" radius={[4, 4, 0, 0]} maxBarSize={36} isAnimationActive={false} />
               )}
               {!hidden.visitors && (
                 <Area
                   yAxisId="v"
                   type="monotone"
                   dataKey="visitors"
-                  stroke="#7cb1ea"
+                  stroke="#4f62ef"
                   strokeWidth={2.5}
                   fill="url(#vis)"
                   dot={false}
-                  activeDot={{ r: 4, fill: '#7cb1ea', stroke: '#fff', strokeWidth: 2 }}
+                  activeDot={{ r: 4, fill: '#4f62ef', stroke: '#fff', strokeWidth: 2 }}
                   isAnimationActive={false}
                 />
               )}

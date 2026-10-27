@@ -34,7 +34,7 @@ export function Sites() {
 
   return (
     <div className="ml-site-bg min-h-screen">
-      <header className="border-b border-[#ece6e0] bg-[#faf9f6]/85">
+      <header className="border-b border-[#e8edf5] bg-[#ffffff]/85">
         <div className="mx-auto flex h-[76px] max-w-[1380px] items-center justify-between gap-3 px-5 sm:px-8 lg:px-12">
           <button onClick={() => navigate('/sites')} aria-label="Mes sites"><Logo /></button>
           <div className="flex items-center gap-2">
@@ -49,7 +49,7 @@ export function Sites() {
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
             <div className="ml-kicker"><span className="ml-dot" /> WORKSPACE / VOS PROJETS</div>
-            <h1 className="ml-heading mt-4 text-[clamp(2.55rem,5vw,4.3rem)]">Votre trafic, à portée de main<span className="text-[#df795c]">.</span></h1>
+            <h1 className="ml-heading mt-4 text-[clamp(2.55rem,5vw,4.3rem)]">Votre trafic, à portée de main<span className="text-[#4f62ef]">.</span></h1>
             <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[#82786f]">Tous vos sites au même endroit. Suivez vos visiteurs, comprenez votre audience et repérez les signaux qui comptent.</p>
           </div>
         </div>
@@ -60,14 +60,14 @@ export function Sites() {
             { label: 'Visiteurs · 24 heures', value: sites ? fmtNumber(sites.reduce((n, s) => n + (s.visitors24h ?? 0), 0)) : '—', icon: 'users' as const },
             { label: 'En ligne maintenant', value: sites ? fmtNumber(online) : '—', icon: 'activity' as const },
           ].map((card) => <div key={card.label} className="ml-panel flex min-w-0 items-center justify-between gap-4 p-5 sm:p-6">
-            <div><p className="text-[12px] text-[#978d83]">{card.label}</p><p className="mt-2 text-[33px] font-semibold leading-none tracking-[-.055em]">{card.value}</p></div>
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#fcf0e8] text-[#c88668]"><UiIcon name={card.icon} size={21}/></span>
+            <div><p className="text-[12px] text-[#7886a0]">{card.label}</p><p className="mt-2 text-[33px] font-semibold leading-none tracking-[-.055em]">{card.value}</p></div>
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5266ef]"><UiIcon name={card.icon} size={21}/></span>
           </div>)}
         </div>
 
         <div className="mt-12 flex flex-wrap items-end justify-between gap-5">
-          <div><h2 className="ml-section-heading text-[26px] sm:text-[32px]">Mes sites</h2><p className="mt-2 text-[13px] text-[#998e84]">Choisissez un projet pour explorer ses statistiques.</p></div>
-          {sites && sites.length > 3 && <div className="relative w-full sm:w-72"><span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#aaa095]"><UiIcon name="search" size={18}/></span><input aria-label="Rechercher un site" className="input !pl-11" type="search" placeholder="Rechercher un site..." value={search} onChange={(e) => setSearch(e.target.value)}/></div>}
+          <div><h2 className="ml-section-heading text-[26px] sm:text-[32px]">Mes sites</h2><p className="mt-2 text-[13px] text-[#8f9bb0]">Choisissez un projet pour explorer ses statistiques.</p></div>
+          {sites && sites.length > 3 && <div className="relative w-full sm:w-72"><span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9eaac0]"><UiIcon name="search" size={18}/></span><input aria-label="Rechercher un site" className="input !pl-11" type="search" placeholder="Rechercher un site..." value={search} onChange={(e) => setSearch(e.target.value)}/></div>}
         </div>
 
         {loadError && <div className="ml-panel mt-5 p-5" role="alert"><p className="text-sm text-red-700">{loadError}</p><button className="btn mt-4" onClick={() => setAttempt(n => n + 1)}>Réessayer</button></div>}
@@ -75,20 +75,20 @@ export function Sites() {
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visibleSites?.map((site) => (
-            <button key={site.id} onClick={() => navigate('/site/' + site.id)} className="ml-panel group flex min-h-[230px] flex-col p-6 text-left transition-all duration-200 hover:-translate-y-1 hover:border-[#e6d2c4] hover:shadow-[0_18px_50px_rgba(48,36,26,.08)]">
+            <button key={site.id} onClick={() => navigate('/site/' + site.id)} className="ml-panel group flex min-h-[230px] flex-col p-6 text-left transition-all duration-200 hover:-translate-y-1 hover:border-[#cbd5ff] hover:shadow-[0_18px_50px_rgba(48,36,26,.08)]">
               <div className="flex items-start justify-between gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-[15px] border border-[#eee7e0] bg-[#f8f5f1]"><Favicon domain={site.domain} size={25} /></span>
-                <span className="flex items-center gap-1.5 rounded-full border border-[#e6eee6] bg-[#f6faf5] px-2.5 py-1.5 text-[11px] font-semibold text-[#658a72]"><i className={'inline-block h-1.5 w-1.5 rounded-full ' + (site.online ? 'animate-pulse bg-[#55b889]' : 'bg-[#aebbb2]')} />{site.online ?? 0} en ligne</span>
+                <span className="flex h-11 w-11 items-center justify-center rounded-[15px] border border-[#e8edf5] bg-[#f8faff]"><Favicon domain={site.domain} size={25} /></span>
+                <span className="flex items-center gap-1.5 rounded-full border border-[#daf2e6] bg-[#f1fbf6] px-2.5 py-1.5 text-[11px] font-semibold text-[#218b68]"><i className={'inline-block h-1.5 w-1.5 rounded-full ' + (site.online ? 'animate-pulse bg-[#1dbb88]' : 'bg-[#b0bccc]')} />{site.online ?? 0} en ligne</span>
               </div>
-              <div className="mt-4 min-w-0"><p className="truncate text-lg font-semibold tracking-tight">{site.name}</p><p className="mt-1 truncate text-[12px] text-[#958a80]">{site.domain}</p></div>
-              <div className="mt-auto flex items-end justify-between border-t border-[#f0ebe6] pt-5">
-                <div><p className="text-[27px] font-semibold leading-none tracking-[-.055em]">{fmtNumber(site.visitors24h ?? 0)}</p><p className="mt-1.5 text-[11px] text-[#9f958b]">Visiteurs sur 24 heures</p></div>
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#fdf2eb] text-[#cc805f] transition-all group-hover:bg-[#df795c] group-hover:text-white"><UiIcon name="arrow-up-right" size={18}/></span>
+              <div className="mt-4 min-w-0"><p className="truncate text-lg font-semibold tracking-tight">{site.name}</p><p className="mt-1 truncate text-[12px] text-[#8b97ab]">{site.domain}</p></div>
+              <div className="mt-auto flex items-end justify-between border-t border-[#e9edf5] pt-5">
+                <div><p className="text-[27px] font-semibold leading-none tracking-[-.055em]">{fmtNumber(site.visitors24h ?? 0)}</p><p className="mt-1.5 text-[11px] text-[#96a3b6]">Visiteurs sur 24 heures</p></div>
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#edf1ff] text-[#4f62ef] transition-all group-hover:bg-[#4f62ef] group-hover:text-white"><UiIcon name="arrow-up-right" size={18}/></span>
               </div>
             </button>
           ))}
 
-          {sites && sites.length > 0 && <button onClick={() => setAdding(true)} className="group flex min-h-[230px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#dfd2c6] bg-[#f9f6f2] p-7 text-center transition hover:border-[#cf9d85] hover:bg-[#fdf4eb]"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f0e8e0] text-[#bb8b71] transition group-hover:bg-[#f8dfcf]"><UiIcon name="plus" size={23}/></span><h3 className="mt-4 font-semibold">Connecter un autre site</h3><p className="mt-1 max-w-[210px] text-[12px] leading-relaxed text-[#96877b]">Une installation légère. Des données vraiment utiles.</p></button>}
+          {sites && sites.length > 0 && <button onClick={() => setAdding(true)} className="group flex min-h-[230px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#dae2f6] bg-[#f8faff] p-7 text-center transition hover:border-[#b7c6ff] hover:bg-[#f2f5ff]"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e9efff] text-[#5970e8] transition group-hover:bg-[#dee6ff]"><UiIcon name="plus" size={23}/></span><h3 className="mt-4 font-semibold">Connecter un autre site</h3><p className="mt-1 max-w-[210px] text-[12px] leading-relaxed text-[#8693a7]">Une installation légère. Des données vraiment utiles.</p></button>}
 
           {sites && sites.length === 0 && <section className="ml-panel col-span-full overflow-hidden p-6 sm:p-10">
             <div className="ml-kicker">BIENVENUE DANS MINILYTICS</div>
@@ -99,10 +99,10 @@ export function Sites() {
                 ['Connectez votre site', 'Entrez votre domaine et choisissez vos réglages.'],
                 ['Installez le script', 'Copiez le code de suivi dans votre site.'],
                 ['Explorez les visites', 'Regardez les premières statistiques arriver.'],
-              ].map(([title, detail], index) => <li key={title}><span className="font-mono text-[12px] font-semibold text-[#d98e6f]">0{index+1} /</span><h3 className="mt-3 font-semibold">{title}</h3><p className="mt-2 text-[13px] leading-relaxed text-[#92867b]">{detail}</p></li>)}
+              ].map(([title, detail], index) => <li key={title}><span className="font-mono text-[12px] font-semibold text-[#5f72ed]">0{index+1} /</span><h3 className="mt-3 font-semibold">{title}</h3><p className="mt-2 text-[13px] leading-relaxed text-[#8895ab]">{detail}</p></li>)}
             </ol>
             <button className="btn-dark mt-9" onClick={() => setAdding(true)}>Connecter mon premier site <UiIcon name="arrow-right" size={17}/></button>
-            <p className="mt-3 text-[11px] text-[#a79c91]">Les statistiques apparaissent après l'installation du script de suivi.</p>
+            <p className="mt-3 text-[11px] text-[#a5afc1]">Les statistiques apparaissent après l'installation du script de suivi.</p>
           </section>}
 
           {sites && sites.length > 0 && visibleSites?.length === 0 && <p className="col-span-full py-10 text-sm text-[#968a80]">Aucun site ne correspond à « {search} ».</p>}
