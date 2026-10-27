@@ -5,7 +5,7 @@ import { DEMO_SITE_ID, ensureDemoSite } from './demo.js';
 import { isBot, parseUA } from './lib/ua.js';
 import { creditedSessionSql } from './payments.js';
 
-const TYPES = new Set(['pageview', 'goal', 'outbound', 'ping', 'identify']);
+const TYPES = new Set(['pageview', 'goal', 'outbound', 'ping', 'identify', 'scroll', 'engagement', 'click', 'form']);
 const MAX_PING_MS = 10 * 60_000;
 
 interface Payload {
@@ -187,6 +187,36 @@ export async function ingest(
     stmts.push(
       db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
       insertEvent(db, site.id, sid, vid, now, 'outbound', target, path, null),
+    );
+  } else if (t === 'scroll') {
+    // The browser only sends milestones once per pageview. Validate the fixed whitelist.
+    if (!['25', '50', '75', '90', '100'].includes(body.n ?? '')) return;
+    stmts.push(
+      db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
+      insertEvent(db, site.id, sid, vid, now, 'scroll', body.n!, path, null),
+    );
+  } else if (t === 'engagement') {
+    // Small incremental foreground-active durations; bounded to avoid tampering.
+    const ms = Number(body.n);
+    if (!Number.isSafeInteger(ms) || ms < 1000 || ms > 60000) return;
+    stmts.push(
+      db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
+      insertEvent(db, site.id, sid, vid, now, 'engagement', String(ms), path, null),
+    );
+  } else if (t === 'click') {
+    // Only same-origin destination paths are recorded; strip search/hash and avoid form contents.
+    const target = clip(body.n, 200);
+    if (!target || !target.startsWith('/') || target.startsWith('//') || target.includes('?') || target.includes('#')) return;
+    stmts.push(
+      db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
+      insertEvent(db, site.id, sid, vid, now, 'click', normalizePath(target), path, null),
+    );
+  } else if (t === 'form') {
+    // Form submission names are explicitly chosen by the website owner.
+    if (!body.n || !/^[a-zA-Z0-9_-]{1,64}$/.test(body.n)) return;
+    stmts.push(
+      db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
+      insertEvent(db, site.id, sid, vid, now, 'form', body.n, path, null),
     );
   }
   await db.batch(stmts);
