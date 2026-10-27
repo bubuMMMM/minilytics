@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { navigate } from '../App';
 import { GoalsPanel } from '../components/GoalsPanel';
 import { LiveGlobe } from '../components/LiveGlobe';
+import { EngagementPanel } from '../components/EngagementPanel';
 import { Logo } from '../components/Logo';
 import { UiIcon } from '../components/UiIcon';
 import { OverviewCard } from '../components/OverviewCard';
@@ -113,6 +114,14 @@ export function Dashboard({ siteId }: { siteId: string }) {
           <OverviewCard data={overview} />
         </div>
 
+        <section className="mt-7 scroll-mt-[110px]" aria-label="Analyse comportementale">
+          <div className="mb-5">
+            <div className="ml-kicker">COMPORTEMENT / ENGAGEMENT</div>
+            <h2 className="mt-2 text-[clamp(1.6rem,3vw,2.25rem)] font-semibold tracking-[-.045em]">Découvrez comment vos pages sont parcourues<span className="text-[#4f62ef]">.</span></h2>
+            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-[#8290a3]">Scroll, temps actif réel, liens cliqués et pages de fin de session — filtrés sur la même période et les mêmes segments que vos statistiques.</p>
+          </div>
+          <EngagementPanel siteId={siteId} query={q} reloadKey={reloadKey}/>
+        </section>
         <LiveGlobe siteId={siteId} />
 
         <div className="mt-5 grid gap-5 lg:grid-cols-2">

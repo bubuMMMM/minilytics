@@ -3,6 +3,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { navigate } from '../App';
 import { Logo } from '../components/Logo';
 import { LiveGlobe } from '../components/LiveGlobe';
+import { EngagementPanel } from '../components/EngagementPanel';
 import { MetricTile, SegmentedTabs, StatusPill } from '../components/StudioUI';
 import { UiIcon } from '../components/UiIcon';
 
@@ -93,6 +94,7 @@ export function PublicDemo() {
           <a href="#analytics" className="hover:text-[#4f62ef]">Dashboard</a>
           <a href="#globe" className="hover:text-[#4f62ef]">Live Globe</a>
           <a href="#insights" className="hover:text-[#4f62ef]">Insights</a>
+          <a href="#engagement" className="hover:text-[#4f62ef]">Comportement</a>
         </nav>
         <div className="flex items-center gap-2.5">
           <span className="hidden md:inline-flex"><StatusPill active>Démo en direct</StatusPill></span>
@@ -186,6 +188,11 @@ export function PublicDemo() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section id="engagement" className="scroll-mt-[104px] pt-20">
+        <SectionHeading eyebrow="04 / BEHAVIOR" title="Ce que font vraiment vos visiteurs." description="Profondeur de scroll, temps actif, pages consultées, clics internes et formulaires. Des mesures enregistrées, jamais inventées."/>
+        <EngagementPanel days={days}/>
       </section>
 
       <section id="globe" className="scroll-mt-[104px] pt-20">
