@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
+
 type IconName = 'arrow-up-right' | 'arrow-right' | 'activity' | 'eye' | 'users' | 'clock' | 'refresh' | 'globe' | 'mouse' | 'target' | 'layers' | 'check' | 'plus' | 'logout' | 'search' | 'shield' | 'bar-chart' | 'sparkles' | 'external' | 'calendar' | 'menu' | 'chevron-down' | 'link';
 
 export function UiIcon({ name, size = 20, className = '' }: { name: IconName; size?: number; className?: string }) {
   const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
-  const paths: Record<IconName, React.ReactNode> = {
+  const paths: Record<IconName, ReactNode> = {
     'arrow-up-right': <><path d="M7 17 17 7M8 7h9v9"/></>,
     'arrow-right': <><path d="M4 12h16m-7-7 7 7-7 7"/></>,
     activity: <><path d="M3 12h4l3-7 4 14 3-7h4"/></>,

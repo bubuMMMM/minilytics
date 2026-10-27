@@ -123,7 +123,7 @@ export function Toolbar({
             <button className={itemCls(false)} onClick={() => navigate(`/site/${site.id}/settings`)}>
               ⚙️ Site settings & install
             </button>
-            <button className={itemCls(false)} onClick={() => navigate('/')}>
+            <button className={itemCls(false)} onClick={() => navigate('/sites')}>
               ＋ All websites
             </button>
           </>
