@@ -8,6 +8,10 @@
   var siteId = script.getAttribute('data-website-id');
   var endpoint = script.getAttribute('data-api') || new URL(script.src).origin + '/api/event';
   var allowLocal = script.hasAttribute('data-allow-localhost');
+  var excludedPaths = (script.getAttribute('data-exclude-paths') || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
+  function isExcluded() {
+    return excludedPaths.some(function (p) { return loc.pathname === p || loc.pathname.indexOf(p + '/') === 0; });
+  }
   var cookieDomain = script.getAttribute('data-domain');
   var VID = 'ml_vid', SID = 'ml_sid', YEAR = 31536000, SESSION = 1800;
 
@@ -95,6 +99,7 @@
     } catch (e) { return ''; }
   }
   function send(type, extra, beacon) {
+    if (isExcluded()) return;
     var id = ids();
     var body = { w: siteId, t: type, u: cleanUrl(loc.href), vid: id.vid, sid: id.sid, sw: w.screen ? screen.width : 0 };
     for (var k in extra) if (extra[k] !== undefined) body[k] = extra[k];

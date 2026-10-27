@@ -27,6 +27,7 @@ export function Sites() {
   async function logout() {
     await api('/api/auth/logout', { method: 'POST' });
     window.dispatchEvent(new Event('ml:logout'));
+    navigate('/');
   }
 
   return (

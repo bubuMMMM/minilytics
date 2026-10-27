@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 import { classify } from '../shared/sources.js';
 import { getSite, type AppEnv, type Site } from './env.js';
+import { DEMO_SITE_ID, ensureDemoSite } from './demo.js';
 import { isBot, parseUA } from './lib/ua.js';
 import { creditedSessionSql } from './payments.js';
 
@@ -73,6 +74,8 @@ export async function handleEvent(c: Context<AppEnv>) {
   const ua = c.req.header('user-agent') ?? '';
   if (isBot(ua)) return c.body(null, 202);
 
+  // The public demo provisions itself once, so first-time visits are real, not seeded data.
+  if (body.w === DEMO_SITE_ID) await ensureDemoSite(c.env.DB);
   const site = await getSite(c.env.DB, body.w);
   if (!site) return c.body(null, 404);
 
