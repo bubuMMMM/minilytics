@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { navigate } from '../App';
 import { Logo } from '../components/Logo';
 import { LiveGlobe } from '../components/LiveGlobe';
+import { MetricTile, SegmentedTabs, StatusPill } from '../components/StudioUI';
 import { UiIcon } from '../components/UiIcon';
 
 type Group = { label: string; value: number };
@@ -22,261 +23,191 @@ interface LiveData {
   devices: Group[];
 }
 
-const number = (value: number) => new Intl.NumberFormat('fr-FR').format(value);
-const dateLabel = (date: string) => new Date(date + 'T12:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-const timeLabel = (stamp: number) => new Date(stamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-function duration(ms: number) {
-  if (!ms) return '0 s';
-  const seconds = Math.round(ms / 1000);
-  return seconds < 60 ? seconds + ' s' : Math.floor(seconds / 60) + ' min ' + (seconds % 60) + ' s';
-}
+const nf = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
+const dateLabel = (value: string) => new Date(value + 'T12:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const timeLabel = (value: number) => new Date(value).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+const duration = (ms: number) => {
+  const s = Math.round(ms / 1000);
+  return s < 60 ? s + ' s' : Math.floor(s / 60) + ' min ' + (s % 60) + ' s';
+};
 
-function SectionLabel({ index, label }: { index: string; label: string }) {
-  return <div className="ml-kicker"><span className="font-mono text-[#c8a396]">{index} /</span>{label}</div>;
-}
-
-function PreviewBars({ series }: { series: LiveData['series'] | undefined }) {
-  const days = series?.slice(-12) ?? [];
-  const max = Math.max(1, ...days.map((v) => v.visitors));
-  return <div className="flex h-[112px] items-end justify-between gap-2 sm:h-[132px]" aria-label="Aperçu des visites journalières">
-    {days.length ? days.map((day, i) => (
-      <div key={day.date} className="group relative flex h-full min-w-0 flex-1 items-end" title={dateLabel(day.date) + ' · ' + number(day.visitors) + ' visiteur(s)'}>
-        <div className={'w-full rounded-t-[5px] transition-colors ' + (i === days.length - 1 ? 'bg-[#df795c]' : 'bg-[#e9b6a2] group-hover:bg-[#dd9579]')} style={{ height: (Math.max(3, day.visitors / max * 100)) + '%', minHeight: 3 }} />
+function InsightPanel({ title, subtitle, icon, rows, empty }: { title: string; subtitle: string; icon: 'link'|'eye'|'layers'; rows: Group[]; empty: string }) {
+  const highest = Math.max(1, ...rows.map((r) => r.value));
+  const total = rows.reduce((n, r) => n + r.value, 0);
+  return (
+    <article className="ml-bento flex min-w-0 flex-col p-5 sm:p-6">
+      <div className="flex items-start justify-between">
+        <div><h3 className="text-[15px] font-semibold tracking-tight text-[#182238]">{title}</h3><p className="mt-1 text-xs text-[#8c9ab0]">{subtitle}</p></div>
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f3f5ff] text-[#596af0]"><UiIcon name={icon} size={18}/></span>
       </div>
-    )) : Array.from({ length: 12 }, (_, i) => <div key={i} className="ml-loading h-12 flex-1 rounded-t-[5px]" />)}
+      <div className="mt-6 flex-1 space-y-5">
+        {rows.length ? rows.slice(0, 6).map((row, index) => <div key={row.label + index}>
+          <div className="mb-2 flex min-w-0 items-center justify-between gap-3 text-xs"><span className="min-w-0 truncate font-medium text-[#46546c]" title={row.label}>{row.label}</span><span className="shrink-0 tabular-nums text-[#7c8aa2]">{nf(row.value)} <span className="ml-1 text-[#b1bdcf]">/ {total ? Math.round(row.value / total * 100) : 0}%</span></span></div>
+          <div className="ml-progress"><div style={{width: Math.max(2, row.value / highest * 100) + '%'}} /></div>
+        </div>) : <div className="flex min-h-[130px] flex-col items-center justify-center rounded-xl border border-dashed border-[#e4eaf5] bg-[#fafbff] p-5 text-center"><UiIcon name={icon} size={22} className="mb-3 text-[#b1c0e1]"/><p className="max-w-[230px] text-xs leading-relaxed text-[#95a2b7]">{empty}</p></div>}
+      </div>
+      <div className="mt-7 border-t border-[#edf0f6] pt-4 text-[11px] text-[#a2adbd]">Sur la période sélectionnée</div>
+    </article>
+  );
+}
+
+function SectionHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: ReactNode }) {
+  return <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <span className="ml-mini-label text-[#5870e8]">{eyebrow}</span>
+      <h2 className="ml-section-head mt-2 text-[#111c35]">{title}</h2>
+      <p className="mt-2 max-w-[620px] text-[13px] leading-relaxed text-[#8390a5]">{description}</p>
+    </div>
+    {action}
   </div>;
 }
 
-function Breakdown({ title, detail, icon, rows, empty }: { title: string; detail: string; icon: 'link' | 'layers' | 'eye'; rows: Group[]; empty: string }) {
-  const largest = Math.max(1, ...rows.map((r) => r.value));
-  const total = rows.reduce((sum, row) => sum + row.value, 0);
-  return (
-    <section className="ml-panel flex h-full min-w-0 flex-col p-5 sm:p-7">
-      <div className="flex items-start justify-between gap-3">
-        <div><h3 className="text-[17px] font-semibold tracking-[-.025em]">{title}</h3><p className="mt-1 text-xs text-[#9c958d]">{detail}</p></div>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] border border-[#f1e8e0] bg-[#fcf7f2] text-[#b97b62]"><UiIcon name={icon} size={19} /></div>
-      </div>
-      <div className="mt-7 flex-1 space-y-[18px]">
-        {rows.length ? rows.slice(0, 6).map((r, i) => (
-          <div key={r.label + i}>
-            <div className="mb-2 flex items-center justify-between gap-3 text-[13px]">
-              <span className="min-w-0 truncate font-medium text-[#46403b]" title={r.label}>{r.label}</span>
-              <span className="flex shrink-0 items-center gap-3 tabular-nums"><span className="text-[#b1a9a0]">{total ? Math.round(r.value / total * 100) : 0}%</span><span className="min-w-[19px] text-right font-semibold">{number(r.value)}</span></span>
-            </div>
-            <div className="ml-progress"><div style={{ width: Math.max(2, r.value / largest * 100) + '%' }} /></div>
-          </div>
-        )) : <div className="flex min-h-[180px] flex-col items-center justify-center rounded-[16px] border border-dashed border-[#eee7df] bg-[#fcfaf8] p-6 text-center">
-          <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f3eae2] text-[#af8b75]"><UiIcon name="bar-chart" size={18}/></span>
-          <p className="max-w-[195px] text-[13px] leading-relaxed text-[#958c83]">{empty}</p>
-        </div>}
-      </div>
-      <div className="mt-7 flex items-center justify-between border-t border-[#f2eeea] pt-4 text-[11px] font-medium text-[#a49b93]"><span>Répartition du trafic</span><span>Données réelles</span></div>
-    </section>
-  );
-}
-
 export function PublicDemo() {
-  const [days, setDays] = useState<7 | 30>(7);
-  const [data, setData] = useState<LiveData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [days, setDays] = useState<7|30>(7);
+  const [data, setData] = useState<LiveData|null>(null);
+  const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
-  const [retry, setRetry] = useState(0);
-
-  const refresh = useCallback(() => setRetry((v) => v + 1), []);
+  const [reload, setReload] = useState(0);
+  const refresh = useCallback(() => setReload(n => n + 1), []);
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true); setError('');
+    setBusy(true);setError('');
     fetch('/api/public/demo?days=' + days, { signal: controller.signal, cache: 'no-store' })
-      .then(async (r) => { if (!r.ok) throw new Error('Statistiques temporairement indisponibles (' + r.status + ').'); return r.json() as Promise<LiveData>; })
-      .then((d) => { if (!controller.signal.aborted) setData(d); })
-      .catch((e: Error) => { if (!controller.signal.aborted) setError(e.message || 'Impossible de récupérer les statistiques.'); })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+      .then(async r => {if(!r.ok) throw new Error('Statistiques indisponibles (' + r.status + ')');return r.json() as Promise<LiveData>;})
+      .then(value => {if(!controller.signal.aborted)setData(value);})
+      .catch((e: Error) => {if(!controller.signal.aborted)setError(e.message || 'Erreur de chargement.');})
+      .finally(() => {if(!controller.signal.aborted)setBusy(false);});
     return () => controller.abort();
-  }, [days, retry]);
+  }, [days, reload]);
+  useEffect(() => {const t=window.setInterval(() => {if(document.visibilityState==='visible')refresh();},30000);return () => window.clearInterval(t);},[refresh]);
+  const view = data?.days===days ? data : null;
+  const visitorSeries = view?.series.map(d=>d.visitors) || [];
+  const pageSeries = view?.series.map(d=>d.pageviews) || [];
+  const change = view?.previous.visitors ? Math.round((view.current.visitors-view.previous.visitors)/view.previous.visitors*100) : null;
 
-  useEffect(() => {
-    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 30000);
-    return () => window.clearInterval(timer);
-  }, [refresh]);
+  return <div className="min-h-screen bg-white text-[#111827]">
+    <header className="sticky top-0 z-50 border-b border-[#ecf0f6] bg-white/95 backdrop-blur-xl">
+      <div className="mx-auto flex h-[76px] max-w-[1370px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
+        <a href="/" aria-label="Minilytics — accueil"><Logo /></a>
+        <nav className="hidden items-center gap-8 text-[13px] font-medium text-[#7a889e] lg:flex" aria-label="Navigation principale">
+          <a href="#analytics" className="hover:text-[#4f62ef]">Dashboard</a>
+          <a href="#globe" className="hover:text-[#4f62ef]">Live Globe</a>
+          <a href="#insights" className="hover:text-[#4f62ef]">Insights</a>
+        </nav>
+        <div className="flex items-center gap-2.5">
+          <span className="hidden md:inline-flex"><StatusPill active>Démo en direct</StatusPill></span>
+          <button onClick={()=>navigate('/admin')} className="btn-dark h-[42px] px-4">Ouvrir mon espace <UiIcon name="arrow-up-right" size={16}/></button>
+        </div>
+      </div>
+    </header>
 
-  const view = data?.days === days ? data : null;
-  const change = view?.previous.visitors ? Math.round(((view.current.visitors - view.previous.visitors) / view.previous.visitors) * 100) : null;
-  const metrics = [
-    { label: 'Visiteurs uniques', value: view ? number(view.current.visitors) : '—', detail: 'Personnes distinctes', icon: 'users' as const, index: '01' },
-    { label: 'Pages vues', value: view ? number(view.current.pageviews) : '—', detail: 'Pages consultées', icon: 'eye' as const, index: '02' },
-    { label: 'Sessions', value: view ? number(view.current.sessions) : '—', detail: 'Visites enregistrées', icon: 'layers' as const, index: '03' },
-    { label: 'Temps moyen', value: view ? duration(view.current.avgDurationMs) : '—', detail: 'Durée par session', icon: 'clock' as const, index: '04' },
-  ];
+    <main className="mx-auto max-w-[1370px] px-5 pb-14 sm:px-8 lg:px-10">
+      <section className="grid items-center gap-10 border-b border-[#ecf0f6] pb-14 pt-14 lg:grid-cols-[1.08fr_.92fr] lg:gap-14 lg:pb-20 lg:pt-20">
+        <div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#e8edff] bg-[#f7f8ff] px-3 py-2 text-[11px] font-semibold text-[#586ae8]"><UiIcon name="sparkles" size={15}/> Analytics nouvelle génération <span className="ml-1 text-[#bac4e6]">/ 2026</span></span>
+          <h1 className="mt-7 max-w-[730px] text-[clamp(3rem,6.8vw,5.95rem)] font-semibold leading-[1.025] tracking-[-.073em] text-[#101a32]">Vos données.<br/><span className="text-[#4f62ef]">Enfin claires.</span></h1>
+          <p className="mt-6 max-w-[530px] text-[15px] leading-[1.85] text-[#748197] sm:text-[17px]">Comprenez qui visite votre site, d'où vient votre trafic et ce qui fonctionne. Un tableau de bord précis, épuré et vivant.</p>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <a href="#analytics" className="btn-dark !h-[49px] !px-5">Explorer les statistiques <UiIcon name="arrow-right" size={17}/></a>
+            <a href="#globe" className="btn !h-[49px] !px-5"><UiIcon name="globe" size={17}/> Voir le globe live</a>
+          </div>
+          <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 text-[12px] font-medium text-[#8290a5]"><span className="inline-flex items-center gap-2"><UiIcon name="check" size={16} className="text-[#1faf8b]"/> Des données réelles</span><span className="inline-flex items-center gap-2"><UiIcon name="refresh" size={16} className="text-[#5f74e9]"/> Mis à jour automatiquement</span></div>
+        </div>
 
-  return (
-    <div className="ml-site-bg min-h-screen text-[#26221e]">
-      <header className="sticky top-0 z-50 border-b border-[#ebe6e0]/85 bg-[#faf9f6]/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-[75px] max-w-[1380px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-12">
-          <a href="/" aria-label="Minilytics — Accueil" className="shrink-0"><Logo /></a>
-          <nav aria-label="Navigation principale" className="hidden items-center gap-8 text-[13px] font-medium text-[#77716b] lg:flex">
-            <a href="#analytics" className="transition hover:text-[#26221e]">Vue d'ensemble</a>
-            <a href="#live-globe" className="transition hover:text-[#26221e]">Globe en direct</a>
-            <a href="#insights" className="transition hover:text-[#26221e]">Insights</a>
-          </nav>
-          <div className="flex shrink-0 items-center gap-3">
-            <span className="hidden items-center gap-2 text-[12px] font-medium text-[#888076] md:flex"><span className="h-2 w-2 rounded-full bg-[#4ba886] shadow-[0_0_0_4px_#e2f3ea]" />Live demo</span>
-            <button onClick={() => navigate('/admin')} className="btn-dark h-10 px-3.5 sm:px-5">Espace privé <UiIcon name="arrow-up-right" size={16}/></button>
+        <div className="relative min-w-0 lg:pl-4">
+          <div className="absolute -left-4 -right-4 -top-4 -bottom-4 rounded-[32px] bg-[#f8faff] lg:-left-0"/>
+          <div className="ml-bento relative overflow-hidden bg-white p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-2 border-b border-[#edf0f7] pb-5">
+              <div className="flex items-center gap-2.5"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5064ec]"><UiIcon name="activity" size={19}/></span><div><div className="text-[13px] font-semibold">Aperçu en direct</div><p className="text-[11px] text-[#a0aec0]">minilytics-six.vercel.app</p></div></div>
+              <StatusPill active>LIVE</StatusPill>
+            </div>
+            <div className="mt-7">
+              <p className="text-[12px] font-medium text-[#8190a6]">Visiteurs uniques · {days} derniers jours</p>
+              <div className="mt-2 flex flex-wrap items-end gap-3"><span className="text-[clamp(3.4rem,6vw,5.2rem)] font-semibold leading-none tracking-[-.083em] tabular-nums text-[#131e35]">{view?nf(view.current.visitors):'—'}</span>{change!==null&&<span className={'mb-2 rounded-lg px-2 py-1 text-xs font-semibold '+(change>=0?'bg-[#ebfbf5] text-[#169469]':'bg-[#fff2f2] text-[#c3525f]')}>{change>=0?'+':''}{change}%</span>}</div>
+            </div>
+            <div className="relative mt-6 h-[150px] sm:h-[175px]">
+              {view ? <ResponsiveContainer width="100%" height="100%"><AreaChart data={view.series} margin={{top:8,right:0,left:0,bottom:2}}>
+                <defs><linearGradient id="preview-blue" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#7186f9" stopOpacity=".25"/><stop offset="100%" stopColor="#7186f9" stopOpacity="0"/></linearGradient></defs>
+                <Area type="monotone" dataKey="visitors" stroke="#5065ef" strokeWidth={2.7} fill="url(#preview-blue)" dot={false} activeDot={{r:4}} isAnimationActive={false}/>
+              </AreaChart></ResponsiveContainer> : <div className="ml-loading h-full rounded-xl"/>}
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-3 border-t border-[#edf0f7] pt-5">
+              {[
+                { label: 'En ligne',value:view?.online??null },
+                { label: '24 heures',value:view?.last24h.visitors??null },
+                { label: 'Sessions',value:view?.current.sessions??null },
+              ].map(item=><div key={item.label} className="border-r border-[#edf0f7] last:border-none"><p className="text-[11px] text-[#9aa8bc]">{item.label}</p><p className="mt-1 text-xl font-semibold tracking-[-.04em] tabular-nums">{item.value===null?'—':nf(item.value)}</p></div>)}
+            </div>
+          </div>
+          <span className="absolute -bottom-5 right-4 hidden items-center gap-2 rounded-xl border border-[#e8edf7] bg-white px-4 py-3 text-[11px] font-semibold text-[#586b8b] shadow-[0_9px_25px_rgba(28,47,99,.065)] sm:flex"><UiIcon name="shield" size={16} className="text-[#5268ee]"/> Pas de trafic fictif</span>
+        </div>
+      </section>
+
+      <section id="analytics" className="scroll-mt-[104px] pt-16 sm:pt-20">
+        <SectionHeading eyebrow="01 / OVERVIEW" title="Votre tableau de bord" description="Toutes les métriques importantes, en un coup d'œil." action={<StatusPill active>Statistiques réelles</StatusPill>}/>
+        <div className="ml-bento flex flex-wrap items-center justify-between gap-4 px-4 py-3.5 sm:px-5">
+          <div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef2ff] text-[#5165e7]"><UiIcon name="globe" size={20}/></span><div className="min-w-0"><div className="truncate text-[13px] font-semibold">minilytics-six.vercel.app</div><div className="mt-0.5 text-[11px] text-[#9ba8bb]">Dernière actualisation {view?timeLabel(view.updatedAt):'en cours...'}</div></div></div>
+          <div className="flex items-center gap-2"><SegmentedTabs value={days} options={[{value:7,label:'7 jours'},{value:30,label:'30 jours'}]} onChange={setDays} label="Période analysée"/><button className="btn !h-[40px] !w-[40px] !p-0" aria-label="Rafraîchir les données" onClick={refresh} disabled={busy}><UiIcon name="refresh" size={17} className={busy?'animate-spin':''}/></button></div>
+        </div>
+        {error && <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert"><span>{error}</span><button className="btn" onClick={refresh}>Réessayer</button></div>}
+        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4" aria-busy={busy}>
+          <MetricTile focus label="Visiteurs uniques" value={view?nf(view.current.visitors):'—'} caption={'Sur '+days+' jours'} icon="users" number="01" series={visitorSeries}/>
+          <MetricTile label="Pages vues" value={view?nf(view.current.pageviews):'—'} caption="Pages consultées" icon="eye" number="02" series={pageSeries}/>
+          <MetricTile label="Sessions" value={view?nf(view.current.sessions):'—'} caption="Visites enregistrées" icon="layers" number="03"/>
+          <MetricTile label="Durée moyenne" value={view?duration(view.current.avgDurationMs):'—'} caption="Temps par session" icon="clock" number="04"/>
+        </div>
+
+        <div className="mt-4 grid items-stretch gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,.82fr)]">
+          <div className="ml-bento min-w-0 p-5 sm:p-7">
+            <div className="flex flex-wrap items-center justify-between gap-4"><div><h3 className="text-[16px] font-semibold tracking-tight">Évolution du trafic</h3><p className="mt-1 text-xs text-[#96a3b6]">Visiteurs uniques par jour · UTC</p></div><span className="inline-flex items-center gap-2 rounded-full bg-[#f1f4ff] px-3 py-1.5 text-xs font-semibold text-[#6071d8]"><i className="h-2 w-2 rounded-full bg-[#5166f1]"/>Visiteurs</span></div>
+            <div className="mt-7 h-[265px] sm:h-[320px]">
+              {view?<ResponsiveContainer width="100%" height="100%"><AreaChart data={view.series} margin={{top:8,right:8,left:-23,bottom:0}}>
+                <defs><linearGradient id="analytics-blue" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#5b75ef" stopOpacity=".23"/><stop offset="100%" stopColor="#5b75ef" stopOpacity="0"/></linearGradient></defs>
+                <CartesianGrid stroke="#eef2f8" strokeDasharray="3 5" vertical={false}/><XAxis dataKey="date" tickFormatter={dateLabel} tick={{fontSize:11,fill:'#9caabd'}} axisLine={false} tickLine={false} minTickGap={20}/><YAxis allowDecimals={false} tick={{fontSize:11,fill:'#9caabd'}} axisLine={false} tickLine={false}/>
+                <Tooltip contentStyle={{border:'1px solid #e5eaf3',borderRadius:12,boxShadow:'0 12px 38px rgba(28,44,88,.09)',color:'#233048'}} labelFormatter={v=>dateLabel(String(v))} formatter={value=>[nf(Number(value??0)),'Visiteurs']}/>
+                <Area type="monotone" dataKey="visitors" stroke="#4f62ef" strokeWidth={2.7} fill="url(#analytics-blue)" dot={false} activeDot={{r:5,stroke:'#fff',strokeWidth:2}} isAnimationActive={false}/>
+              </AreaChart></ResponsiveContainer>:<div className="ml-loading h-full rounded-xl"/>}
+            </div>
+            <div className="mt-3 flex items-center justify-between border-t border-[#edf0f6] pt-4 text-[11px] text-[#9aa7ba]"><span>Données collectées en continu</span><span>{days} jours sélectionnés</span></div>
+          </div>
+          <div className="ml-bento min-w-0 p-5 sm:p-7">
+            <div className="flex items-center justify-between"><div><h3 className="text-[16px] font-semibold tracking-tight">Temps réel</h3><p className="mt-1 text-xs text-[#96a3b6]">Activité du site</p></div><StatusPill active>EN DIRECT</StatusPill></div>
+            <div className="relative mt-6 overflow-hidden rounded-[16px] border border-[#e8ecff] bg-[#f7f9ff] px-5 py-6">
+              <span className="text-xs font-medium text-[#8592ad]">Visiteurs actifs maintenant</span><p className="mt-1 flex items-center gap-3 text-[58px] font-semibold leading-tight tracking-[-.07em] tabular-nums text-[#1f2d7d]"><span className="ml-dot-live"/>{view?nf(view.online):'—'}</p>
+              <span className="text-[11px] text-[#9ba9c2]">Sur les 5 dernières minutes</span>
+              <div className="pointer-events-none absolute -bottom-8 -right-4 h-[155px] w-[155px] rounded-full border-[18px] border-[#e7ecff] opacity-80"/>
+            </div>
+            <div className="mt-5 divide-y divide-[#edf0f6]">
+              {[
+                {label:'Visiteurs · 24 heures',value:view?.last24h.visitors??null,icon:'users' as const},
+                {label:'Clics sortants',value:view?.outboundClicks??null,icon:'mouse' as const},
+                {label:'Objectifs atteints',value:view?.goals??null,icon:'target' as const},
+              ].map(item=><div key={item.label} className="flex items-center justify-between gap-4 py-4"><span className="flex items-center gap-2.5 text-[12px] text-[#758299]"><UiIcon name={item.icon} size={17} className="text-[#7181e4]"/>{item.label}</span><span className="text-[18px] font-semibold tabular-nums text-[#1d2b45]">{item.value===null?'—':nf(item.value)}</span></div>)}
+            </div>
           </div>
         </div>
-      </header>
+      </section>
 
-      <main>
-        <section className="relative mx-auto grid max-w-[1380px] items-center gap-10 px-5 pb-16 pt-14 sm:px-8 sm:pt-20 lg:grid-cols-[1.08fr_.92fr] lg:gap-20 lg:px-12 lg:pb-24 lg:pt-24">
-          <div className="relative z-10">
-            <div className="ml-kicker mb-6"><span className="ml-dot" /> LE TRAFIC. SANS LE BRUIT.</div>
-            <h1 className="ml-heading max-w-[770px] text-[clamp(3.35rem,7vw,6.3rem)]">
-              Comprends<br />chaque <span className="relative whitespace-nowrap text-[#dc795b]">visite<span className="absolute bottom-[-.08em] left-0 h-[.055em] w-full rounded-full bg-[#f1c4b0]" /></span><span className="text-[#dc795b]">.</span>
-            </h1>
-            <p className="mt-7 max-w-[510px] text-[15px] leading-[1.85] text-[#746e68] sm:text-[17px]">Des chiffres clairs. Des visiteurs bien réels. Découvre d'où vient ton audience, ce qu'elle regarde et ce qui la fait agir — sans te perdre dans tes données.</p>
-            <div className="mt-9 flex flex-wrap items-center gap-3">
-              <a href="#analytics" className="btn-dark h-[51px] px-6">Explorer le dashboard <UiIcon name="arrow-right" size={17}/></a>
-              <button className="btn h-[51px] px-6" onClick={() => navigate('/admin')}>Connecter mon site <UiIcon name="arrow-up-right" size={16}/></button>
-            </div>
-            <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-[#e9e3dc] pt-6 text-[12px] font-medium text-[#887f77]">
-              <span className="flex items-center gap-2"><UiIcon name="check" size={15} className="text-[#d07d61]" /> Données réelles</span>
-              <span className="flex items-center gap-2"><UiIcon name="refresh" size={15} className="text-[#d07d61]" /> Actualisation auto</span>
-              <span className="flex items-center gap-2"><UiIcon name="shield" size={15} className="text-[#d07d61]" /> Lecture seule</span>
-            </div>
-          </div>
+      <section id="globe" className="scroll-mt-[104px] pt-20">
+        <SectionHeading eyebrow="02 / LIVE MAP" title="Une audience sans frontières." description="La carte mondiale des connexions réelles, actualisée toutes les 15 secondes." action={<StatusPill active>Live globe</StatusPill>}/>
+        <div className="ml-live-globe"><LiveGlobe /></div>
+      </section>
 
-          <div className="relative mx-auto w-full max-w-[580px] lg:ml-auto" aria-label="Aperçu du trafic réel de Minilytics">
-            <div className="ml-hero-signal pointer-events-none absolute inset-[-52px] hidden opacity-70 sm:block" />
-            <div className="ml-hero-panel relative overflow-hidden p-5 sm:p-7">
-              <div className="ml-hero-grid pointer-events-none absolute right-0 top-0 h-48 w-full opacity-75" />
-              <div className="relative flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-[#fff0e8] text-[#dc795b]"><UiIcon name="activity" size={20}/></span>
-                  <div><p className="text-[13px] font-semibold">Minilytics en direct</p><p className="mt-1 text-[11px] text-[#a3988f]">minilytics-six.vercel.app</p></div>
-                </div>
-                <span className="rounded-full border border-[#dceee5] bg-[#eff9f2] px-3 py-1.5 text-[11px] font-semibold text-[#3e9a72]"><span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[#45b68a]" />LIVE</span>
-              </div>
-              <div className="relative mt-8 flex flex-wrap items-end justify-between gap-4">
-                <div><p className="text-[12px] font-medium text-[#92887e]">Visiteurs uniques · {days} jours</p><div className="mt-1 flex items-end gap-3"><p className="text-[clamp(3.2rem,6vw,4.4rem)] font-semibold leading-none tracking-[-.075em]">{view ? number(view.current.visitors) : '—'}</p>{change !== null && <span className={'mb-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold ' + (change >= 0 ? 'bg-[#e5f5e9] text-[#43865a]' : 'bg-[#fbe9e4] text-[#b6644d]')}>{change >= 0 ? '+' : ''}{change}%</span>}</div></div>
-                <span className="rounded-lg border border-[#eee9e3] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#887e74]">Période réelle</span>
-              </div>
-              <div className="relative mt-8 border-b border-[#ede7e1] pb-4"><PreviewBars series={view?.series} /><div className="mt-2 flex justify-between text-[10px] text-[#aaa097]"><span>{view?.series[0] ? dateLabel(view.series[0].date) : 'Début'}</span><span>{view?.series.at(-1) ? dateLabel(view.series[view.series.length - 1].date) : 'Aujourd’hui'}</span></div></div>
-              <div className="relative mt-5 grid grid-cols-3 divide-x divide-[#eee9e3]">
-                {[
-                  ['Actifs', view?.online ?? null],
-                  ['24 heures', view?.last24h.visitors ?? null],
-                  ['Sessions', view?.current.sessions ?? null],
-                ].map(([label, value]) => <div key={String(label)} className="px-3 text-center first:pl-0 last:pr-0"><p className="text-[11px] text-[#9d9187]">{label}</p><p className="mt-1 text-xl font-semibold tracking-tight">{value === null ? '—' : number(Number(value))}</p></div>)}
-              </div>
-            </div>
-            <div className="absolute -bottom-5 -right-2 hidden items-center gap-2 rounded-xl border border-[#e9e4de] bg-white px-4 py-3 text-[12px] font-semibold text-[#7e756d] shadow-[0_12px_28px_rgba(50,36,25,.09)] sm:flex"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#fff1e9] text-[#d9805f]"><UiIcon name="sparkles" size={16}/></span> De la donnée, pas des suppositions.</div>
-          </div>
-        </section>
+      <section id="insights" className="scroll-mt-[104px] pt-20">
+        <SectionHeading eyebrow="03 / INSIGHTS" title="Comprendre ce qui fonctionne." description="Les canaux qui apportent du trafic, les pages qui intéressent et les appareils utilisés."/>
+        <div className="grid gap-4 md:grid-cols-3">
+          <InsightPanel title="Acquisition" subtitle="D'où viennent les visiteurs ?" icon="link" rows={view?.sources??[]} empty="Aucune source à afficher pour l'instant."/>
+          <InsightPanel title="Pages populaires" subtitle="Les contenus les plus consultés" icon="eye" rows={view?.pages??[]} empty="Les premières pages s'afficheront ici."/>
+          <InsightPanel title="Appareils" subtitle="Répartition de l'audience" icon="layers" rows={view?.devices??[]} empty="Les données d'appareils arriveront ici."/>
+        </div>
+      </section>
 
-        <section id="analytics" className="scroll-mt-[100px] border-t border-[#eae5df] bg-[#f6f4f0]/70 py-16 sm:py-20">
-          <div className="mx-auto max-w-[1380px] px-5 sm:px-8 lg:px-12">
-            <div className="flex flex-wrap items-end justify-between gap-5">
-              <div>
-                <SectionLabel index="01" label="VUE D'ENSEMBLE" />
-                <h2 className="ml-section-heading mt-3 text-[clamp(2rem,4vw,3rem)]">Les chiffres qui comptent<span className="text-[#e07b5f]">.</span></h2>
-                <p className="mt-3 max-w-[630px] text-[14px] leading-relaxed text-[#8a827a]">Voici les vraies données collectées sur ce site. Pas de démonstration fictive.</p>
-              </div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#e2dbd4] bg-white px-3 py-2 text-[12px] font-medium text-[#857c73]"><UiIcon name="shield" size={15} /> Données publiques en lecture seule</span>
-            </div>
-
-            <div className="ml-panel mt-9 flex flex-wrap items-center justify-between gap-4 p-3 sm:px-5 sm:py-3.5">
-              <div className="flex min-w-0 items-center gap-3 pl-1">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f5ece5] text-[#cd7c5e]"><UiIcon name="globe" size={20}/></span>
-                <div className="min-w-0"><p className="truncate text-[13px] font-semibold">minilytics-six.vercel.app</p><p className="mt-0.5 text-[11px] text-[#a0978f]">Site suivi · Actualisé {view ? 'à ' + timeLabel(view.updatedAt) : 'automatiquement'}</p></div>
-              </div>
-              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-                <div className="inline-flex rounded-xl border border-[#ece6df] bg-[#f8f6f3] p-1" aria-label="Période des statistiques">
-                  {([7,30] as const).map((d) => <button key={d} className={'rounded-[9px] px-4 py-2.5 text-[12px] font-semibold transition ' + (days === d ? 'ml-pill-active' : 'ml-pill')} aria-pressed={days === d} onClick={() => setDays(d)}>{d} jours</button>)}
-                </div>
-                <button className="btn h-[43px] w-[43px] !px-0" onClick={refresh} disabled={loading} aria-label="Actualiser les données" title="Actualiser les données"><UiIcon name="refresh" size={17} className={loading ? 'animate-spin' : ''}/></button>
-              </div>
-            </div>
-            {error && <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#f3b5a0] bg-[#fff5f0] p-4 text-sm text-[#a65338]"><span>{error} {data ? 'Les dernières données restent affichées.' : ''}</span><button className="btn" onClick={refresh}>Réessayer</button></div>}
-
-            <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4" aria-busy={loading}>
-              {metrics.map((metric) => <div key={metric.label} className="ml-metric ml-panel min-w-0 p-4 sm:p-6">
-                <div className="flex items-start justify-between gap-2"><span className="text-[11px] font-semibold text-[#9c938a] sm:text-[13px]">{metric.label}</span><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[#fbf1ec] text-[#cc8268]"><UiIcon name={metric.icon} size={18}/></span></div>
-                <div className="mt-5 truncate text-[clamp(1.85rem,3vw,2.65rem)] font-semibold leading-none tracking-[-.055em] tabular-nums">{metric.value}</div>
-                <div className="mt-5 flex items-center justify-between gap-1 border-t border-[#f3efeb] pt-3.5"><span className="truncate text-[11px] text-[#a59d95]">{metric.detail}</span><span className="font-mono text-[10px] text-[#d0c3b8]">{metric.index}</span></div>
-              </div>)}
-            </div>
-
-            <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(290px,.75fr)]">
-              <section className="ml-panel min-w-0 p-5 sm:p-7">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div><h3 className="text-lg font-semibold tracking-tight">Évolution du trafic</h3><p className="mt-1.5 text-[12px] text-[#aaa097]">Visiteurs uniques par jour · UTC</p></div>
-                  <span className="inline-flex items-center gap-2 rounded-full bg-[#fff1e9] px-3 py-1.5 text-[11px] font-semibold text-[#c8795d]"><span className="h-2 w-2 rounded-full bg-[#df795c]" />{change === null ? 'Première période suivie' : (change >= 0 ? '+' : '') + change + '% vs période précédente'}</span>
-                </div>
-                <div className="mt-6 h-[235px] sm:h-[300px]">
-                  {view ? <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={view.series} margin={{ top: 9, right: 5, left: -24, bottom: 0 }}>
-                      <defs><linearGradient id="ml-gradient-views" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#e18567" stopOpacity=".3"/><stop offset="100%" stopColor="#e18567" stopOpacity=".01"/></linearGradient></defs>
-                      <CartesianGrid stroke="#eee9e4" strokeDasharray="3 5" vertical={false}/>
-                      <XAxis dataKey="date" tickFormatter={dateLabel} tick={{fontSize:11,fill:'#aea49b'}} axisLine={false} tickLine={false} minTickGap={19}/>
-                      <YAxis allowDecimals={false} tick={{fontSize:11,fill:'#aea49b'}} axisLine={false} tickLine={false}/>
-                      <Tooltip contentStyle={{ background: '#292622', border: 0, borderRadius: 12, color: '#fff', boxShadow:'0 12px 35px rgba(0,0,0,.12)' }} labelStyle={{color:'#eedbd0'}} labelFormatter={(v) => dateLabel(String(v))} formatter={(value) => [number(Number(value ?? 0)), 'Visiteurs']}/>
-                      <Area type="monotone" dataKey="visitors" stroke="#e07b5f" strokeWidth={2.8} fill="url(#ml-gradient-views)" dot={false} activeDot={{r:5,fill:'#e07b5f',stroke:'white',strokeWidth:2}} isAnimationActive={false}/>
-                    </AreaChart>
-                  </ResponsiveContainer> : <div className="ml-loading h-full rounded-xl" />}
-                </div>
-                <div className="mt-4 flex items-center gap-2 border-t border-[#f3eeea] pt-4 text-[11px] text-[#a19990]"><span className="h-2 w-2 rounded-full bg-[#e07b5f]" />Visiteurs uniques <span className="ml-auto">Période : {days} jours</span></div>
-              </section>
-
-              <section className="ml-panel flex min-w-0 flex-col p-5 sm:p-7">
-                <div className="flex items-start justify-between gap-3"><div><h3 className="text-lg font-semibold tracking-tight">Activité récente</h3><p className="mt-1.5 text-[12px] text-[#aaa097]">Les signaux en un coup d'œil</p></div><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[#f1f8f3] text-[#52a17a]"><UiIcon name="activity" size={19}/></div></div>
-                <div className="mt-7 flex-1 divide-y divide-[#f1ece7]">
-                  {[
-                    { label: 'Visiteurs · 24 h', value: view?.last24h.visitors ?? null, icon: 'users' as const },
-                    { label: 'Clics sortants', value: view?.outboundClicks ?? null, icon: 'mouse' as const },
-                    { label: 'Objectifs atteints', value: view?.goals ?? null, icon: 'target' as const },
-                  ].map((item) => <div key={item.label} className="flex items-center justify-between gap-3 py-5 first:pt-0"><div className="flex items-center gap-2.5 text-[12px] font-medium text-[#746c65] sm:text-[13px]"><UiIcon name={item.icon} size={16} className="text-[#bc9885]"/>{item.label}</div><span className="text-2xl font-semibold tabular-nums tracking-[-.045em]">{item.value === null ? '—' : number(item.value)}</span></div>)}
-                </div>
-                <div className="mt-4 rounded-2xl border border-[#f2e5db] bg-[#fcf5ee] p-4"><div className="flex gap-2.5"><UiIcon name="shield" size={17} className="mt-0.5 shrink-0 text-[#c5886d]"/><p className="text-[12px] leading-[1.65] text-[#926f5d]">Les visites bloquées par un navigateur ou un bloqueur de publicité peuvent ne pas être comptabilisées.</p></div></div>
-              </section>
-            </div>
-          </div>
-        </section>
-
-        <section id="live-globe" className="scroll-mt-[100px] bg-[#faf9f6] py-16 sm:py-20">
-          <div className="mx-auto max-w-[1380px] px-5 sm:px-8 lg:px-12">
-            <SectionLabel index="02" label="DANS LE MONDE" />
-            <div className="mb-8 flex flex-wrap items-end justify-between gap-6">
-              <div><h2 className="ml-section-heading mt-3 text-[clamp(2rem,4vw,3rem)]">Ton audience, sans frontières<span className="text-[#e07b5f]">.</span></h2><p className="mt-3 max-w-[620px] text-[14px] leading-relaxed text-[#8b8179]">Voyage d'un pays à l'autre et repère les nouvelles connexions sur le globe. Les positions sont approximatives pour préserver la confidentialité.</p></div>
-              <span className="flex items-center gap-2 rounded-full border border-[#ddede4] bg-[#f0f8f3] px-4 py-2 text-[12px] font-semibold text-[#448b66]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#5cb78b]" /> En temps réel</span>
-            </div>
-            <div className="ml-live-globe"><LiveGlobe /></div>
-          </div>
-        </section>
-
-        <section id="insights" className="scroll-mt-[100px] bg-[#f6f4f0]/70 py-16 sm:py-20">
-          <div className="mx-auto max-w-[1380px] px-5 sm:px-8 lg:px-12">
-            <SectionLabel index="03" label="LES INSIGHTS" />
-            <div className="mb-8 flex flex-wrap items-end justify-between gap-6"><div><h2 className="ml-section-heading mt-3 text-[clamp(2rem,4vw,3rem)]">L'histoire derrière les chiffres<span className="text-[#e07b5f]">.</span></h2><p className="mt-3 max-w-[620px] text-[14px] leading-relaxed text-[#8b8179]">Les sources qui attirent, les pages qui retiennent et les appareils utilisés par ton audience.</p></div><div className="rounded-full border border-[#e7ded6] bg-white px-4 py-2 text-[12px] font-medium text-[#897f76]">{days} derniers jours</div></div>
-            <div className="grid gap-4 md:grid-cols-3">
-              <Breakdown title="D'où ils viennent" detail="Canaux d'acquisition" icon="link" rows={view?.sources ?? []} empty="Les premières sources s'afficheront à l'arrivée des visiteurs."/>
-              <Breakdown title="Ce qu'ils regardent" detail="Pages les plus consultées" icon="eye" rows={view?.pages ?? []} empty="Les pages populaires apparaîtront avec les premières visites."/>
-              <Breakdown title="Comment ils naviguent" detail="Répartition par appareil" icon="layers" rows={view?.devices ?? []} empty="La répartition des appareils apparaîtra bientôt."/>
-            </div>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-[1380px] px-5 py-16 sm:px-8 sm:py-20 lg:px-12">
-          <div className="ml-cta relative overflow-hidden rounded-[26px] px-7 py-10 text-white sm:px-12 sm:py-14 lg:px-16">
-            <div className="ml-cta-ring pointer-events-none" />
-            <div className="relative z-10 max-w-[700px]">
-              <span className="text-[11px] font-semibold uppercase tracking-[.2em] text-[#f3a789]">À TON TOUR</span>
-              <h2 className="ml-section-heading mt-4 text-[clamp(2.15rem,4.4vw,3.6rem)]">Ton prochain déclic commence par une donnée.</h2>
-              <p className="mt-5 max-w-[520px] text-[14px] leading-[1.75] text-[#bebbb8] sm:text-[15px]">Branche ton site, laisse tourner Minilytics et comprends enfin ce qui transforme une visite en opportunité.</p>
-              <button onClick={() => navigate('/admin')} className="mt-8 inline-flex h-[51px] items-center justify-center gap-2 rounded-xl bg-[#df795c] px-6 text-[13px] font-semibold text-white shadow-[0_8px_20px_rgba(223,121,92,.15)] transition hover:bg-[#c96d52]">Connecter mon site <UiIcon name="arrow-up-right" size={17}/></button>
-            </div>
-          </div>
-          <footer className="mt-9 flex flex-wrap items-center justify-between gap-4 border-t border-[#eae5df] pt-7 text-[12px] text-[#9e948b]"><Logo small /><span>Des chiffres qui ont du sens. © {new Date().getFullYear()} Minilytics.</span><span>{view ? 'Mis à jour à ' + timeLabel(view.updatedAt) : 'Données en cours de chargement'}</span></footer>
-        </section>
-      </main>
-    </div>
-  );
+      <section className="relative mt-20 overflow-hidden rounded-[24px] border border-[#e7ebf7] bg-[#fafbff] p-7 sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-10 lg:p-12">
+        <div className="pointer-events-none absolute -right-20 -top-28 h-[330px] w-[330px] rounded-full border-[65px] border-[#eef1ff] opacity-90"/>
+        <div className="relative z-10 max-w-[680px]"><span className="ml-mini-label text-[#6273e9]">PRENEZ LE CONTRÔLE</span><h2 className="ml-section-head mt-3 max-w-[590px]">Les bonnes décisions commencent avec les bonnes données.</h2><p className="mt-4 max-w-[580px] text-[14px] leading-relaxed text-[#78879c]">Branchez votre site et suivez en direct vos visites, sources de trafic et conversions.</p></div>
+        <button onClick={()=>navigate('/admin')} className="btn-dark relative z-10 mt-6 h-[50px] shrink-0 px-6 lg:mt-0">Connecter mon site <UiIcon name="arrow-up-right" size={17}/></button>
+      </section>
+      <footer className="mt-11 flex flex-wrap items-center justify-between gap-4 border-t border-[#edf0f6] pt-7 text-xs text-[#9aa6b8]"><Logo small/><span>Minilytics · Analytics sans distraction.</span><span>{view?'Mis à jour à '+timeLabel(view.updatedAt):'Données en cours de chargement'}</span></footer>
+    </main>
+  </div>;
 }

@@ -77,7 +77,7 @@ export function Dashboard({ siteId }: { siteId: string }) {
   return (
     <DashContext.Provider value={dash}>
       <div className="ml-site-bg min-h-screen pb-10">
-        <header className="border-b border-[#ebe6e0] bg-[#faf9f6]/85">
+        <header className="border-b border-[#e8edf5] bg-[#ffffff]/85">
           <div className="mx-auto flex h-[76px] max-w-[1480px] items-center justify-between gap-3 px-4 sm:px-6">
             <button aria-label="Retour aux sites" onClick={() => navigate('/sites')}><Logo /></button>
             <div className="flex items-center gap-2"><button className="btn hidden sm:inline-flex" onClick={() => navigate('/')}>Voir la démo <UiIcon name="external" size={16}/></button><button className="btn" onClick={() => navigate('/sites')}><UiIcon name="layers" size={16}/><span className="hidden sm:inline">Mes sites</span></button><button className="btn-dark" onClick={() => navigate('/site/' + site.id + '/settings')}><UiIcon name="shield" size={16}/><span className="hidden sm:inline">Réglages</span></button></div>
@@ -85,8 +85,8 @@ export function Dashboard({ siteId }: { siteId: string }) {
         </header>
         <div className="mx-auto max-w-[1480px] px-4 py-9 sm:px-6 lg:py-12">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div><div className="ml-kicker"><span className="ml-dot" /> ANALYSE / VOTRE SITE</div><h1 className="ml-heading mt-3 text-[clamp(2.3rem,4.4vw,3.7rem)]">{site.name}<span className="text-[#df795c]">.</span></h1><p className="mt-3 text-[13px] text-[#92877f]">Les performances et connexions de <span className="font-medium text-[#655d56]">{site.domain}</span></p></div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#e4ede5] bg-[#f0f8f2] px-4 py-2 text-[12px] font-semibold text-[#448963]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#59b78a]"/>{overview ? overview.online + ' en ligne maintenant' : 'Données en temps réel'}</div>
+            <div><div className="ml-kicker"><span className="ml-dot" /> ANALYSE / VOTRE SITE</div><h1 className="ml-heading mt-3 text-[clamp(2.3rem,4.4vw,3.7rem)]">{site.name}<span className="text-[#4f62ef]">.</span></h1><p className="mt-3 text-[13px] text-[#8290a3]">Les performances et connexions de <span className="font-medium text-[#56657e]">{site.domain}</span></p></div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#d8f2e7] bg-[#f1fbf6] px-4 py-2 text-[12px] font-semibold text-[#179569]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#1bb985]"/>{overview ? overview.online + ' en ligne maintenant' : 'Données en temps réel'}</div>
           </div>
           <div className="ml-panel mb-5 flex flex-wrap items-center gap-2 p-3 sm:p-4">
             <Toolbar site={site} sites={sites!} q={q} update={update} overview={overview} onRefresh={() => setReloadKey((k) => k + 1)} loading={loading} />
