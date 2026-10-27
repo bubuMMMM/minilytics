@@ -256,7 +256,7 @@ curl -X POST ${origin}/api/v1/goals \\
           onClick={async () => {
             if (prompt(`Type ${site.domain} to delete this site and all of its data`) !== site.domain) return;
             await api(`/api/sites/${siteId}`, { method: 'DELETE' });
-            navigate('/');
+            navigate('/sites');
           }}
         >
           Delete site and all data

@@ -59,7 +59,11 @@ export async function verifyStandardWebhook(
 
 /** Sign a value for the dashboard login cookie. */
 export async function signToken(secret: string, value: string): Promise<string> {
-  const sig = bytesToB64(await hmac(enc.encode(secret), value)).replace(/=+$/, '');
+  // Use an ArrayBuffer-backed copy for the WebCrypto BufferSource type on TS 5.9+.
+  const encoded = enc.encode(secret);
+  const key = new Uint8Array(encoded.byteLength);
+  key.set(encoded);
+  const sig = bytesToB64(await hmac(key, value)).replace(/=+$/, '');
   return `${value}.${sig}`;
 }
 
