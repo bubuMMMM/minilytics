@@ -81,24 +81,24 @@ function drawGlobe(
   const { x, y, radius, width, height } = SIZE;
   ctx.clearRect(0, 0, width, height);
   const glow = ctx.createRadialGradient(x, y, radius * 0.4, x, y, radius * 1.36);
-  glow.addColorStop(0, 'rgba(31,150,201,0.13)');
-  glow.addColorStop(0.63, 'rgba(33,147,204,0.13)');
-  glow.addColorStop(1, 'rgba(33,147,204,0)');
+  glow.addColorStop(0, 'rgba(72,93,241,0.07)');
+  glow.addColorStop(0.63, 'rgba(72,93,241,0.06)');
+  glow.addColorStop(1, 'rgba(72,93,241,0)');
   ctx.fillStyle = glow;
   ctx.fillRect(x - radius * 1.45, y - radius * 1.45, radius * 2.9, radius * 2.9);
 
   const ocean = ctx.createRadialGradient(x - radius * .35, y - radius * .45, radius * .1, x, y, radius);
-  ocean.addColorStop(0, '#1b4967');
-  ocean.addColorStop(.65, '#102c47');
-  ocean.addColorStop(1, '#07192b');
+  ocean.addColorStop(0, '#f6faff');
+  ocean.addColorStop(.65, '#edf4ff');
+  ocean.addColorStop(1, '#dee8f8');
   ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2);
   ctx.fillStyle = ocean; ctx.fill();
-  ctx.strokeStyle = 'rgba(119,198,236,.55)'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.strokeStyle = 'rgba(106,132,185,.45)'; ctx.lineWidth = 1.5; ctx.stroke();
 
   ctx.save();
   ctx.beginPath(); ctx.arc(x, y, radius - 0.9, 0, Math.PI * 2); ctx.clip();
 
-  ctx.strokeStyle = 'rgba(102,174,216,0.16)'; ctx.lineWidth = 0.9;
+  ctx.strokeStyle = 'rgba(110,134,173,0.22)'; ctx.lineWidth = 0.9;
   for (let latitude = -60; latitude <= 60; latitude += 30) {
     const coords: Point[] = [];
     for (let lon = -180; lon <= 180; lon += 3) coords.push([lon, latitude]);
@@ -111,9 +111,9 @@ function drawGlobe(
   }
 
   // Actual Natural Earth country outlines, projected orthographically in the browser.
-  ctx.strokeStyle = 'rgba(118,204,222,0.42)';
+  ctx.strokeStyle = 'rgba(91,116,160,0.55)';
   ctx.lineWidth = 0.8;
-  ctx.fillStyle = '#24576b';
+  ctx.fillStyle = '#bdcce5';
   for (const feature of world) {
     for (const ring of feature.rings) {
       let started = false;
@@ -148,7 +148,7 @@ function drawGlobe(
       const mx = (pin.x + source.x) / 2;
       const my = (pin.y + source.y) / 2 - 22;
       ctx.beginPath(); ctx.moveTo(pin.x, pin.y); ctx.quadraticCurveTo(mx, my, source.x, source.y);
-      ctx.lineWidth = .95; ctx.strokeStyle = 'rgba(112,217,242,.36)'; ctx.stroke();
+      ctx.lineWidth = .95; ctx.strokeStyle = 'rgba(77,99,233,.3)'; ctx.stroke();
     }
   }
 
@@ -158,10 +158,10 @@ function drawGlobe(
     const radiusPin = pin.radius - 9;
     const alpha = .42 + .35 * Math.sin(elapsed / 520 + pin.x);
     ctx.beginPath(); ctx.arc(pin.x, pin.y, radiusPin + (isLive ? 6 + 5 * Math.abs(Math.sin(elapsed / 1100)) : 3), 0, 2 * Math.PI);
-    ctx.strokeStyle = isLive ? 'rgba(255,155,118,' + alpha + ')' : 'rgba(103,191,225,.4)';
+    ctx.strokeStyle = isLive ? 'rgba(77,99,233,' + alpha + ')' : 'rgba(100,164,189,.34)';
     ctx.lineWidth = isLive ? 2 : 1; ctx.stroke();
     ctx.beginPath(); ctx.arc(pin.x, pin.y, radiusPin + (highlight ? 3 : 0), 0, Math.PI * 2);
-    ctx.fillStyle = isLive ? '#ff9873' : '#6c9bb2'; ctx.fill();
+    ctx.fillStyle = isLive ? '#4f63ec' : '#64a9b3'; ctx.fill();
     ctx.beginPath(); ctx.arc(pin.x, pin.y, 2, 0, Math.PI * 2);
     ctx.fillStyle = '#fff'; ctx.fill();
   }
@@ -169,7 +169,7 @@ function drawGlobe(
 
   // Crisp latitude marks and a subtle horizon light.
   ctx.beginPath(); ctx.arc(x, y, radius, -.5 * Math.PI, .5 * Math.PI);
-  ctx.strokeStyle = 'rgba(122,221,244,.55)'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = 'rgba(88,115,164,.50)'; ctx.lineWidth = 2; ctx.stroke();
 }
 
 export function LiveGlobe({ siteId }: { siteId?: string }) {
@@ -247,17 +247,17 @@ export function LiveGlobe({ siteId }: { siteId?: string }) {
   };
 
   return (
-    <section className="relative mt-5 overflow-hidden rounded-[24px] border border-[#243849] bg-[#0d1c2b] text-white shadow-[0_20px_60px_rgba(13,28,43,.12)]" aria-label="Globe des visiteurs en direct">
-      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 30% 45%, #173b56 0%, transparent 52%)' }} />
+    <section className="relative mt-5 overflow-hidden rounded-[26px] border border-[#e7ebf3] bg-white text-[#101728] shadow-[0_18px_50px_rgba(36,54,91,.045)]" aria-label="Globe des visiteurs en direct">
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 32% 54%, #f5f8ff 0%, transparent 64%)' }} />
       <div className="relative flex flex-wrap items-start justify-between gap-4 px-5 pt-6 sm:px-8 sm:pt-8">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.16em] text-[#8cc5db]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#76e2c5]" /> Live analytics</div>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Le monde, en direct.</h2>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#a0b7c7]">Visualise d'où viennent tes visiteurs. Les points représentent les pays, pas une position GPS précise.</p>
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.16em] text-[#5368e6]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#23be85]" /> LIVE / MONDE</div>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Vos visiteurs, partout dans le monde.</h2>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#7d899c]">Visualise d'où viennent tes visiteurs. Les points représentent les pays, pas une position GPS précise.</p>
         </div>
-        <div className="rounded-2xl border border-[#31546b] bg-[#163147]/80 px-5 py-3 text-right">
-          <div className="text-[11px] uppercase tracking-[.12em] text-[#9bbbd1]">Visiteurs actifs · 5 min</div>
-          <div className="mt-1 flex items-center justify-end gap-2 text-3xl font-semibold tabular-nums"><span className="h-2.5 w-2.5 rounded-full bg-[#79e8c4] shadow-[0_0_12px_#79e8c4]" />{data ? formatter.format(data.online) : '—'}</div>
+        <div className="rounded-2xl border border-[#e6ebf3] bg-[#f8faff] px-5 py-3 text-right">
+          <div className="text-[11px] uppercase tracking-[.12em] text-[#818ea3]">Visiteurs actifs · 5 min</div>
+          <div className="mt-1 flex items-center justify-end gap-2 text-3xl font-semibold tabular-nums"><span className="h-2.5 w-2.5 rounded-full bg-[#1bb981] shadow-[0_0_0_4px_rgba(27,185,129,.12)]" />{data ? formatter.format(data.online) : '—'}</div>
         </div>
       </div>
       <div className="relative grid items-center gap-1 lg:grid-cols-[minmax(0,1.7fr)_minmax(240px,.7fr)]">
@@ -288,30 +288,30 @@ export function LiveGlobe({ siteId }: { siteId?: string }) {
             }}
             onPointerCancel={() => { pointer.current = null; }}
           />
-          <span className="pointer-events-none absolute bottom-4 left-5 rounded-lg border border-white/10 bg-[#102538]/70 px-3 py-1.5 text-xs text-[#c4dce8] backdrop-blur-sm">↔ Glisse pour tourner</span>
+          <span className="pointer-events-none absolute bottom-4 left-5 rounded-lg border border-[#e4eafb] bg-white/90 px-3 py-1.5 text-xs text-[#64748b] backdrop-blur-sm">↔ Glisse pour tourner</span>
         </div>
         <div className="min-w-0 px-5 pb-7 lg:pr-8">
-          <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div className="flex items-center justify-between gap-3 border-b border-[#e8edf5] pb-4">
             <h3 className="font-semibold">Activité par pays</h3>
-            <span className="text-xs text-[#91afc1]">{activeCountries.length ? 'Actif · 5 min' : 'Récent · 30 min'}</span>
+            <span className="text-xs text-[#8a95a7]">{activeCountries.length ? 'Actif · 5 min' : 'Récent · 30 min'}</span>
           </div>
           {visibleCountries.length === 0
-            ? <div className="py-9 text-sm leading-relaxed text-[#9db4c4]"><div className="mb-3 h-9 w-9 rounded-full border border-[#40627a] p-2 text-center text-[#83b6d3]">◎</div>Aucune connexion géolocalisée pour l'instant. Les premiers visiteurs apparaîtront ici automatiquement.</div>
+            ? <div className="py-9 text-sm leading-relaxed text-[#8490a3]"><div className="mb-3 h-9 w-9 rounded-full border border-[#d6e0f1] p-2 text-center text-[#546ce5]">◎</div>Aucune connexion géolocalisée pour l'instant. Les premiers visiteurs apparaîtront ici automatiquement.</div>
             : <div className="mt-3 max-h-60 space-y-1 overflow-y-auto">
                 {visibleCountries.slice(0, 10).map((place) => (
-                  <button key={place.country} type="button" onClick={() => { setSelected(place.country); stopUntil.current = Date.now() + 6000; }} className={'flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left transition ' + (selected === place.country ? 'bg-white/15' : 'hover:bg-white/10')}>
-                    <span className="flex min-w-0 items-center gap-2.5"><span className={'h-2 w-2 shrink-0 rounded-full ' + (activeCodes.has(place.country) ? 'bg-[#ff9873]' : 'bg-[#6c9bb2]')} /><span className="truncate text-sm">{countryName(place.country)}</span></span>
+                  <button key={place.country} type="button" onClick={() => { setSelected(place.country); stopUntil.current = Date.now() + 6000; }} className={'flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left transition ' + (selected === place.country ? 'bg-[#eef2ff]' : 'hover:bg-[#f5f7fe]')}>
+                    <span className="flex min-w-0 items-center gap-2.5"><span className={'h-2 w-2 shrink-0 rounded-full ' + (activeCodes.has(place.country) ? 'bg-[#4f63ec]' : 'bg-[#64a9b3]')} /><span className="truncate text-sm">{countryName(place.country)}</span></span>
                     <span className="shrink-0 text-sm font-semibold tabular-nums">{formatter.format(place.visitors)}</span>
                   </button>
                 ))}
               </div>}
-          {unknown > 0 && <p className="mt-3 text-xs text-[#8da6b6]">+ {unknown} visiteur(s) sans pays déterminé.</p>}
-          {error && <p role="status" className="mt-3 text-xs text-[#ffb193]">{error}</p>}
-          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/10 pt-4 text-xs text-[#91afc1]">
-            <span><i className="mr-2 inline-block h-2 w-2 rounded-full bg-[#ff9873]" />Actifs</span>
-            <span><i className="mr-2 inline-block h-2 w-2 rounded-full bg-[#6c9bb2]" />Récents</span>
+          {unknown > 0 && <p className="mt-3 text-xs text-[#8c97a8]">+ {unknown} visiteur(s) sans pays déterminé.</p>}
+          {error && <p role="status" className="mt-3 text-xs text-[#b53f63]">{error}</p>}
+          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#e8edf5] pt-4 text-xs text-[#8a95a7]">
+            <span><i className="mr-2 inline-block h-2 w-2 rounded-full bg-[#4f63ec]" />Actifs</span>
+            <span><i className="mr-2 inline-block h-2 w-2 rounded-full bg-[#64a9b3]" />Récents</span>
           </div>
-          <p className="mt-4 text-xs leading-relaxed text-[#738fa1]">Actualisé toutes les 15 s · Liens dessinés à titre illustratif, pas des routes réseau réelles.</p>
+          <p className="mt-4 text-xs leading-relaxed text-[#8b97aa]">Actualisé toutes les 15 s · Liens dessinés à titre illustratif, pas des routes réseau réelles.</p>
         </div>
       </div>
     </section>
