@@ -8,8 +8,17 @@
   var siteId = script.getAttribute('data-website-id');
   var endpoint = script.getAttribute('data-api') || new URL(script.src).origin + '/api/event';
   var allowLocal = script.hasAttribute('data-allow-localhost');
+  var onlyHost = script.getAttribute('data-only-host');
+  var excludedPaths = (script.getAttribute('data-exclude-paths') || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
+  function isExcluded() {
+    return excludedPaths.some(function (p) { return loc.pathname === p || loc.pathname.indexOf(p + '/') === 0; });
+  }
   var cookieDomain = script.getAttribute('data-domain');
   var VID = 'ml_vid', SID = 'ml_sid', YEAR = 31536000, SESSION = 1800;
+
+  // One installation per website: duplicate tags must not register duplicate listeners.
+  var installed = w.__minilyticsInstalled || (w.__minilyticsInstalled = {});
+  if (installed[siteId]) return;
 
   var queued = (w.minilytics && w.minilytics.q) || [];
   function noop() {}
@@ -23,16 +32,20 @@
   var ignored = false;
   try { ignored = localStorage.getItem('ml_ignore') === '1'; } catch (e) {}
   var local = /^(localhost|127\.|0\.0\.0\.0|\[::1\]|.*\.local$)/.test(loc.hostname) || loc.protocol === 'file:';
-  if (!siteId || ignored || nav.webdriver || (local && !allowLocal)) {
+  if (!siteId || ignored || nav.webdriver || (local && !allowLocal) || (onlyHost && loc.hostname !== onlyHost)) {
     w.minilytics = noop;
     w.minilytics.attribution = function () { return {}; };
     return;
   }
 
+  installed[siteId] = true;
+
   // ---- cookies (first-party, shared across subdomains so app.site.com and site.com are one visitor)
   function readCookie(name) {
-    var m = d.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
-    return m ? decodeURIComponent(m[1]) : null;
+    try {
+      var m = d.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+      return m ? decodeURIComponent(m[1]) : null;
+    } catch (e) { return null; }
   }
   function rootDomain() {
     if (cookieDomain) return cookieDomain;
@@ -40,18 +53,18 @@
     if (parts.length < 2 || /^\d+$/.test(parts[parts.length - 1])) return null;
     for (var i = parts.length - 2; i >= 0; i--) {
       var cand = parts.slice(i).join('.');
-      d.cookie = 'ml_t=1; path=/; domain=' + cand + '; SameSite=Lax';
+      try { d.cookie = 'ml_t=1; path=/; domain=' + cand + '; SameSite=Lax';
       if (readCookie('ml_t')) {
         d.cookie = 'ml_t=; path=/; domain=' + cand + '; max-age=0';
         return cand;
-      }
+      } } catch (e) { return null; }
     }
     return null;
   }
   var domain = rootDomain();
   function writeCookie(name, value, maxAge) {
-    d.cookie = name + '=' + encodeURIComponent(value) + '; path=/; max-age=' + maxAge + '; SameSite=Lax' +
-      (domain ? '; domain=' + domain : '') + (loc.protocol === 'https:' ? '; Secure' : '');
+    try { d.cookie = name + '=' + encodeURIComponent(value) + '; path=/; max-age=' + maxAge + '; SameSite=Lax' +
+      (domain ? '; domain=' + domain : '') + (loc.protocol === 'https:' ? '; Secure' : ''); } catch (e) {}
   }
   function uuid() {
     if (w.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -60,9 +73,14 @@
       return (c === 'x' ? r : (r & 3) | 8).toString(16);
     });
   }
+  // In-memory fallback keeps events consistent when storage is unavailable.
+  // It deliberately lasts only for this document; it is not a fingerprint.
+  var memoryVid, memorySid, lastActivity = 0;
   function ids() {
-    var vid = readCookie(VID) || uuid();
-    var sid = readCookie(SID) || uuid();
+    var now = Date.now();
+    var vid = readCookie(VID) || memoryVid || uuid();
+    var sid = readCookie(SID) || (memorySid && now - lastActivity < SESSION * 1000 ? memorySid : uuid());
+    memoryVid = vid; memorySid = sid; lastActivity = now;
     writeCookie(VID, vid, YEAR);
     writeCookie(SID, sid, SESSION); // sliding 30 minute session
     return { vid: vid, sid: sid };
@@ -70,17 +88,19 @@
 
   // ---- transport
   // Personal data in URLs (e.g. ?email= on a payment return page) never leaves the browser.
-  var PRIVATE_PARAM = /^(e-?mail|name|phone|password|pass|token|access_token|id_token|auth|code|secret|key|api_key|license_key|license)$/i;
+  var PRIVATE_PARAM = /^(e-?mail|name|phone|password|pass|token|access_token|id_token|auth|code|secret|key|api_key|license_key|license|authorization|refresh_token|session|session_id|jwt|client_secret|first_name|last_name|address)$/i;
   function cleanUrl(href) {
     try {
       var u = new URL(href);
+      u.username = ''; u.password = ''; u.hash = '';
       var drop = [];
       u.searchParams.forEach(function (_, k) { if (PRIVATE_PARAM.test(k)) drop.push(k); });
       for (var i = 0; i < drop.length; i++) u.searchParams.delete(drop[i]);
       return u.toString();
-    } catch (e) { return href; }
+    } catch (e) { return ''; }
   }
   function send(type, extra, beacon) {
+    if (isExcluded()) return;
     var id = ids();
     var body = { w: siteId, t: type, u: cleanUrl(loc.href), vid: id.vid, sid: id.sid, sw: w.screen ? screen.width : 0 };
     for (var k in extra) if (extra[k] !== undefined) body[k] = extra[k];
@@ -105,7 +125,14 @@
     if (d.visibilityState === 'visible') visibleSince = Date.now();
     else flushTime(true);
   });
-  w.addEventListener('pagehide', function () { flushTime(true); });
+  w.addEventListener('pagehide', function () { flushTime(true); visibleSince = 0; });
+  w.addEventListener('pageshow', function (e) {
+    if (!e.persisted) return;
+    visibleSince = d.visibilityState === 'visible' ? Date.now() : 0;
+    pending = 0;
+    lastPage = null;
+    pageview();
+  });
   setInterval(function () {
     if (d.visibilityState === 'visible' && pings < 30) { pings++; flushTime(false); }
   }, 60000);
@@ -118,7 +145,7 @@
     if (lastPage !== null) flushTime(false);
     lastPage = page;
     pings = 0;
-    send('pageview', { r: firstView ? d.referrer : '' });
+    send('pageview', { r: firstView ? cleanUrl(d.referrer) : '' });
     firstView = false;
   }
   var hist = w.history;
@@ -176,6 +203,7 @@
   d.addEventListener('pointerdown', onPress, true);
   d.addEventListener('keydown', function (e) { if (e.key === 'Enter') onPress(e); }, true);
   function onClick(e) {
+    if (e.type === 'auxclick' && e.button !== 1) return;
     var el = e.target && e.target.closest ? e.target : null;
     if (!el) return;
     var g = el.closest('[data-ml-goal]');
@@ -192,7 +220,7 @@
       tagDodoLink(a);
       try {
         var u = new URL(a.href, loc.href);
-        if (/^https?:$/.test(u.protocol) && u.hostname !== loc.hostname && !(domain && u.hostname.slice(-domain.length) === domain)) {
+        if (/^https?:$/.test(u.protocol) && u.hostname !== loc.hostname && !(domain && (u.hostname === domain || u.hostname.slice(-(domain.length + 1)) === '.' + domain))) {
           send('outbound', { n: u.origin + u.pathname }, true);
         }
       } catch (err) {}

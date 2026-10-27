@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from './lib/api';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
+import { PublicDemo } from './pages/PublicDemo';
 import { Settings } from './pages/Settings';
 import { Sites } from './pages/Sites';
 
@@ -31,9 +32,12 @@ export function App() {
     return () => window.removeEventListener('ml:logout', out);
   }, []);
 
-  if (auth === null) return null;
-  if (!auth) return <Login onLogin={() => setAuth(true)} />;
+  // A genuine, read-only public demonstration; private customer data stays behind authentication.
+  if (path === '/' || path === '/demo') return <PublicDemo />;
+  if (auth === null) return <div className="flex min-h-screen items-center justify-center text-sm text-stone-500">Chargement…</div>;
+  if (!auth) return <Login onLogin={() => { setAuth(true); navigate('/sites'); }} />;
 
+  if (path === '/admin' || path === '/sites') return <Sites />;
   const settings = /^\/site\/([\w-]+)\/settings\/?$/.exec(path);
   if (settings) return <Settings siteId={settings[1]} />;
   const site = /^\/site\/([\w-]+)\/?$/.exec(path);

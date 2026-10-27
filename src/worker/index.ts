@@ -2,6 +2,7 @@ import { Hono, type Context, type Next } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { cors } from 'hono/cors';
 import { handleEvent } from './collect.js';
+import { publicDemoStats } from './demo.js';
 import { forgetSite, type AppEnv, type Site } from './env.js';
 import { passwordsMatch, randomId, signToken, verifyToken } from './lib/crypto.js';
 import { handleDodoWebhook, handleGoalApi, handlePaymentApi, rematchPayments } from './payments.js';
@@ -17,6 +18,17 @@ const LOCKOUT_MS = 15 * 60_000;
 
 app.use('/api/event', cors({ origin: '*', allowMethods: ['POST', 'OPTIONS'], maxAge: 86400 }));
 app.post('/api/event', handleEvent);
+// Public aggregate numbers for the Minilytics demo. No visitor-level data or credentials.
+app.get('/api/public/demo', async (c) => {
+  try {
+    const days = c.req.query('days') === '30' ? 30 : 7;
+    c.header('Cache-Control', 'no-store');
+    return c.json(await publicDemoStats(c.env.DB, days));
+  } catch (error) {
+    console.error('Public demo statistics failed', error);
+    return c.json({ error: 'Analytics temporarily unavailable' }, 503);
+  }
+});
 app.post('/api/webhooks/dodo/:siteId', handleDodoWebhook);
 app.post('/api/v1/payments', handlePaymentApi);
 app.post('/api/v1/goals', handleGoalApi);

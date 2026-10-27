@@ -16,3 +16,11 @@ body { font-feature-settings: 'tnum' 1; -webkit-font-smoothing: antialiased; }
   .tab-active { @apply bg-white text-ink shadow-card; }
   .code { @apply block overflow-x-auto whitespace-pre rounded-xl bg-stone-900 p-4 font-mono text-[13px] leading-relaxed text-stone-100; }
 }
+
+@layer base {
+  button:focus-visible, a:focus-visible { outline: 2px solid #a3523b; outline-offset: 3px; }
+  button:disabled { cursor: not-allowed; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+}

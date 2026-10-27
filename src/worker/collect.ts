@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 import { classify } from '../shared/sources.js';
 import { getSite, type AppEnv, type Site } from './env.js';
+import { DEMO_SITE_ID, ensureDemoSite } from './demo.js';
 import { isBot, parseUA } from './lib/ua.js';
 import { creditedSessionSql } from './payments.js';
 
@@ -24,6 +25,20 @@ const clip = (s: unknown, n = 255): string | null =>
   typeof s === 'string' && s.trim() ? s.trim().slice(0, n) : null;
 
 const isId = (s: unknown): s is string => typeof s === 'string' && /^[\w-]{8,64}$/.test(s);
+
+/** Keep valid JSON; truncating the serialized string can corrupt the entire event. */
+export function serializeProperties(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const serialized = JSON.stringify(value);
+  if (new TextEncoder().encode(serialized).length <= 1000) return serialized;
+  const result: Record<string, unknown> = Object.create(null);
+  for (const [key, item] of Object.entries(value).slice(0, 20)) {
+    if (!key || key.length > 64) continue;
+    result[key] = typeof item === 'string' ? item.slice(0, 255) : item;
+    if (new TextEncoder().encode(JSON.stringify(result)).length > 1000) delete result[key];
+  }
+  return Object.keys(result).length ? JSON.stringify(result) : null;
+}
 
 export function normalizePath(pathname: string): string {
   let p = pathname || '/';
@@ -59,6 +74,8 @@ export async function handleEvent(c: Context<AppEnv>) {
   const ua = c.req.header('user-agent') ?? '';
   if (isBot(ua)) return c.body(null, 202);
 
+  // The public demo provisions itself once, so first-time visits are real, not seeded data.
+  if (body.w === DEMO_SITE_ID) await ensureDemoSite(c.env.DB);
   const site = await getSite(c.env.DB, body.w);
   if (!site) return c.body(null, 404);
 
@@ -69,7 +86,7 @@ export async function handleEvent(c: Context<AppEnv>) {
     return c.body(null, 400);
   }
   // Only accept data for the site's own domain, so nobody can pollute your stats from elsewhere.
-  if (!belongsTo(url.hostname, site.domain)) return c.body(null, 403);
+  if (!/^https?:$/.test(url.protocol) || !belongsTo(url.hostname, site.domain)) return c.body(null, 403);
 
   await ingest(c.env.DB, site, body, url, ua, geoOf(c), Date.now());
   return c.body(null, 202);
@@ -114,10 +131,11 @@ export async function ingest(
   const { t, vid, sid } = body;
 
   if (t === 'ping') {
-    const ms = Math.max(0, Math.min(MAX_PING_MS, Math.round(Number(body.d) || 0)));
+    const duration = Number(body.d);
+    const ms = Number.isFinite(duration) ? Math.max(0, Math.min(MAX_PING_MS, Math.round(duration))) : 0;
     await db
-      .prepare('UPDATE sessions SET duration = duration + ?, last_seen_at = ? WHERE site_id = ? AND id = ?')
-      .bind(ms, now, site.id, sid)
+      .prepare('UPDATE sessions SET duration = duration + ?, last_seen_at = ? WHERE site_id = ? AND id = ? AND visitor_id = ?')
+      .bind(ms, now, site.id, sid, vid)
       .run();
     return;
   }
@@ -158,7 +176,7 @@ export async function ingest(
   } else if (t === 'goal') {
     const name = clip(body.n, 64);
     if (!name) return;
-    const props = body.p && typeof body.p === 'object' ? JSON.stringify(body.p).slice(0, 1000) : null;
+    const props = serializeProperties(body.p);
     stmts.push(
       db.prepare('UPDATE sessions SET goals = goals + 1, last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
       insertEvent(db, site.id, sid, vid, now, 'goal', name, path, props),
