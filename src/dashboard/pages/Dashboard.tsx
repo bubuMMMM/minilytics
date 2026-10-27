@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { navigate } from '../App';
 import { GoalsPanel } from '../components/GoalsPanel';
+import { LiveGlobe } from '../components/LiveGlobe';
 import { OverviewCard } from '../components/OverviewCard';
 import { Panel, renderLabel } from '../components/Panel';
 import { Toolbar } from '../components/Toolbar';
@@ -96,6 +97,8 @@ export function Dashboard({ siteId }: { siteId: string }) {
         <div className="mt-5">
           <OverviewCard data={overview} />
         </div>
+
+        <LiveGlobe siteId={siteId} />
 
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <Panel

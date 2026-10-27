@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { navigate } from '../App';
 import { Logo } from '../components/Logo';
+import { LiveGlobe } from '../components/LiveGlobe';
 
 type Group = { label: string; value: number };
 interface LiveData {
@@ -117,6 +118,8 @@ export function PublicDemo() {
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4" aria-busy={loading}>
           {stats.map((stat) => <div key={stat.label} className="card min-w-0 p-4 sm:p-5"><p className="text-xs font-medium text-stone-500 sm:text-sm">{stat.label}</p><div className="mt-3 truncate text-3xl font-semibold tracking-tight sm:text-[2.5rem]">{stat.value}</div><p className="mt-2 text-xs text-stone-400">{stat.detail}</p></div>)}
         </div>
+
+        <LiveGlobe />
 
         <div className="mt-4 grid gap-4 lg:grid-cols-[1.7fr_1fr]">
           <section className="card min-w-0 p-5 sm:p-6">
