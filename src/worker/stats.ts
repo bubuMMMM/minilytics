@@ -444,3 +444,59 @@ export async function funnel(ctx: Ctx, steps: FunnelStep[]) {
   for (const reached of progress.values()) for (let i = 0; i < reached; i++) counts[i]++;
   return steps.map((st, i) => ({ ...st, visitors: counts[i] }));
 }
+
+/** Aggregate privacy-safe page engagement. Cross-database SQL works on both D1 and PostgreSQL. */
+export async function engagementReport(ctx: Ctx) {
+  const { db, range } = ctx;
+  const w = sessionsWhere(ctx);
+  const join = `FROM events e JOIN sessions s ON s.site_id = e.site_id AND s.id = e.session_id
+    WHERE ${w.sql} AND e.ts >= ? AND e.ts < ?`;
+  const params = [...w.params, range.from, range.to];
+  const cols = `
+    COUNT(DISTINCT CASE WHEN e.type = 'pageview' THEN e.session_id END) AS sessions,
+    COALESCE(SUM(CASE WHEN e.type = 'pageview' THEN 1 ELSE 0 END), 0) AS pageviews,
+    COUNT(DISTINCT CASE WHEN e.type = 'scroll' AND e.name = '25' THEN e.session_id END) AS s25,
+    COUNT(DISTINCT CASE WHEN e.type = 'scroll' AND e.name = '50' THEN e.session_id END) AS s50,
+    COUNT(DISTINCT CASE WHEN e.type = 'scroll' AND e.name = '75' THEN e.session_id END) AS s75,
+    COUNT(DISTINCT CASE WHEN e.type = 'scroll' AND e.name = '90' THEN e.session_id END) AS s90,
+    COUNT(DISTINCT CASE WHEN e.type = 'scroll' AND e.name = '100' THEN e.session_id END) AS s100,
+    COALESCE(SUM(CASE WHEN e.type = 'engagement' THEN CAST(e.name AS INTEGER) ELSE 0 END), 0) AS active_ms,
+    COALESCE(SUM(CASE WHEN e.type = 'click' THEN 1 ELSE 0 END), 0) AS clicks,
+    COALESCE(SUM(CASE WHEN e.type = 'form' THEN 1 ELSE 0 END), 0) AS forms`;
+  // A separate overall query deduplicates sessions across different pages.
+  const [totals, paths, links, forms, exits] = await db.batch([
+    db.prepare(`SELECT ${cols} ${join}`).bind(...params),
+    db.prepare(`SELECT e.path AS path, ${cols} ${join} AND e.path IS NOT NULL
+      GROUP BY e.path ORDER BY pageviews DESC LIMIT 75`).bind(...params),
+    db.prepare(`SELECT e.name AS label, COUNT(*) AS count ${join} AND e.type = 'click'
+      GROUP BY e.name ORDER BY count DESC LIMIT 12`).bind(...params),
+    db.prepare(`SELECT e.name AS label, COUNT(*) AS count ${join} AND e.type = 'form'
+      GROUP BY e.name ORDER BY count DESC LIMIT 12`).bind(...params),
+    db.prepare(`SELECT s.exit_page AS path, COUNT(*) AS sessions FROM sessions s
+      WHERE ${w.sql} AND s.exit_page IS NOT NULL
+      GROUP BY s.exit_page ORDER BY sessions DESC LIMIT 12`).bind(...w.params),
+  ]);
+  type Row = {
+    path?: string | null; sessions?: number; pageviews?: number;
+    s25?: number; s50?: number; s75?: number; s90?: number; s100?: number;
+    active_ms?: number; clicks?: number; forms?: number;
+  };
+  const cast = (r: Row = {}) => ({
+    sessions: Number(r.sessions || 0),
+    pageviews: Number(r.pageviews || 0),
+    scroll: [25, 50, 75, 90, 100].map((m) => ({ milestone: m, sessions: Number(r[('s' + m) as keyof Row] || 0) })),
+    activeMs: Number(r.active_ms || 0),
+    clicks: Number(r.clicks || 0),
+    forms: Number(r.forms || 0),
+  });
+  return {
+    updatedAt: Date.now(),
+    range: { from: range.from, to: range.to },
+    summary: cast((totals.results as Row[])[0]),
+    pages: (paths.results as Row[]).map((r) => ({ path: r.path || '/', ...cast(r) })),
+    internalLinks: (links.results as { label: string; count: number }[]).map((r) => ({ label: r.label, count: Number(r.count) })),
+    trackedForms: (forms.results as { label: string; count: number }[]).map((r) => ({ label: r.label, count: Number(r.count) })),
+    lastPages: (exits.results as { path: string; sessions: number }[]).map((r) => ({ path: r.path, sessions: Number(r.sessions) })),
+    methodology: 'scroll=unique sessions reaching milestones, activeMs=foreground interaction time, lastPages=last seen page (not guaranteed exit)',
+  };
+}

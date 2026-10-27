@@ -3,11 +3,12 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { cors } from 'hono/cors';
 import { handleEvent } from './collect.js';
 import { publicDemoStats, DEMO_SITE_ID, ensureDemoSite } from './demo.js';
+import { resolveRange, tzOffset } from './lib/time.js';
 import { liveGlobeStats } from './live-globe.js';
 import { forgetSite, type AppEnv, type Site } from './env.js';
 import { passwordsMatch, randomId, signToken, verifyToken } from './lib/crypto.js';
 import { handleDodoWebhook, handleGoalApi, handlePaymentApi, rematchPayments } from './payments.js';
-import { breakdown, customers, funnel, makeCtx, overview, visitorProfile, visitors, type FunnelStep } from './stats.js';
+import { breakdown, customers, engagementReport, funnel, makeCtx, overview, visitorProfile, visitors, type FunnelStep } from './stats.js';
 
 const app = new Hono<AppEnv>();
 const AUTH_COOKIE = 'ml_auth';
@@ -39,6 +40,18 @@ app.get('/api/public/live-globe', async (c) => {
   } catch (error) {
     console.error('Live globe failed', error);
     return c.json({ error: 'Live activity temporarily unavailable' }, 503);
+  }
+});
+// Public analytics for the demo site only; aggregated statistics, no visitor identifiers.
+app.get('/api/public/engagement', async (c) => {
+  try {
+    const site = await ensureDemoSite(c.env.DB);
+    const range = resolveRange({ period: c.req.query('days') === '30' ? '30d' : '7d' }, site.timezone, site.created_at);
+    c.header('Cache-Control', 'no-store');
+    return c.json(await engagementReport({ db: c.env.DB, site, range, filters: {}, offset: tzOffset(site.timezone, range.to) }));
+  } catch (error) {
+    console.error('Public engagement analytics failed', error);
+    return c.json({ error: 'Engagement analytics temporarily unavailable' }, 503);
   }
 });
 app.post('/api/webhooks/dodo/:siteId', handleDodoWebhook);
@@ -225,6 +238,15 @@ app.delete('/api/sites/:id', async (c) => {
 app.get('/api/sites/:id/live-globe', async (c) => {
   c.header('Cache-Control', 'no-store, max-age=0');
   return c.json(await liveGlobeStats(c.env.DB, c.get('site').id));
+});
+app.get('/api/sites/:id/engagement', async (c) => {
+  try {
+    c.header('Cache-Control', 'no-store');
+    return c.json(await engagementReport(makeCtx(c)));
+  } catch (error) {
+    console.error('Private engagement analytics failed', error);
+    return c.json({ error: 'Engagement analytics temporarily unavailable' }, 503);
+  }
 });
 app.get('/api/sites/:id/overview', async (c) => c.json(await overview(makeCtx(c))));
 
