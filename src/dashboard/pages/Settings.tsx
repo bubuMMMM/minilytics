@@ -130,6 +130,31 @@ async rewrites() {
       </Section>
 
       <Section
+        title="Nouveau · Analyse du scroll et du comportement"
+        desc="Aucune nouvelle installation n'est nécessaire. La version actuelle du script mesure automatiquement le scroll, le temps actif et les clics vers les pages internes."
+      >
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[
+            ['25 · 50 · 75 · 90 · 100 %', 'Profondeur de scroll atteinte par page'],
+            ['Temps actif', 'Temps estimé sur un onglet visible avec interaction récente'],
+            ['Clics internes', 'Destinations de navigation, sans paramètres d’URL'],
+          ].map(([value, label]) => <div key={value} className="rounded-xl border border-[#e8edfa] bg-[#f8faff] p-4"><p className="text-[13px] font-semibold text-[#5368e7]">{value}</p><p className="mt-2 text-[12px] leading-relaxed text-[#8793a7]">{label}</p></div>)}
+        </div>
+        <p className="mt-5 text-sm text-stone-600">Pour suivre les soumissions d'un formulaire, ajoutez simplement <code>data-ml-form</code> à sa balise. Aucun nom de champ, réponse ou saisie n'est transmis.</p>
+        <div className="mt-3">
+          <Code>{`<!-- Un événement "form" à chaque soumission valide -->
+<form data-ml-form="contact" action="/contact" method="post">
+  <!-- Vos champs restent privés -->
+  <button type="submit">Envoyer</button>
+</form>
+
+<!-- Facultatif : exclure un lien du suivi des clics -->
+<a data-ml-ignore href="/account">Mon compte</a>`}</Code>
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-stone-500">Les nouveaux indicateurs démarrent à la mise à jour du script. Ils ne reconstituent pas l'historique. Les seuils de scroll correspondent à des sessions, pas à des enregistrements vidéo ni à un suivi de la souris.</p>
+      </Section>
+
+      <Section
         title="3. Connect Dodo Payments (revenue attribution)"
         desc="Payments are linked to the visitor who paid and credited to the source that brought them."
       >
