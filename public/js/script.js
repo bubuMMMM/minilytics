@@ -137,13 +137,74 @@
     if (d.visibilityState === 'visible' && pings < 30) { pings++; flushTime(false); }
   }, 60000);
 
+  // ---- interaction analytics: cumulative scroll milestones and page-level active time
+  // Aggregates only: never read form values, keystrokes, cursor coordinates or element text.
+  var engagementUrl = cleanUrl(loc.href), engagedMs = 0, lastSample = Date.now();
+  var lastInteraction = Date.now(), pageMilestones = {}, scrollQueued = false;
+  var milestones = [25, 50, 75, 90, 100];
+  function markActive() { lastInteraction = Date.now(); }
+  function sampleEngagement() {
+    var now = Date.now();
+    var elapsed = Math.min(5000, Math.max(0, now - lastSample));
+    if (d.visibilityState === 'visible' && (!d.hasFocus || d.hasFocus()) &&
+        now - lastInteraction < 60000) engagedMs += elapsed;
+    lastSample = now;
+  }
+  function flushEngagement(beacon) {
+    sampleEngagement();
+    if (engagedMs >= 1000) {
+      // Each event is a DELTA; multiple events per visit add to total active time.
+      var ms = Math.min(60000, Math.round(engagedMs));
+      send('engagement', { n: String(ms), u: engagementUrl }, !!beacon);
+      engagedMs -= ms;
+    }
+  }
+  function checkScroll() {
+    scrollQueued = false;
+    if (isExcluded() || d.visibilityState === 'hidden') return;
+    var root = d.scrollingElement || d.documentElement;
+    var max = Math.max(0, root.scrollHeight - w.innerHeight);
+    if (max < 20) return; // do not pretend a short, non-scrollable page was read
+    var percent = Math.min(100, Math.max(0, Math.floor(100 * (w.scrollY || root.scrollTop || 0) / max)));
+    milestones.forEach(function (m) {
+      if (percent >= m && !pageMilestones[m]) {
+        pageMilestones[m] = true;
+        send('scroll', { n: String(m), u: engagementUrl });
+      }
+    });
+  }
+  w.addEventListener('scroll', function () {
+    markActive();
+    if (!scrollQueued) {
+      scrollQueued = true;
+      setTimeout(checkScroll, 110);
+    }
+  }, { passive: true });
+  d.addEventListener('pointerdown', markActive, { passive: true });
+  d.addEventListener('keydown', markActive, true);
+  d.addEventListener('visibilitychange', function () {
+    if (d.visibilityState === 'hidden') flushEngagement(true);
+    lastSample = Date.now();
+    if (d.visibilityState === 'visible') markActive();
+  });
+  w.addEventListener('pagehide', function () { flushEngagement(true); });
+  setInterval(function () {
+    sampleEngagement();
+    if (engagedMs >= 15000) flushEngagement(false);
+  }, 5000);
+
   // ---- pageviews (including single-page-app navigation)
   var lastPage = null, firstView = true;
   function pageview() {
     var page = loc.pathname + loc.search;
     if (page === lastPage) return;
-    if (lastPage !== null) flushTime(false);
+    if (lastPage !== null) { flushTime(false); flushEngagement(true); }
     lastPage = page;
+    engagementUrl = cleanUrl(loc.href);
+    engagedMs = 0;
+    lastSample = Date.now();
+    lastInteraction = Date.now();
+    pageMilestones = {};
     pings = 0;
     send('pageview', { r: firstView ? cleanUrl(d.referrer) : '' });
     firstView = false;
@@ -216,18 +277,29 @@
       goal(g.getAttribute('data-ml-goal'), Object.keys(props).length ? props : undefined);
     }
     var a = el.closest('a[href]');
-    if (a) {
+    if (a && !a.closest('[data-ml-ignore]')) {
       tagDodoLink(a);
       try {
         var u = new URL(a.href, loc.href);
         if (/^https?:$/.test(u.protocol) && u.hostname !== loc.hostname && !(domain && (u.hostname === domain || u.hostname.slice(-(domain.length + 1)) === '.' + domain))) {
           send('outbound', { n: u.origin + u.pathname }, true);
+        } else if (u.origin === loc.origin && u.pathname !== loc.pathname) {
+          // Only the destination path, never URL query/hash or clicked text.
+          send('click', { n: u.pathname.slice(0, 200), u: engagementUrl }, true);
         }
       } catch (err) {}
     }
   }
   d.addEventListener('click', onClick, true);
   d.addEventListener('auxclick', onClick, true);
+  // Optional form completion tracking; the website owner opts in using data-ml-form.
+  // No form field contents or names are collected.
+  d.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form || !form.matches || !form.matches('form[data-ml-form]')) return;
+    var formName = (form.getAttribute('data-ml-form') || '').slice(0, 64);
+    if (/^[a-zA-Z0-9_-]{1,64}$/.test(formName)) send('form', { n: formName }, true);
+  }, true);
 
   // ---- public API
   function api(cmd, a, b) {
