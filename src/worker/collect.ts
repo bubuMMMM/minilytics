@@ -306,14 +306,28 @@ export async function ingest(
         .prepare(`UPDATE sessions SET last_seen_at = ?, interactions = interactions + ${click ? 1 : 0} WHERE site_id = ? AND id = ?`)
         .bind(now, site.id, sid),
     );
-    // One multi-row INSERT: a batch of 20 impressions costs one round trip, not 20.
-    const cols = 12;
+    // One multi-row INSERT (one round trip for a batch of 20), with anti-inflation guards evaluated in SQL:
+    //  - a block event is only accepted in a session that has a pageview;
+    //  - an impression counts once per (session, block, item) per pageview (since the session's last pageview);
+    //  - clicks: at most one per (session, block, item) every 1.5 s and MAX_BLOCK_CLICKS per session and block.
+    const T = (c: string) => `CAST(? AS ${c})`;
+    const row = `(${[T('TEXT'), T('TEXT'), T('TEXT'), T('BIGINT'), T('TEXT'), T('TEXT'), T('TEXT'), T('TEXT'), T('TEXT'), T('BIGINT'), T('TEXT'), T('TEXT')].join(', ')})`;
+    const guard = click
+      ? `NOT EXISTS (SELECT 1 FROM events x WHERE x.site_id = v.site_id AND x.session_id = v.session_id AND x.type = 'block_click'
+           AND x.name = v.name AND COALESCE(x.video_id, '') = COALESCE(v.video_id, '') AND x.ts > v.ts - ${BLOCK_CLICK_GAP_MS})
+         AND (SELECT COUNT(*) FROM events x WHERE x.site_id = v.site_id AND x.session_id = v.session_id AND x.type = 'block_click'
+           AND x.name = v.name) < ${MAX_BLOCK_CLICKS}`
+      : `NOT EXISTS (SELECT 1 FROM events x WHERE x.site_id = v.site_id AND x.session_id = v.session_id AND x.type = 'block_view'
+           AND x.name = v.name AND COALESCE(x.video_id, '') = COALESCE(v.video_id, '')
+           AND x.ts >= (SELECT MAX(p.ts) FROM events p WHERE p.site_id = v.site_id AND p.session_id = v.session_id AND p.type = 'pageview'))`;
     stmts.push(
       db
         .prepare(
-          `INSERT INTO events (site_id, session_id, visitor_id, ts, type, name, path, props, video_id, value, label, kind) VALUES ${ev
-            .map(() => `(${new Array(cols).fill('?').join(', ')})`)
-            .join(', ')}`,
+          `INSERT INTO events (site_id, session_id, visitor_id, ts, type, name, path, props, video_id, value, label, kind)
+           SELECT v.site_id, v.session_id, v.visitor_id, v.ts, v.type, v.name, v.path, v.props, v.video_id, v.value, v.label, v.kind
+           FROM (VALUES ${ev.map(() => row).join(', ')}) AS v (site_id, session_id, visitor_id, ts, type, name, path, props, video_id, value, label, kind)
+           WHERE EXISTS (SELECT 1 FROM events p WHERE p.site_id = v.site_id AND p.session_id = v.session_id AND p.type = 'pageview')
+             AND ${guard}`,
         )
         .bind(
           ...ev.flatMap((b) => [
@@ -340,6 +354,9 @@ export async function ingest(
 }
 
 const BLOCK_ID = /^[\w:.\-/]{1,80}$/;
+/** Anti-inflation: the same block/item can be clicked at most once every 1.5 s and 20 times per session. */
+export const BLOCK_CLICK_GAP_MS = 1500;
+export const MAX_BLOCK_CLICKS = 20;
 /** Validate block events: n = 'view' with p.items[] (≤ 25), or n = 'click' with a single block in p. */
 export function blockEvents(body: Pick<Payload, 'n' | 'p'>) {
   const p = (body.p && typeof body.p === 'object' && !Array.isArray(body.p) ? body.p : {}) as Record<string, unknown>;
@@ -356,7 +373,8 @@ export function blockEvents(body: Pick<Payload, 'n' | 'p'>) {
     if (seen.has(key)) continue;
     seen.add(key);
     let href: string | null = null;
-    if (typeof r.h === 'string') {
+    // Protocol-relative ("//evil.com") and backslash tricks are rejected outright.
+    if (typeof r.h === 'string' && !/^\s*[\\/]{2}/.test(r.h) && !/^\s*\/\\/.test(r.h)) {
       try {
         const u = new URL(r.h, 'https://x.invalid');
         if (/^https?:$/.test(u.protocol)) href = u.hostname === 'x.invalid' ? u.pathname.slice(0, 300) : (u.origin + u.pathname).slice(0, 300);
@@ -423,11 +441,26 @@ export function actionEvent(body: Pick<Payload, 'n' | 'p'>) {
   const name = body.n ?? '';
   if (!/^[a-z0-9_:.-]{1,64}$/i.test(name)) return null;
   const p = (body.p && typeof body.p === 'object' && !Array.isArray(body.p) ? body.p : {}) as Record<string, unknown>;
-  const label = clip(p.label, 200);
+  const label = name.toLowerCase().includes('search') ? scrubQuery(p.label) : clip(p.label, 200);
   const videoId = typeof p.video === 'string' && /^[\w-]{1,64}$/.test(p.video) ? p.video : null;
   const rest: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(p)) if (k !== 'label' && k !== 'video' && ['string', 'number', 'boolean'].includes(typeof v)) rest[k] = v;
   return { name: name.toLowerCase(), label, videoId, props: serializeProperties(rest) };
+}
+
+/**
+ * Typed search queries can contain personal data: emails and phone-like numbers are replaced,
+ * and the query is capped at 100 characters.
+ */
+export function scrubQuery(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const q = raw
+    .replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, '[email]')
+    .replace(/\+?\d[\d\s().-]{7,}\d/g, '[tel]')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 100);
+  return q || null;
 }
 
 /** Screen width buckets, so the breakdown stays readable. */

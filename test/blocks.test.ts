@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll } from 'vitest';
-import { ingest } from '../src/worker/collect';
+import { blockEvents, ingest, scrubQuery } from '../src/worker/collect';
 import { blockDetail, blocksCsv, blocksReport, bucketStart, metrics, publicBlocks } from '../src/worker/blocks';
 import { breakdown, overview } from '../src/worker/stats';
 import { videoDetail, videoReport } from '../src/worker/videos';
@@ -38,7 +38,7 @@ beforeAll(async () => {
     { id: 'trending-justdropped', k: 'content', i: 'abcdefghijk', pos: 3 },
   ] } });
   await send({ t: 'block', n: 'click', u: 'https://n0.pub/trending', vid: 'visitor_aaaa', sid: 'session_aaaa', p: sponsor });
-  await send({ t: 'block', n: 'click', u: 'https://n0.pub/trending', vid: 'visitor_aaaa', sid: 'session_aaaa', p: sponsor });
+  await send({ t: 'block', n: 'click', u: 'https://n0.pub/trending', vid: 'visitor_aaaa', sid: 'session_aaaa', p: sponsor }, UA_MOBILE, FR, NOW + 5000);
   // Visitor B (desktop, US, direct): sees the sponsor and the house slot on /watch, clicks a card.
   await send({ t: 'pageview', u: 'https://n0.pub/trending', vid: 'visitor_bbbb', sid: 'session_bbbb' }, UA_DESKTOP, US);
   await send({ t: 'block', n: 'view', u: 'https://n0.pub/trending', vid: 'visitor_bbbb', sid: 'session_bbbb', p: { items: [sponsor, { id: 'trending-justdropped', i: 'dQw4w9WgXcQ', pos: 1 }] } }, UA_DESKTOP, US);
@@ -100,6 +100,50 @@ describe('sponsor & content blocks (Postgres)', () => {
   it('computes CTR safely', () => {
     expect(metrics({ impressions: 0, clicks: 3 }).ctr).toBe(0);
     expect(metrics({ impressions: 4, clicks: 1 }).ctr).toBe(0.25);
+  });
+});
+
+describe('anti-inflation on sponsor/block events (Postgres)', () => {
+  const sp = { id: 'party-sponsor1-acme', k: 'sponsor', s: 'Acme', h: 'https://acme.test/' };
+  const count = async (sid: string, type: string) =>
+    Number((await db.prepare('SELECT COUNT(*) AS n FROM events WHERE session_id = ? AND type = ?').bind(sid, type).first<{ n: number }>())!.n);
+  it('ignores block events from a session that never sent a pageview', async () => {
+    await send({ t: 'block', n: 'view', u: 'https://n0.pub/party', vid: 'visitor_fake', sid: 'session_fake1', p: { items: [sp] } });
+    await send({ t: 'block', n: 'click', u: 'https://n0.pub/party', vid: 'visitor_fake', sid: 'session_fake1', p: sp });
+    expect(await count('session_fake1', 'block_view')).toBe(0);
+    expect(await count('session_fake1', 'block_click')).toBe(0);
+  });
+  it('counts an impression once per pageview, again after a new pageview', async () => {
+    const b = { u: 'https://n0.pub/party', vid: 'visitor_imp1', sid: 'session_imp1' };
+    await send({ t: 'pageview', ...b });
+    for (let i = 0; i < 5; i++) await send({ t: 'block', n: 'view', ...b, p: { items: [sp] } }, UA_MOBILE, FR, NOW + 1000 + i * 100);
+    expect(await count('session_imp1', 'block_view')).toBe(1);
+    await send({ t: 'pageview', ...b }, UA_MOBILE, FR, NOW + 10_000);
+    await send({ t: 'block', n: 'view', ...b, p: { items: [sp] } }, UA_MOBILE, FR, NOW + 11_000);
+    expect(await count('session_imp1', 'block_view')).toBe(2);
+  });
+  it('throttles rapid clicks and caps clicks per session and block', async () => {
+    const b = { u: 'https://n0.pub/party', vid: 'visitor_clk1', sid: 'session_clk1' };
+    await send({ t: 'pageview', ...b });
+    for (let i = 0; i < 5; i++) await send({ t: 'block', n: 'click', ...b, p: sp }, UA_MOBILE, FR, NOW + 1000 + i * 200);
+    expect(await count('session_clk1', 'block_click')).toBe(1);
+    for (let i = 0; i < 40; i++) await send({ t: 'block', n: 'click', ...b, p: sp }, UA_MOBILE, FR, NOW + 10_000 + i * 2000);
+    expect(await count('session_clk1', 'block_click')).toBe(20);
+  });
+  it('flags anomalous sessions in the report', async () => {
+    const r = await blocksReport(ctx(), 'sponsor');
+    expect(r.anomalies.sessions).toBeGreaterThanOrEqual(1);
+    expect(r.anomalies.clicks).toBeGreaterThanOrEqual(20);
+  });
+  it('rejects protocol-relative links', () => {
+    expect(blockEvents({ n: 'click', p: { id: 'x', h: '//evil.com/a' } })[0].href).toBeNull();
+    expect(blockEvents({ n: 'click', p: { id: 'x', h: '/\\evil.com' } })[0].href).toBeNull();
+    expect(blockEvents({ n: 'click', p: { id: 'x', h: '/sponsor' } })[0].href).toBe('/sponsor');
+  });
+  it('scrubs personal data from search queries', () => {
+    expect(scrubQuery('contact jean.dupont@mail.fr  06 12 34 56 78')).toBe('contact [email] [tel]');
+    expect(scrubQuery('x'.repeat(300))!.length).toBe(100);
+    expect(scrubQuery('lofi 2024')).toBe('lofi 2024');
   });
 });
 
