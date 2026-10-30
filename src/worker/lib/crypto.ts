@@ -81,3 +81,26 @@ export async function passwordsMatch(a: string, b: string): Promise<boolean> {
   const [da, db] = await Promise.all([a, b].map((x) => crypto.subtle.digest('SHA-256', enc.encode(x))));
   return safeEqual(bytesToB64(da), bytesToB64(db));
 }
+
+/** Hex HMAC-SHA256 with a UTF-8 key (Stripe, Lemon Squeezy webhook signatures). */
+export async function hmacHex(secret: string, data: string): Promise<string> {
+  const encoded = enc.encode(secret);
+  const key = new Uint8Array(encoded.byteLength);
+  key.set(encoded);
+  return Array.from(new Uint8Array(await hmac(key, data)), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export function constantTimeEqual(a: string, b: string): boolean {
+  return safeEqual(a, b);
+}
+
+/** Stripe-Signature: `t=<unix>,v1=<hex>[,v1=…]`, signed payload `${t}.${body}`, 5 min tolerance. */
+export async function verifyStripeSignature(secret: string, header: string | null, body: string, now = Date.now()): Promise<boolean> {
+  if (!header) return false;
+  const parts = header.split(',').map((p) => p.trim().split('='));
+  const t = parts.find(([k]) => k === 't')?.[1];
+  const sigs = parts.filter(([k]) => k === 'v1').map(([, v]) => v ?? '');
+  if (!t || !sigs.length || !Number.isFinite(Number(t)) || Math.abs(now / 1000 - Number(t)) > 5 * 60) return false;
+  const expected = await hmacHex(secret, `${t}.${body}`);
+  return sigs.some((s) => safeEqual(s, expected));
+}

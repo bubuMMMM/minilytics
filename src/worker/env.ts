@@ -21,6 +21,10 @@ export interface Site {
   dodo_webhook_secret: string | null;
   created_at: number;
   is_public?: number;
+  /** JSON: { paths, ips, countries, hostnames } dropped at ingestion. */
+  exclusions?: string | null;
+  /** JSON: { stripe|lemonsqueezy|polar: { secret, connected_at, … } }. Secrets never leave the server. */
+  integrations?: string | null;
 }
 
 export type AppEnv = { Bindings: Env; Variables: { site: Site } };

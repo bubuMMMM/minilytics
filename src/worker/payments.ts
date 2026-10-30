@@ -12,7 +12,7 @@ export function currencyDecimals(currency: string): number {
   }
 }
 
-interface PaymentInput {
+export interface PaymentInput {
   id: string;
   provider: string;
   ts: number;
@@ -223,7 +223,7 @@ export async function rematchPayments(db: D1Database, site: Site) {
   return { checked: rows.results.length, matched, details };
 }
 
-const str = (v: unknown) => (typeof v === 'string' && v ? v : null);
+export const str = (v: unknown) => (typeof v === 'string' && v ? v : null);
 
 function pickMeta(meta: Record<string, unknown> | undefined, keys: string[]): string | null {
   if (!meta) return null;

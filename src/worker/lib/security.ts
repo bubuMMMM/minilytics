@@ -119,3 +119,8 @@ export class RateLimiter {
 
 /** Cache public aggregate endpoints at Vercel's CDN for a few seconds; protects the DB from floods. */
 export const PUBLIC_CACHE = 'public, max-age=0, s-maxage=15, stale-while-revalidate=60';
+
+/** The client IP as seen through Vercel/Cloudflare, without IPv6 bucketing (for exact exclusions). */
+export function rawRequestIp(c: Context): string {
+  return clientIp((n) => c.req.header(n), !!(c.req.raw as { cf?: unknown }).cf);
+}

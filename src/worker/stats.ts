@@ -27,42 +27,72 @@ const SESSION_FILTERS = [
   'screen',
 ] as const;
 
-export type Filters = Partial<Record<(typeof SESSION_FILTERS)[number] | 'page' | 'goal', string>>;
+/** Filter operators, as in « Pays est France », « Source n’est pas Google », « Page contient /blog ». */
+export type FilterOp = 'is' | 'not' | 'contains';
+export type FilterKey = (typeof SESSION_FILTERS)[number] | 'page' | 'goal' | 'visitor_type';
+export type Filters = Partial<Record<FilterKey, { op: FilterOp; v: string }>>;
+const FILTER_KEYS: readonly FilterKey[] = [...SESSION_FILTERS, 'page', 'goal', 'visitor_type'];
+const OPS: readonly FilterOp[] = ['is', 'not', 'contains'];
 
-export function parseFilters(raw: string | undefined): Filters {
+/** `{"country":"FR"}` (is) or `{"source":{"op":"not","v":"Google"}}`. Unknown keys and operators are dropped. */
+export function parseFilters(raw: string | Record<string, unknown> | undefined): Filters {
   if (!raw) return {};
+  let obj: Record<string, unknown>;
   try {
-    const obj = JSON.parse(raw);
-    const out: Filters = {};
-    for (const k of [...SESSION_FILTERS, 'page', 'goal'] as const) {
-      if (typeof obj[k] === 'string') out[k] = obj[k].slice(0, 500);
-    }
-    return out;
+    obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
   } catch {
     return {};
   }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return {};
+  const out: Filters = {};
+  for (const k of FILTER_KEYS) {
+    const val = obj[k];
+    if (typeof val === 'string') out[k] = { op: 'is', v: val.slice(0, 500) };
+    else if (val && typeof val === 'object' && typeof (val as any).v === 'string' && OPS.includes((val as any).op)) {
+      out[k] = { op: (val as any).op, v: ((val as any).v as string).slice(0, 500) };
+    }
+  }
+  return out;
 }
+
+/** LIKE pattern for « contains », case-insensitive, with % and _ escaped. */
+export const likeContains = (v: string) => '%' + v.toLowerCase().replace(/[\\%_]/g, '\\$&') + '%';
 
 /** SQL + params restricting sessions `s` by the dashboard filters (not by time). */
 export function filterSql(f: Filters): { sql: string; params: unknown[] } {
   const parts: string[] = [];
   const params: unknown[] = [];
   for (const k of SESSION_FILTERS) {
-    const v = f[k];
-    if (v === undefined) continue;
-    if (v === '') parts.push(`s.${k} IS NULL`);
+    const fv = f[k];
+    if (!fv) continue;
+    const col = `s.${k}`;
+    if (fv.op === 'contains') {
+      if (!fv.v) continue;
+      parts.push(`LOWER(${col}) LIKE ? ESCAPE '\\'`);
+      params.push(likeContains(fv.v));
+    } else if (fv.op === 'not') {
+      if (fv.v === '') parts.push(`${col} IS NOT NULL`);
+      else {
+        parts.push(`(${col} IS NULL OR ${col} != ?)`);
+        params.push(fv.v);
+      }
+    } else if (fv.v === '') parts.push(`${col} IS NULL`);
     else {
-      parts.push(`s.${k} = ?`);
-      params.push(v);
+      parts.push(`${col} = ?`);
+      params.push(fv.v);
     }
   }
-  if (f.page) {
-    parts.push(`EXISTS (SELECT 1 FROM events fe WHERE fe.site_id = s.site_id AND fe.session_id = s.id AND fe.type = 'pageview' AND fe.path = ?)`);
-    params.push(f.page);
+  for (const [k, type, col] of [['page', 'pageview', 'path'], ['goal', 'goal', 'name']] as const) {
+    const fv = f[k];
+    if (!fv || !fv.v) continue;
+    const cond = fv.op === 'contains' ? `LOWER(fe.${col}) LIKE ? ESCAPE '\\'` : `fe.${col} = ?`;
+    parts.push(`${fv.op === 'not' ? 'NOT ' : ''}EXISTS (SELECT 1 FROM events fe WHERE fe.site_id = s.site_id AND fe.session_id = s.id AND fe.type = '${type}' AND ${cond})`);
+    params.push(fv.op === 'contains' ? likeContains(fv.v) : fv.v);
   }
-  if (f.goal) {
-    parts.push(`EXISTS (SELECT 1 FROM events fe WHERE fe.site_id = s.site_id AND fe.session_id = s.id AND fe.type = 'goal' AND fe.name = ?)`);
-    params.push(f.goal);
+  const vt = f.visitor_type;
+  if (vt && vt.v) {
+    const isNew = /^(new|nouveau|1)$/i.test(vt.v) ? 1 : 0;
+    parts.push(`s.is_new = ${vt.op === 'not' ? 1 - isNew : isNew}`);
   }
   return { sql: parts.length ? ' AND ' + parts.join(' AND ') : '', params };
 }
@@ -180,13 +210,15 @@ export async function overview(ctx: Ctx) {
       .bind(site.id, now - 6 * 3_600_000, now - 5 * 60_000),
     db
       .prepare(
-        `SELECT ${sb} AS b, COUNT(DISTINCT s.visitor_id) AS visitors, COUNT(*) AS sessions, SUM(s.pageviews) AS pageviews
+        `SELECT ${sb} AS b, COUNT(DISTINCT s.visitor_id) AS visitors, COUNT(*) AS sessions, SUM(s.pageviews) AS pageviews,
+                SUM(CASE WHEN ${BOUNCE_SQL} THEN 1 ELSE 0 END) AS bounces, AVG(s.duration) AS avg_duration
          FROM sessions s WHERE ${cur.sql} GROUP BY b`,
       )
       .bind(...cur.params),
     db
       .prepare(
-        `SELECT ${pb} AS b, SUM(p.amount) AS revenue, SUM(CASE WHEN p.kind = 'payment' THEN 1 ELSE 0 END) AS payments
+        `SELECT ${pb} AS b, SUM(p.amount) AS revenue, SUM(CASE WHEN p.kind = 'payment' THEN 1 ELSE 0 END) AS payments,
+                COUNT(DISTINCT CASE WHEN p.kind = 'payment' AND p.renewal = 0 THEN COALESCE(p.visitor_id, p.id) END) AS customers
          FROM ${curPay.sql} GROUP BY b`,
       )
       .bind(...curPay.params),
@@ -198,13 +230,28 @@ export async function overview(ctx: Ctx) {
   const visitorsBy = new Map((ts.results as any[]).map((r) => [r.b, r]));
   const revenueBy = new Map((tr.results as any[]).map((r) => [r.b, r]));
   const labels = bucketLabels(range, ctx.offset);
-  const series = labels.map((b) => ({
-    bucket: b,
-    visitors: visitorsBy.get(b)?.visitors ?? 0,
-    pageviews: visitorsBy.get(b)?.pageviews ?? 0,
-    revenue: revenueBy.get(b)?.revenue ?? 0,
-    payments: revenueBy.get(b)?.payments ?? 0,
-  }));
+  const series = labels.map((b) => {
+    const v = visitorsBy.get(b);
+    const r = revenueBy.get(b);
+    const visitors = Number(v?.visitors ?? 0);
+    const sessions = Number(v?.sessions ?? 0);
+    const revenue = Number(r?.revenue ?? 0);
+    const customers = Number(r?.customers ?? 0);
+    return {
+      bucket: b,
+      visitors,
+      pageviews: Number(v?.pageviews ?? 0),
+      revenue,
+      payments: Number(r?.payments ?? 0),
+      // Metric trends (DataFast-style): conversion rate, revenue per visitor, bounce rate, session time.
+      sessions,
+      customers,
+      conversionRate: visitors ? customers / visitors : 0,
+      revenuePerVisitor: visitors ? revenue / visitors : 0,
+      bounceRate: sessions ? Number(v?.bounces ?? 0) / sessions : 0,
+      avgDuration: Math.round(Number(v?.avg_duration ?? 0)),
+    };
+  });
   // Previous period, aligned bucket-by-bucket with the current one so the chart can overlay it.
   const prevBy = new Map((tp.results as any[]).map((r) => [r.b, r.visitors]));
   const prevLabels = bucketLabels(prevRange, ctx.offset);
@@ -483,13 +530,65 @@ export async function funnel(ctx: Ctx, steps: FunnelStep[]) {
     return (r: (typeof rows)[0]) => r.type === 'pageview' && re.test(r.path);
   });
   const progress = new Map<string, number>();
+  const stepAt = new Map<string, number[]>(); // when each visitor reached each step (for time between steps)
   for (const r of rows) {
     const at = progress.get(r.v) ?? 0;
-    if (at < steps.length && matchers[at](r)) progress.set(r.v, at + 1);
+    if (at < steps.length && matchers[at](r)) {
+      progress.set(r.v, at + 1);
+      const t = stepAt.get(r.v) ?? [];
+      t.push(Number(r.ts));
+      stepAt.set(r.v, t);
+    }
   }
   const counts = steps.map(() => 0);
   for (const reached of progress.values()) for (let i = 0; i < reached; i++) counts[i]++;
-  return steps.map((st, i) => ({ ...st, visitors: counts[i] }));
+
+  // Who reached each step: first-touch source and country of the visit, and what they paid (DataFast-style funnel insights).
+  const sw = sessionsWhere(ctx);
+  const [srcRows, payRows] = await ctx.db.batch([
+    ctx.db.prepare(`SELECT s.visitor_id AS v, s.source, s.country, s.started_at FROM sessions s WHERE ${sw.sql} ORDER BY s.started_at LIMIT 200000`).bind(...sw.params),
+    ctx.db
+      .prepare(`SELECT p.visitor_id AS v, SUM(p.amount) AS amount FROM payments p WHERE p.site_id = ? AND p.ts >= ? AND p.ts < ? AND p.visitor_id IS NOT NULL GROUP BY p.visitor_id`)
+      .bind(ctx.site.id, ctx.range.from, ctx.range.to),
+  ]);
+  const firstTouch = new Map<string, { source: string | null; country: string | null }>();
+  for (const r of srcRows.results as any[]) if (!firstTouch.has(r.v)) firstTouch.set(r.v, { source: r.source, country: r.country });
+  const paid = new Map((payRows.results as any[]).map((r) => [r.v, Number(r.amount) || 0]));
+  const top = (m: Map<string, number>) => [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([label, visitors]) => ({ label, visitors }));
+
+  return steps.map((st, i) => {
+    const sources = new Map<string, number>();
+    const countries = new Map<string, number>();
+    let revenue = 0;
+    let customers = 0;
+    const gaps: number[] = [];
+    for (const [v, reached] of progress) {
+      if (reached <= i) continue;
+      const ft = firstTouch.get(v);
+      if (ft?.source) sources.set(ft.source, (sources.get(ft.source) ?? 0) + 1);
+      if (ft?.country) countries.set(ft.country, (countries.get(ft.country) ?? 0) + 1);
+      const amount = paid.get(v);
+      if (amount) {
+        revenue += amount;
+        customers++;
+      }
+      const t = stepAt.get(v);
+      if (i > 0 && t && t[i] !== undefined) gaps.push(t[i] - t[i - 1]);
+    }
+    gaps.sort((a, b) => a - b);
+    return {
+      ...st,
+      visitors: counts[i],
+      fromPrevious: i === 0 ? 1 : counts[i - 1] ? counts[i] / counts[i - 1] : 0,
+      fromFirst: counts[0] ? counts[i] / counts[0] : 0,
+      dropped: i === 0 ? 0 : counts[i - 1] - counts[i],
+      medianMs: gaps.length ? gaps[Math.floor(gaps.length / 2)] : null,
+      revenue,
+      customers,
+      topSources: top(sources),
+      topCountries: top(countries),
+    };
+  });
 }
 
 /** Aggregate privacy-safe page engagement. Cross-database SQL works on both D1 and PostgreSQL. */

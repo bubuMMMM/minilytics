@@ -1,10 +1,11 @@
+import { isExcluded } from './growth.js';
 import type { Context } from 'hono';
 import { androidAppDomain, classify } from '../shared/sources.js';
 import { getSite, type AppEnv, type Site } from './env.js';
 import { DEMO_SITE_ID, ensureDemoSite } from './demo.js';
 import { isBot, parseUA, uaDetails } from './lib/ua.js';
 import { creditedSessionSql } from './payments.js';
-import { RateLimiter, requestIp } from './lib/security.js';
+import { RateLimiter, rawRequestIp, requestIp } from './lib/security.js';
 
 const TYPES = new Set(['pageview', 'goal', 'outbound', 'ping', 'identify', 'scroll', 'engagement', 'click', 'form', 'video', 'action', 'block']);
 /** Video player lifecycle events. `watch` carries seconds actually played since the last report. */
@@ -119,10 +120,13 @@ export async function handleEvent(c: Context<AppEnv>) {
   // Only accept data for the site's own domain, so nobody can pollute your stats from elsewhere.
   if (!/^https?:$/.test(url.protocol) || !belongsTo(url.hostname, site.domain)) return c.body(null, 403);
   if (!originAllowed(c.req.header('origin'), site.domain)) return c.body(null, 403);
+  // Site exclusions (Settings › Exclusions): your own IP, internal paths, countries, staging hostnames.
+  const geo = geoOf(c);
+  if (isExcluded(site, { path: url.pathname, ip: rawRequestIp(c), country: geo.country, hostname: url.hostname })) return c.body(null, 202);
 
   const age = Number(body.age);
   const now = Date.now() - (Number.isFinite(age) && age > 0 ? Math.min(age, 86_400_000) : 0);
-  await ingest(c.env.DB, site, body, url, ua, geoOf(c), now);
+  await ingest(c.env.DB, site, body, url, ua, geo, now);
   return c.body(null, 202);
 }
 

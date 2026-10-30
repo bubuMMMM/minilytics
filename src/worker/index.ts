@@ -16,6 +16,7 @@ import { publicTopVideos, videoDetail, videoReport } from './videos.js';
 import { BLOCK_ID_RE, blockDetail, blocksCsv, blocksReport, parseKind, publicBlocks } from './blocks.js';
 import { socialReport, syncState, syncX, X_AUTO_SYNC_MS, X_SYNC_MIN_MS } from './social.js';
 import { breakdown, customers, engagementReport, funnel, makeCtx, overview, visitorProfile, visitors, type FunnelStep } from './stats.js';
+import { registerGrowth } from './growth.js';
 
 const app = new Hono<AppEnv>();
 const AUTH_COOKIE = 'ml_auth';
@@ -247,7 +248,10 @@ function validTimezone(tz: string) {
   }
 }
 
-const publicSite = (s: Site) => ({ ...s, dodo_webhook_secret: s.dodo_webhook_secret ? '••••••••' : null });
+const publicSite = (s: Site) => {
+  const { integrations: _i, ...rest } = s;
+  return { ...rest, dodo_webhook_secret: s.dodo_webhook_secret ? '••••••••' : null };
+};
 
 app.get('/api/sites', async (c) => {
   const now = Date.now();
@@ -331,7 +335,7 @@ app.post('/api/sites/:id/rotate-key', async (c) => {
 app.delete('/api/sites/:id', async (c) => {
   const id = c.get('site').id;
   await c.env.DB.batch(
-    ['events', 'sessions', 'visitors', 'payments', 'funnels'].map((t) =>
+    ['events', 'sessions', 'visitors', 'payments', 'funnels', 'segments', 'notes'].map((t) =>
       c.env.DB.prepare(`DELETE FROM ${t} WHERE site_id = ?`).bind(id),
     ).concat(c.env.DB.prepare('DELETE FROM sites WHERE id = ?').bind(id)),
   );
@@ -480,6 +484,8 @@ app.get('/api/sites/:id/funnels/:fid/stats', async (c) => {
   if (!f) return c.json({ error: 'funnel not found' }, 404);
   return c.json(await funnel(makeCtx(c), JSON.parse(f.steps)));
 });
+
+registerGrowth(app);
 
 app.all('/api/*', (c) => c.json({ error: 'not found' }, 404));
 
