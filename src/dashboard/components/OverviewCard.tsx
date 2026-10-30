@@ -1,6 +1,8 @@
 import { InfoTip } from './InfoTip';
 import { useState } from 'react';
-import { Area, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, Bar, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { TrendChart } from './TrendChart';
+import { NotesBar, bucketOfTs, useNotes } from './ChartNotes';
 import type { Kpis, Overview } from '../lib/api';
 import { useDash } from '../lib/context';
 import { bucketLabel, fmtDuration, fmtNumber, fmtPct } from '../lib/format';
@@ -20,9 +22,17 @@ interface KpiDef {
   hint?: string;
 }
 
-function KpiCard({ k, cur, prev }: { k: KpiDef; cur: number; prev: number }) {
+function KpiCard({ k, cur, prev, selected, onSelect }: { k: KpiDef; cur: number; prev: number; selected: boolean; onSelect: () => void }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 px-4 py-4 sm:px-5">
+    <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
+      onClick={onSelect}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
+      title="Afficher la tendance de cet indicateur"
+      className={`relative flex min-w-0 cursor-pointer flex-col gap-1.5 px-4 py-4 outline-none transition-colors hover:bg-well/60 focus-visible:bg-well sm:px-5 ${selected ? 'after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-accent' : ''}`}
+    >
       <span className="flex min-w-0 items-center text-[12px] font-medium text-ink-3"><span className="truncate">{k.label}</span>{k.hint && <InfoTip text={k.hint} label={`Comment est calculé « ${k.label} » ?`} />}</span>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <span className="tnum text-[22px] font-semibold leading-7 tracking-tight text-ink sm:text-2xl">{k.value}</span>
@@ -45,8 +55,12 @@ export function KpiSkeleton() {
   );
 }
 
+type Metric = 'visitors' | 'pageviews' | 'revenue' | 'conversionRate' | 'bounceRate' | 'avgDuration' | 'revenuePerVisitor';
+
 export function OverviewCard({ data }: { data: Overview | null }) {
-  const { money } = useDash();
+  const { money, site } = useDash();
+  const [metric, setMetric] = useState<Metric>('visitors');
+  const notes = useNotes();
   const col = COLORS;
   const [hidden, setHidden] = useState<Record<Series, boolean>>({ visitors: false, revenue: false, prev: false });
   const c = data?.current;
@@ -77,7 +91,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
       {c && p ? (
         <div className="grid grid-cols-2 gap-px border-b border-line bg-line md:grid-cols-3 xl:grid-cols-6 [&>*]:bg-surface">
           {kpis.map((k) => (
-            <KpiCard key={k.key} k={k} cur={c[k.key]} prev={p[k.key]} />
+            <KpiCard key={k.key} k={k} cur={c[k.key]} prev={p[k.key]} selected={metric === k.key} onSelect={() => setMetric(k.key as Metric)} />
           ))}
         </div>
       ) : (
@@ -87,11 +101,12 @@ export function OverviewCard({ data }: { data: Overview | null }) {
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4 sm:px-5">
           <div>
-            <div className="text-[14px] font-semibold text-ink">Trafic{hasRevenue ? ' et revenus' : ''}</div>
-            <div className="text-[12px] text-ink-3">Comparé à la période précédente de même durée</div>
+            <div className="text-[14px] font-semibold text-ink">{metric === 'visitors' ? `Trafic${hasRevenue ? ' et revenus' : ''}` : TREND[metric].label}</div>
+            <div className="text-[12px] text-ink-3">{metric === 'visitors' ? 'Comparé à la période précédente de même durée' : 'Tendance sur la période · touchez un indicateur pour changer'}</div>
           </div>
           <div className="flex flex-wrap items-center gap-1">
-            {legend
+            {metric !== 'visitors' && <button className="btn-ghost" onClick={() => setMetric('visitors')}>← Trafic</button>}
+            {metric === 'visitors' && legend
               .filter((l) => l.show)
               .map((l) => (
                 <button
@@ -108,7 +123,16 @@ export function OverviewCard({ data }: { data: Overview | null }) {
         </div>
         <div className="h-[260px] px-1 pb-3 pt-3 sm:h-[320px] sm:px-3">
           {!data && <div className="ml-skeleton h-full w-full" />}
-          {data && (
+          {data && metric !== 'visitors' && (
+            <TrendChart
+              buckets={data.series.map((x) => x.bucket)}
+              granularity={g}
+              height={240}
+              series={[{ key: metric, label: TREND[metric].label, color: TREND[metric].color, values: data.series.map((x) => Number((x as any)[metric] ?? 0)) }]}
+              format={(n) => TREND[metric].format(n, money)}
+            />
+          )}
+          {data && metric === 'visitors' && (
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={data.series} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                 <defs>
@@ -148,6 +172,12 @@ export function OverviewCard({ data }: { data: Overview | null }) {
                     );
                   }}
                 />
+                {notes.list.map((n) => {
+                  const b = bucketOfTs(n.ts, g, site.timezone);
+                  return data.series.some((x) => x.bucket === b) ? (
+                    <ReferenceLine key={n.id} yAxisId="v" x={b} stroke="rgb(var(--warning))" strokeDasharray="2 3" label={{ value: '●', position: 'top', fill: 'rgb(var(--warning))', fontSize: 10 }} />
+                  ) : null;
+                })}
                 {hasRevenue && !hidden.revenue && <Bar yAxisId="r" dataKey="revenue" fill={col.revenue} radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive={false} />}
                 {!hidden.prev && (
                   <Line yAxisId="v" type="monotone" dataKey="prevVisitors" stroke={col.prev} strokeWidth={1.5} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} />
@@ -169,10 +199,20 @@ export function OverviewCard({ data }: { data: Overview | null }) {
             </ResponsiveContainer>
           )}
         </div>
+        <NotesBar notes={notes} />
       </div>
     </div>
   );
 }
+
+const TREND: Record<Exclude<Metric, 'visitors'>, { label: string; color: string; format: (n: number, money: (m: number, c?: boolean) => string) => string }> = {
+  pageviews: { label: 'Pages vues', color: 'rgb(var(--accent))', format: (n) => fmtNumber(n) },
+  revenue: { label: 'Revenus', color: 'rgb(var(--success))', format: (n, m) => m(n) },
+  conversionRate: { label: 'Taux de conversion', color: 'rgb(var(--success))', format: (n) => fmtPct(n, 2) },
+  revenuePerVisitor: { label: 'Revenu par visiteur', color: 'rgb(var(--success))', format: (n, m) => m(n) },
+  bounceRate: { label: 'Taux de rebond', color: 'rgb(var(--danger))', format: (n) => fmtPct(n) },
+  avgDuration: { label: 'Durée de visite moyenne', color: 'rgb(var(--accent))', format: (n) => fmtDuration(n) },
+};
 
 function Row({ color, label, value }: { color: string; label: string; value: string }) {
   return (

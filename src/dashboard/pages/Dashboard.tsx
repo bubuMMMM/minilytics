@@ -7,7 +7,8 @@ import { AppHeader, BottomNav } from '../components/AppNav';
 import { LiveDot } from '../components/Sparkline';
 import { UiIcon } from '../components/UiIcon';
 import { OverviewCard } from '../components/OverviewCard';
-import { Panel, renderLabel } from '../components/Panel';
+import { Panel } from '../components/Panel';
+import { FilterBar } from '../components/FilterBar';
 import { Toolbar } from '../components/Toolbar';
 import { VisitorModal } from '../components/VisitorModal';
 import { VideosTeaser, VideosView } from '../components/VideosView';
@@ -19,28 +20,6 @@ import { DashContext, useDash, type Dash } from '../lib/context';
 import { fmtMoney } from '../lib/format';
 import { useApi } from '../lib/useApi';
 import { useQueryState } from '../lib/useQueryState';
-
-const FILTER_LABELS: Record<string, { label: string; dim: string }> = {
-  channel: { label: 'Canal', dim: 'channel' },
-  source: { label: 'Référent', dim: 'source' },
-  utm_campaign: { label: 'Campagne', dim: 'campaign' },
-  utm_term: { label: 'Mot-clé', dim: 'keyword' },
-  utm_source: { label: 'UTM source', dim: 'utm_source' },
-  utm_medium: { label: 'UTM medium', dim: 'utm_medium' },
-  ref: { label: 'Ref', dim: 'ref' },
-  country: { label: 'Pays', dim: 'country' },
-  region: { label: 'Région', dim: 'region' },
-  city: { label: 'Ville', dim: 'city' },
-  browser: { label: 'Navigateur', dim: 'browser' },
-  os: { label: 'OS', dim: 'os' },
-  device: { label: 'Appareil', dim: 'device' },
-  page: { label: 'Page visitée', dim: 'page' },
-  entry_page: { label: 'Page d’entrée', dim: 'entry_page' },
-  hostname: { label: 'Domaine', dim: 'hostname' },
-  screen: { label: 'Écran', dim: 'screen' },
-  language: { label: 'Langue', dim: 'language' },
-  goal: { label: 'Objectif atteint', dim: 'goal' },
-};
 
 export type DashView = 'overview' | 'videos' | 'sponsors' | 'content' | 'sources' | 'social';
 const VIEW_META: Record<DashView, { kicker: string; title: (name: string) => string; sub: string }> = {
@@ -61,10 +40,6 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
   const { data: overview, loading } = useApi<Overview>(site ? `/api/sites/${siteId}/overview?${qs(q)}` : null, reloadKey);
 
   const addFilter = useCallback((key: string, value: string) => update({ filters: { ...q.filters, [key]: value } }), [q.filters, update]);
-  const removeFilter = (key: string) => {
-    const { [key]: _, ...rest } = q.filters;
-    update({ filters: rest });
-  };
 
   const dash: Dash | null = useMemo(() => {
     if (!site) return null;
@@ -109,22 +84,7 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
             </div>
           </div>
 
-        {Object.keys(q.filters).length > 0 && (
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {Object.entries(q.filters).map(([k, v]) => (
-              <span key={k} className="flex items-center gap-2 rounded-full border border-accent/30 bg-well py-1 pl-3 pr-1 text-sm">
-                <span className="text-ink-3">{FILTER_LABELS[k]?.label ?? k} =</span>
-                <span className="flex items-center gap-1.5 font-medium">{renderLabel(FILTER_LABELS[k]?.dim ?? k, { label: v || null })}</span>
-                <button className="rounded-lg px-1.5 text-ink-4 hover:bg-well hover:text-ink" onClick={() => removeFilter(k)} aria-label="Retirer le filtre">
-                  ✕
-                </button>
-              </span>
-            ))}
-            <button className="btn-ghost" onClick={() => update({ filters: {} })}>
-              Tout effacer
-            </button>
-          </div>
-        )}
+        <FilterBar siteId={site.id} q={q} update={update} />
 
         {view === 'videos' ? <div className="mt-5"><VideosView /></div>
           : view === 'sponsors' ? <div className="mt-5"><BlocksView kind="sponsor" /></div>
@@ -211,7 +171,7 @@ function SourcesPanels({ full = false }: { full?: boolean }) {
             tabs={[
               { label: 'Top pages', dim: 'page', filter: 'page' },
               { label: 'Entrée', dim: 'entry_page', filter: 'entry_page' },
-              { label: 'Sortie', dim: 'exit_page' },
+              { label: 'Sortie', dim: 'exit_page', filter: 'exit_page' },
               { label: 'Liens sortants', dim: 'exit_link' },
               { label: 'Domaine', dim: 'hostname', filter: 'hostname' },
             ]}
@@ -233,7 +193,7 @@ function SourcesPanels({ full = false }: { full?: boolean }) {
               { label: 'OS', dim: 'os', filter: 'os' },
               { label: 'Écran', dim: 'screen', filter: 'screen' },
               { label: 'Langue', dim: 'language', filter: 'language' },
-              { label: 'Nouveaux / récurrents', dim: 'visitor_type' },
+              { label: 'Nouveaux / récurrents', dim: 'visitor_type', filter: 'visitor_type' },
             ]}
           />
           <Panel

@@ -57,7 +57,10 @@ export interface Overview {
   current: Kpis;
   previous: Kpis;
   online: number;
-  series: { bucket: string; visitors: number; pageviews: number; revenue: number; payments: number; prevVisitors?: number }[];
+  series: {
+    bucket: string; visitors: number; pageviews: number; revenue: number; payments: number; prevVisitors?: number;
+    sessions?: number; customers?: number; conversionRate?: number; revenuePerVisitor?: number; bounceRate?: number; avgDuration?: number;
+  }[];
 }
 
 export interface BreakdownRow {
@@ -69,7 +72,11 @@ export interface BreakdownRow {
   extra?: string | null;
 }
 
-export type Filters = Record<string, string>;
+export type FilterOp = 'is' | 'not' | 'contains';
+/** A filter value: a plain string means « est » (legacy URLs keep working). */
+export type FilterValue = string | { op: FilterOp; v: string };
+export type Filters = Record<string, FilterValue>;
+export const filterParts = (v: FilterValue): { op: FilterOp; v: string } => (typeof v === 'string' ? { op: 'is', v } : v);
 
 export interface Query {
   period: string;

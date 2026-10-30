@@ -4,6 +4,7 @@ import { AppHeader, BottomNav } from '../components/AppNav';
 import { Favicon } from '../components/Icons';
 import { buildAiPrompt } from '../lib/aiPrompt';
 import { api, type Site } from '../lib/api';
+import { ExclusionsSettings, RevenueIntegrations } from '../components/SettingsGrowth';
 
 function Section({ title, desc, children }: { title: string; desc?: ReactNode; children: ReactNode }) {
   return (
@@ -231,6 +232,10 @@ const session = await dodo.checkoutSessions.create({
           </li>
         </ol>
       </Section>
+
+      <RevenueIntegrations site={site} Section={Section} Code={Code} />
+
+      <ExclusionsSettings site={site} Section={Section} />
 
       <Section title="Autres moyens de paiement / API serveur" desc="Envoyez des paiements ou des objectifs depuis votre backend avec la clé API de ce site.">
         <div className="mb-3 flex flex-col gap-2 sm:flex-row">

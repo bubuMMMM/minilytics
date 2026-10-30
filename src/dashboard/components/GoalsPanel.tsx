@@ -4,8 +4,10 @@ import { useDash } from '../lib/context';
 import { countryName, fmtAgo, fmtDateTime, fmtDuration, fmtNumber, fmtPct, shortId } from '../lib/format';
 import { useApi } from '../lib/useApi';
 import { Avatar, BrowserIcon, DeviceIcon, Flag, OSIcon, SourceIcon } from './Icons';
+import { GoalDetail } from './GoalDetail';
+import { PathsView } from './PathsView';
 
-type Tab = 'goal' | 'funnel' | 'user' | 'journey';
+type Tab = 'goal' | 'funnel' | 'paths' | 'user' | 'journey';
 
 export function GoalsPanel({ totalVisitors }: { totalVisitors: number }) {
   const [tab, setTab] = useState<Tab>('journey');
@@ -14,9 +16,9 @@ export function GoalsPanel({ totalVisitors }: { totalVisitors: number }) {
     <div className="card min-w-0 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2 pb-3">
         <div className="tabs">
-          {(['goal', 'funnel', 'user', 'journey'] as const).map((t) => (
+          {(['goal', 'funnel', 'paths', 'user', 'journey'] as const).map((t) => (
             <button key={t} className={`tab ${tab === t ? 'tab-active' : ''}`} onClick={() => setTab(t)}>
-              {t === 'journey' ? 'Parcours d’achat' : t === 'user' ? 'Visiteurs' : t === 'goal' ? 'Objectifs' : 'Entonnoirs'}
+              {t === 'journey' ? 'Parcours d’achat' : t === 'user' ? 'Visiteurs' : t === 'goal' ? 'Objectifs' : t === 'paths' ? 'Chemins' : 'Entonnoirs'}
             </button>
           ))}
         </div>
@@ -26,6 +28,7 @@ export function GoalsPanel({ totalVisitors }: { totalVisitors: number }) {
       </div>
       {tab === 'goal' && <Goals totalVisitors={totalVisitors} />}
       {tab === 'funnel' && <Funnels />}
+      {tab === 'paths' && <PathsView />}
       {tab === 'user' && <Users search={search} />}
       {tab === 'journey' && <Journey search={search} />}
     </div>
@@ -33,7 +36,8 @@ export function GoalsPanel({ totalVisitors }: { totalVisitors: number }) {
 }
 
 function Goals({ totalVisitors }: { totalVisitors: number }) {
-  const { site, q, reloadKey, money, addFilter } = useDash();
+  const { site, q, reloadKey, money } = useDash();
+  const [open, setOpen] = useState<string | null>(null);
   const { data } = useApi<BreakdownRow[]>(`/api/sites/${site.id}/breakdown?${qs(q, { dim: 'goal' })}`, reloadKey);
   if (!data) return <div className="h-40 animate-pulse" />;
   if (!data.length)
@@ -44,6 +48,8 @@ function Goals({ totalVisitors }: { totalVisitors: number }) {
       </div>
     );
   return (
+    <>
+    <GoalDetail key={open ?? 'none'} name={open} onClose={() => setOpen(null)} />
     <table className="w-full text-sm">
       <thead>
         <tr className="text-left text-ink-3">
@@ -56,7 +62,7 @@ function Goals({ totalVisitors }: { totalVisitors: number }) {
       </thead>
       <tbody>
         {data.map((g) => (
-          <tr key={g.label} className="cursor-pointer border-t border-line hover:bg-well" onClick={() => addFilter('goal', g.label ?? '')} title="Filtrer sur les visiteurs ayant atteint cet objectif">
+          <tr key={g.label} className="cursor-pointer border-t border-line hover:bg-well" onClick={() => setOpen(g.label ?? '')} title="Voir le détail : tendance, propriétés, pages et sources">
             <td className="max-w-[160px] truncate px-3 py-3 font-medium">🎯 {g.label}</td>
             <td className="py-2.5 text-right">{fmtNumber(g.visitors)}</td>
             <td className="hidden py-2.5 text-right sm:table-cell">{fmtNumber(g.pageviews ?? 0)}</td>
@@ -66,6 +72,7 @@ function Goals({ totalVisitors }: { totalVisitors: number }) {
         ))}
       </tbody>
     </table>
+    </>
   );
 }
 
@@ -75,6 +82,18 @@ interface FunnelDef {
   steps: { type: 'page' | 'goal'; value: string }[];
 }
 
+interface FunnelStat {
+  type: 'page' | 'goal';
+  value: string;
+  visitors: number;
+  fromPrevious?: number;
+  medianMs?: number | null;
+  revenue?: number;
+  customers?: number;
+  topSources?: { label: string; visitors: number }[];
+  topCountries?: { label: string; visitors: number }[];
+}
+
 function Funnels() {
   const { site, q, reloadKey } = useDash();
   const [version, setVersion] = useState(0);
@@ -82,7 +101,8 @@ function Funnels() {
   const [selected, setSelected] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const current = funnels?.find((f) => f.id === selected) ?? funnels?.[0];
-  const { data: stats } = useApi<(FunnelDef['steps'][0] & { visitors: number })[]>(
+  const { money } = useDash();
+  const { data: stats } = useApi<FunnelStat[]>(
     current ? `/api/sites/${site.id}/funnels/${current.id}/stats?${qs(q)}` : null,
     reloadKey + version,
   );
@@ -140,6 +160,7 @@ function Funnels() {
               </div>
               <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-well"><div className="h-full rounded-full bg-visitors/70" style={{ width: `${Math.max(pct * 100, 2)}%` }} /></div>
               {i > 0 && <div className="mt-1 text-xs text-danger">−{prev ? fmtPct(1 - s.visitors / prev) : '0 %'} d’abandon</div>}
+              <StepInsights s={s} i={i} money={money} />
             </div>
           );
         })}
@@ -161,10 +182,33 @@ function Funnels() {
                 {fmtNumber(s.visitors)} visiteurs · {fmtPct(pct)}
               </div>
               {i > 0 && <div className="text-xs text-danger">−{prev ? fmtPct(1 - s.visitors / prev) : '0%'} d’abandon</div>}
+              <StepInsights s={s} i={i} money={money} />
             </div>
           );
         })}
       </div>
+      {stats && stats.length > 1 && top > 0 && (
+        <p className="mt-4 text-[13px] text-ink-3">
+          Conversion globale : <b className="tnum text-ink">{fmtPct(stats[stats.length - 1].visitors / top, 1)}</b>
+          {(() => {
+            const worst = stats.slice(1).reduce((w, s, j) => { const d = stats[j].visitors ? 1 - s.visitors / stats[j].visitors : 0; return d > w.d ? { d, j: j + 1 } : w; }, { d: -1, j: 0 });
+            return worst.d > 0 ? <> · plus grosse perte à l’étape <b className="text-ink">{worst.j + 1}</b> ({fmtPct(worst.d)} d’abandon) : c’est là qu’il faut agir.</> : null;
+          })()}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function StepInsights({ s, i, money }: { s: FunnelStat; i: number; money: (m: number, c?: boolean) => string }) {
+  const bits: string[] = [];
+  if (i > 0 && s.medianMs != null) bits.push(`⏱ ${fmtDuration(s.medianMs)} médiane`);
+  if (s.revenue) bits.push(`${money(s.revenue, true)} · ${s.customers} client${(s.customers ?? 0) > 1 ? 's' : ''}`);
+  const src = s.topSources?.slice(0, 2).map((x) => `${x.label} ${fmtNumber(x.visitors)}`).join(', ');
+  return (
+    <div className="mt-1 space-y-0.5 text-[11px] text-ink-3">
+      {bits.map((b) => <div key={b} className="tnum">{b}</div>)}
+      {src && <div className="truncate" title={s.topSources?.map((x) => `${x.label} : ${x.visitors}`).join('\n')}>Sources : {src}</div>}
     </div>
   );
 }

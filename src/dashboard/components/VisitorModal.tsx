@@ -67,6 +67,8 @@ export function VisitorModal({ visitorId, onClose }: { visitorId: string | null;
             />
           </div>
 
+          <ActivityGrid sessions={p.sessions} tz={site.timezone} />
+
           <div className="mt-8 space-y-6">
             {p.sessions.map((s) => {
               const evs = [...(bySession.get(s.id) ?? [])].reverse();
@@ -136,6 +138,42 @@ function Stat({ label, value, accent }: { label: string; value: string; accent?:
     <div className="rounded-xl bg-well px-4 py-3">
       <div className="text-xs text-ink-3">{label}</div>
       <div className={`mt-0.5 truncate font-semibold ${accent ? 'text-revenue' : ''}`}>{value}</div>
+    </div>
+  );
+}
+
+/** GitHub-style activity grid of the visitor's last 26 weeks (pages viewed per day), as in DataFast journeys. */
+function ActivityGrid({ sessions, tz }: { sessions: { started_at: number; pageviews: number }[]; tz: string }) {
+  const WEEKS = 26;
+  const day = (ts: number) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(ts);
+  const per = new Map<string, number>();
+  for (const s of sessions) per.set(day(s.started_at), (per.get(day(s.started_at)) ?? 0) + Math.max(1, Number(s.pageviews) || 1));
+  const today = new Date(day(Date.now()) + 'T00:00:00Z');
+  const end = new Date(today);
+  end.setUTCDate(end.getUTCDate() + (6 - ((today.getUTCDay() + 6) % 7))); // Sunday of this week
+  const cells: { key: string; n: number; future: boolean }[] = [];
+  for (let i = WEEKS * 7 - 1; i >= 0; i--) {
+    const d = new Date(end);
+    d.setUTCDate(end.getUTCDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    cells.push({ key, n: per.get(key) ?? 0, future: d > today });
+  }
+  const max = Math.max(1, ...cells.map((c) => c.n));
+  const active = cells.filter((c) => c.n > 0).length;
+  const level = (n: number) => (n === 0 ? 'bg-well' : n / max > 0.66 ? 'bg-accent' : n / max > 0.33 ? 'bg-accent/60' : 'bg-accent/30');
+  return (
+    <div className="mt-6">
+      <div className="mb-2 flex items-baseline justify-between gap-2 text-[12px]">
+        <span className="font-medium text-ink-2">Activité sur 6 mois</span>
+        <span className="text-ink-4">{active} jour{active > 1 ? 's' : ''} actif{active > 1 ? 's' : ''}</span>
+      </div>
+      <div className="overflow-x-auto">
+        <div className="grid w-max grid-flow-col grid-rows-7 gap-[3px]" role="img" aria-label={`Activité : ${active} jours avec au moins une visite sur les 26 dernières semaines`}>
+          {cells.map((c) => (
+            <span key={c.key} title={c.future ? undefined : `${c.key} : ${c.n} page${c.n > 1 ? 's' : ''}`} className={`h-[11px] w-[11px] rounded-[3px] ${c.future ? 'opacity-0' : level(c.n)}`} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
