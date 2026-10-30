@@ -158,10 +158,11 @@ export function AlertsSettings({ site, Section, canEdit }: { site: Site; Section
   const [emails, setEmails] = useState<string | null>(null);
   const [goals, setGoals] = useState<string | null>(null);
   const [test, setTest] = useState('');
-  if (!s) return <Section title="Alertes et rapports">{<div className="ml-skeleton h-40" />}</Section>;
+  if (!s) return <div id="alertes" className="scroll-mt-24"><Section title="Alertes et rapports">{<div className="ml-skeleton h-40" />}</Section></div>;
   const a = s.alerts;
   const set = (patch: Partial<Alerts>) => save({ alerts: { ...a, ...patch } });
   return (
+    <div id="alertes" className="scroll-mt-24">
     <Section title="Alertes et rapports" desc="Notifications dans l’application (cloche) dès qu’un événement arrive, et rapports par e-mail chaque semaine ou chaque mois.">
       <div className="grid gap-x-6 sm:grid-cols-2">
         <Toggle label="Notifications dans l’application" checked={a.inApp} disabled={!canEdit} onChange={(v) => set({ inApp: v })} />
@@ -195,6 +196,7 @@ export function AlertsSettings({ site, Section, canEdit }: { site: Site; Section
       </div>
       <p className="mt-2 h-5 text-sm">{msg && <span className="text-success">{msg}</span>}{error && <span className="text-danger">{error}</span>}</p>
     </Section>
+    </div>
   );
 }
 
