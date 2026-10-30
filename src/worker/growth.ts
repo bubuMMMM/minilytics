@@ -432,6 +432,25 @@ export async function userPaths(ctx: Ctx, depth = 4) {
 // ---------------------------------------------------------------- routes
 
 export function registerGrowth(app: Hono<AppEnv>) {
+  // Favicon proxy: Google's favicon service answers 404 (with a placeholder) for unknown
+  // domains, which floods the console. We pass real icons through and answer 204 otherwise,
+  // so the <img> falls back silently. Only well-formed hostnames, fixed upstream host.
+  app.get('/api/favicon', async (c) => {
+    const d = (c.req.query('domain') || '').toLowerCase();
+    if (!/^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(d)) return c.body(null, 204);
+    const cache = { 'cache-control': 'public, max-age=86400, s-maxage=604800' };
+    try {
+      const r = await fetch(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(d)}&sz=64`, { signal: AbortSignal.timeout(4000) });
+      const type = r.headers.get('content-type') || '';
+      if (!r.ok || !type.startsWith('image/')) return c.body(null, 204, cache);
+      const buf = await r.arrayBuffer();
+      if (buf.byteLength > 100_000) return c.body(null, 204, cache);
+      return c.body(buf, 200, { ...cache, 'content-type': type, 'x-content-type-options': 'nosniff' });
+    } catch {
+      return c.body(null, 204);
+    }
+  });
+
   for (const p of PROVIDERS) app.post(`/api/webhooks/${p}/:siteId`, (c) => handleProviderWebhook(c, p));
 
   // Segments: saved filter combinations, per site.

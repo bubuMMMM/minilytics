@@ -201,3 +201,12 @@ describe('revenue integrations', () => {
     expect(del.lemonsqueezy.connected).toBe(false);
   });
 });
+
+describe('favicon proxy', () => {
+  it('answers 204 for malformed domains without calling upstream', async () => {
+    for (const d of ['', 'localhost', 'a b.com', '169.254.169.254', 'x.com/evil', '..com']) {
+      const r = await call('/api/favicon?domain=' + encodeURIComponent(d));
+      expect(r.status).toBe(204);
+    }
+  });
+});
