@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { api } from './lib/api';
+import { loadMe } from './lib/me';
 import { Landing, Signup } from './pages/Landing';
 import { Login } from './pages/Login';
 
@@ -10,6 +10,9 @@ const PublicDemo = lazy(() => import('./pages/PublicDemo').then((m) => ({ defaul
 const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
 const MapPage = lazy(() => import('./map/MapPage').then((m) => ({ default: m.MapPage })));
 const Sites = lazy(() => import('./pages/Sites').then((m) => ({ default: m.Sites })));
+const Team = lazy(() => import('./pages/Team').then((m) => ({ default: m.Team })));
+const Invite = lazy(() => import('./pages/Team').then((m) => ({ default: m.Invite })));
+
 
 export function navigate(to: string) {
   window.history.pushState(null, '', to);
@@ -36,14 +39,14 @@ function Loading() {
   return <div className="flex min-h-screen items-center justify-center text-sm text-ink-3" aria-busy="true">{show ? 'Chargement…' : ''}</div>;
 }
 
-const SITE_VIEWS: Record<string, 'videos' | 'sponsors' | 'content' | 'sources' | 'social'> = { videos: 'videos', sponsors: 'sponsors', contenus: 'content', sources: 'sources', social: 'social' };
+const SITE_VIEWS: Record<string, 'videos' | 'sponsors' | 'content' | 'sources' | 'social' | 'bots'> = { bots: 'bots', videos: 'videos', sponsors: 'sponsors', contenus: 'content', sources: 'sources', social: 'social' };
 
 export function App() {
   const path = usePath().replace(/\/+$/, '') || '/';
   const [auth, setAuth] = useState<boolean | null>(null);
 
   useEffect(() => {
-    api<{ loggedIn: boolean }>('/api/auth/me').then((r) => setAuth(r.loggedIn), () => setAuth(false));
+    loadMe().then((r) => setAuth(r.loggedIn), () => setAuth(false));
     const out = () => setAuth(false);
     window.addEventListener('ml:logout', out);
     return () => window.removeEventListener('ml:logout', out);
@@ -54,13 +57,16 @@ export function App() {
   // A genuine, read-only public demonstration; private customer data stays behind authentication.
   if (path === '/demo/map') return <Suspense fallback={<Loading />}><MapPage publicSiteId={new URLSearchParams(window.location.search).get('site') || '2z1f1t02626v5c5w'} /></Suspense>;
   if (path === '/demo') return <Suspense fallback={<Loading />}><PublicDemo /></Suspense>;
+  const invite = /^\/invite\/([\w-]{20,100})$/.exec(path);
+  if (invite) return <Suspense fallback={<Loading />}><Invite token={invite[1]} onJoined={() => loadMe(true).then(() => { setAuth(true); navigate('/sites'); })} /></Suspense>;
   if (auth === null) return <Loading />;
-  if (!auth) return <Login onLogin={() => { setAuth(true); navigate(path === '/login' ? '/sites' : path + window.location.search); }} />;
+  if (!auth) return <Login onLogin={() => loadMe(true).then(() => { setAuth(true); navigate(path === '/login' ? '/sites' : path + window.location.search); })} />;
   return <Suspense fallback={<Loading />}>{route(path)}</Suspense>;
 }
 
 function route(path: string) {
   if (path === '/admin' || path === '/sites' || path === '/login') return <Sites />;
+  if (path === '/team') return <Team />;
   const m = /^\/site\/([\w-]+)(?:\/([\w-]+))?$/.exec(path);
   if (!m) return <Sites />;
   const [, id, sub] = m;

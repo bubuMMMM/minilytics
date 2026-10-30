@@ -29,6 +29,7 @@ export function CommandMenu({ siteId, open, onClose }: { siteId?: string; open: 
         { id: 'c', group: 'Aller à', label: 'Contenus', hint: 'Sections et vidéos vues', icon: 'grid', run: keep(base + '/contenus') },
         { id: 'src', group: 'Aller à', label: 'Sources', hint: 'Canaux, référents, pays, appareils', icon: 'compass', run: keep(base + '/sources') },
         { id: 'social', group: 'Aller à', label: 'Réseaux sociaux', hint: 'Visites des réseaux, liens et mentions 𝕏', icon: 'share', run: keep(base + '/social') },
+        { id: 'bots', group: 'Aller à', label: 'Bots IA', hint: 'Robots d’IA et trafic venu des assistants', icon: 'bot', run: keep(base + '/bots') },
         { id: 'rt', group: 'Aller à', label: 'Temps réel', icon: 'activity', run: () => navigate(base + '/realtime') },
         { id: 'set', group: 'Aller à', label: 'Réglages et installation', icon: 'settings', run: () => navigate(base + '/settings') },
       );
@@ -36,10 +37,11 @@ export function CommandMenu({ siteId, open, onClose }: { siteId?: string; open: 
         id: 'p' + p, group: 'Période', label, icon: 'calendar' as const,
         run: () => { const u = new URL(window.location.href); u.searchParams.set('period', p); u.searchParams.delete('from'); u.searchParams.delete('to'); navigate(u.pathname + u.search); },
       });
-      list.push(period('today', 'Aujourd’hui'), period('7d', '7 derniers jours'), period('30d', '30 derniers jours'), period('12m', '12 derniers mois'));
+      list.push(period('now', 'Maintenant (30 min)'), period('today', 'Aujourd’hui'), period('7d', '7 derniers jours'), period('30d', '30 derniers jours'), period('12m', '12 derniers mois'));
     }
     list.push(
       { id: 'sites', group: 'Général', label: 'Mes sites', icon: 'layers', run: () => navigate('/sites') },
+      { id: 'team', group: 'Général', label: 'Équipe et sécurité', hint: 'Membres, invitations, sessions', icon: 'users', run: () => navigate('/team') },
       { id: 'demo', group: 'Général', label: 'Démo publique', icon: 'eye', run: () => navigate('/demo') },
     );
     return list;

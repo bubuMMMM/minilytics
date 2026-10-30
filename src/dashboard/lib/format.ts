@@ -62,6 +62,10 @@ export function dayInTz(ts: number, tz: string): string {
 }
 
 export function bucketLabel(bucket: string, g: string, long = false): string {
+  if (g === 'minute') {
+    const t = bucket.slice(11, 16).replace(':', ' h ');
+    return long ? `${new Date(bucket.slice(0, 10) + 'T00:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' })}, ${t}` : t;
+  }
   if (g === 'hour') {
     const d = new Date(bucket + ':00Z');
     const time = `${String(d.getUTCHours()).padStart(2, '0')} h`;

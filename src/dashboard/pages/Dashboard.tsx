@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { navigate } from '../App';
 import { GoalsPanel } from '../components/GoalsPanel';
 import { LiveGlobe } from '../components/LiveGlobe';
@@ -14,20 +14,23 @@ import { VisitorModal } from '../components/VisitorModal';
 import { VideosTeaser, VideosView } from '../components/VideosView';
 import { BlocksView } from '../components/BlocksView';
 import { SocialView } from '../components/SocialView';
+import { BotsView } from '../components/BotsView';
 import { Link } from '../components/Link';
+import { ImportedCard } from '../components/ImportedCard';
 import { qs, type Overview, type Site } from '../lib/api';
 import { DashContext, useDash, type Dash } from '../lib/context';
 import { fmtMoney } from '../lib/format';
 import { useApi } from '../lib/useApi';
 import { useQueryState } from '../lib/useQueryState';
 
-export type DashView = 'overview' | 'videos' | 'sponsors' | 'content' | 'sources' | 'social';
+export type DashView = 'overview' | 'videos' | 'sponsors' | 'content' | 'sources' | 'social' | 'bots';
 const VIEW_META: Record<DashView, { kicker: string; title: (name: string) => string; sub: string }> = {
   overview: { kicker: 'ANALYSE / VUE D’ENSEMBLE', title: (n) => n, sub: 'L’essentiel de votre trafic' },
   videos: { kicker: 'ANALYSE / VIDÉOS', title: () => 'Vidéos', sub: 'Lectures, temps de visionnage et rétention' },
   sponsors: { kicker: 'ANALYSE / SPONSORS', title: () => 'Sponsors', sub: 'Impressions, clics et CTR par emplacement' },
   content: { kicker: 'ANALYSE / CONTENUS', title: () => 'Contenus', sub: 'Sections et vidéos réellement vues' },
   social: { kicker: 'ANALYSE / RÉSEAUX SOCIAUX', title: () => 'Réseaux sociaux', sub: 'Visites des réseaux, liens 𝕏 et mentions' },
+  bots: { kicker: 'ANALYSE / BOTS IA', title: () => 'Bots IA', sub: 'Robots d’IA qui lisent vos pages et visiteurs envoyés par les assistants' },
   sources: { kicker: 'ANALYSE / SOURCES', title: () => 'Sources', sub: 'D’où viennent vos visiteurs et avec quoi' },
 };
 
@@ -38,6 +41,13 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
   const { data: sites } = useApi<Site[]>('/api/sites');
   const site = sites?.find((s) => s.id === siteId);
   const { data: overview, loading } = useApi<Overview>(site ? `/api/sites/${siteId}/overview?${qs(q)}` : null, reloadKey);
+
+  // « Maintenant »: refresh every 30 s while the tab is visible.
+  useEffect(() => {
+    if (q.period !== 'now') return;
+    const t = setInterval(() => { if (document.visibilityState === 'visible') setReloadKey((k) => k + 1); }, 30_000);
+    return () => clearInterval(t);
+  }, [q.period]);
 
   const addFilter = useCallback((key: string, value: string) => update({ filters: { ...q.filters, [key]: value } }), [q.filters, update]);
 
@@ -84,12 +94,13 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
             </div>
           </div>
 
-        <FilterBar siteId={site.id} q={q} update={update} />
+        {view !== 'bots' && <FilterBar siteId={site.id} q={q} update={update} />}
 
         {view === 'videos' ? <div className="mt-5"><VideosView /></div>
           : view === 'sponsors' ? <div className="mt-5"><BlocksView kind="sponsor" /></div>
           : view === 'content' ? <div className="mt-5"><BlocksView kind="content" /></div>
           : view === 'social' ? <div className="mt-5"><SocialView /></div>
+          : view === 'bots' ? <div className="mt-5"><BotsView /></div>
           : view === 'sources' ? <SourcesPanels full />
           : <>
         {overview && overview.current.visitors === 0 && overview.previous.visitors === 0 && !Object.keys(q.filters).length && (
@@ -103,9 +114,11 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
           </div>
         )}
 
+        {q.period === 'now' && <p className="mt-4 flex items-center gap-2 text-[12px] text-ink-3" role="status"><LiveDot on /> 30 dernières minutes, minute par minute · actualisation automatique toutes les 30 s</p>}
         <div className="mt-5">
           <OverviewCard data={overview} />
         </div>
+        <ImportedCard siteId={site.id} />
         <VideosTeaser onOpen={() => navigate('/site/' + site.id + '/videos' + window.location.search)} />
 
         <section className="mt-7 scroll-mt-[110px]" aria-label="Analyse comportementale">

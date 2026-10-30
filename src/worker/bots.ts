@@ -14,8 +14,8 @@ import { normalizePath } from './collect.js';
 
 /** Plan item « 100K requêtes de bots IA »: per site and calendar month (site time). */
 export const BOT_MONTHLY_LIMIT = 100_000;
-const MAX_HITS_PER_REQUEST = 500;
-const MAX_BODY = 512 * 1024;
+const MAX_HITS_PER_REQUEST = 2000;
+const MAX_BODY = 1024 * 1024;
 const limiter = new RateLimiter(600, 60_000);
 
 /** Ingestion-only token: derived from the site's API key (rotates with it) and can't record payments or goals. */
@@ -181,6 +181,8 @@ export function registerBots(app: Hono<AppEnv>) {
   app.post('/api/v1/bots/:siteId', handleBotIngest);
   app.get('/api/sites/:id/bots', async (c) => c.json(await botsReport(makeCtx(c))));
   app.get('/api/sites/:id/bots/setup', async (c) => {
+    // The token can write bot hits: read-only members don't get it.
+    if (c.get('principal')?.role === 'viewer') return c.json({ error: 'Réservé aux admins' }, 403);
     const site = c.get('site');
     const last = await c.env.DB.prepare('SELECT MAX(ts) AS last, COUNT(*) AS n FROM bot_hits WHERE site_id = ? AND source = ?').bind(site.id, 'forward').first<{ last: number | null; n: number }>();
     return c.json({ endpoint: new URL(`/api/v1/bots/${site.id}`, c.req.url).toString(), token: await botToken(site), lastForwardAt: last?.last ? Number(last.last) : null, forwarded: Number(last?.n ?? 0) });

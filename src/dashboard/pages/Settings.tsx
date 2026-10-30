@@ -5,6 +5,8 @@ import { Favicon } from '../components/Icons';
 import { buildAiPrompt } from '../lib/aiPrompt';
 import { api, type Site } from '../lib/api';
 import { ExclusionsSettings, RevenueIntegrations } from '../components/SettingsGrowth';
+import { PlausibleImport } from '../components/PlausibleImport';
+import { useMe } from '../lib/me';
 
 function Section({ title, desc, children }: { title: string; desc?: ReactNode; children: ReactNode }) {
   return (
@@ -41,6 +43,7 @@ export function Settings({ siteId }: { siteId: string }) {
   const [saved, setSaved] = useState('');
   const [error, setError] = useState('');
   const origin = window.location.origin;
+  const me = useMe();
 
   useEffect(() => {
     api<Site>(`/api/sites/${siteId}`).then((s) => {
@@ -62,6 +65,15 @@ export function Settings({ siteId }: { siteId: string }) {
   }
 
   if (!site) return null;
+  if (me?.role === 'viewer') {
+    return (
+      <div className="ml-site-bg ml-has-bottom-nav min-h-screen">
+        <AppHeader siteId={site.id} active="settings" title={site.name} />
+        <main id="contenu" className="mx-auto max-w-3xl px-4 py-10 sm:px-6"><Section title="Accès en lecture seule" desc="Votre rôle (Lecteur) permet de consulter les statistiques, pas de modifier les réglages. Demandez au propriétaire de passer votre compte en Admin si besoin.">{null}</Section></main>
+        <BottomNav siteId={site.id} active="settings" />
+      </div>
+    );
+  }
   const snippet = `<script\n  defer\n  data-website-id="${site.id}"\n  src="${origin}/js/script.js"\n></script>`;
   const webhookUrl = `${origin}/api/webhooks/dodo/${site.id}`;
 
@@ -237,6 +249,8 @@ const session = await dodo.checkoutSessions.create({
 
       <ExclusionsSettings site={site} Section={Section} />
 
+      <PlausibleImport site={site} Section={Section} canEdit />
+
       <Section title="Autres moyens de paiement / API serveur" desc="Envoyez des paiements ou des objectifs depuis votre backend avec la clé API de ce site.">
         <div className="mb-3 flex flex-col gap-2 sm:flex-row">
           <input className="input min-w-0 font-mono" readOnly value={site.api_key} aria-label="Clé API" />
@@ -303,7 +317,7 @@ curl -X POST ${origin}/api/v1/goals \\
         </div>
       )}
 
-      <Section title="Zone de danger">
+      {me?.role === 'owner' && <Section title="Zone de danger">
         <button
           className="btn border-danger/30 text-danger"
           onClick={async () => {
@@ -314,7 +328,7 @@ curl -X POST ${origin}/api/v1/goals \\
         >
           Supprimer le site et toutes ses données
         </button>
-      </Section>
+      </Section>}
     </main>
     <BottomNav siteId={site.id} active="settings" />
     </div>

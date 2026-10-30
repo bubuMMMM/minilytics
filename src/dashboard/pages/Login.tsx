@@ -6,6 +6,8 @@ import { ThemeToggle } from '../components/ThemeToggle';
 
 export function Login({ onLogin }: { onLogin: () => void }) {
   const [password, setPassword] = useState('');
+  const [member, setMember] = useState(false);
+  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -18,11 +20,11 @@ export function Login({ onLogin }: { onLogin: () => void }) {
     setBusy(true);
     setError('');
     try {
-      await api('/api/auth/login', { method: 'POST', json: { password } });
+      await api('/api/auth/login', { method: 'POST', json: member ? { email, password } : { password } });
       onLogin();
     } catch (err) {
       const status = (err as { status?: number }).status;
-      setError(status === 401 ? 'Mot de passe incorrect. Vérifiez-le puis réessayez.' : status === 429 ? 'Trop de tentatives. Patientez quelques minutes puis réessayez.' : 'Connexion impossible pour le moment. Vérifiez votre réseau puis réessayez.');
+      setError(status === 401 ? (member ? 'E-mail ou mot de passe incorrect.' : 'Mot de passe incorrect. Vérifiez-le puis réessayez.') : status === 429 ? 'Trop de tentatives. Patientez quelques minutes puis réessayez.' : 'Connexion impossible pour le moment. Vérifiez votre réseau puis réessayez.');
     } finally {
       setBusy(false);
     }
@@ -44,8 +46,18 @@ export function Login({ onLogin }: { onLogin: () => void }) {
         <div className="w-full max-w-[400px]">
           <div className="rounded-xl border border-line bg-surface p-6 shadow-card sm:p-8">
             <h1 className="text-xl font-semibold tracking-tight">Connexion</h1>
-            <p className="mt-1 text-[14px] text-ink-3">Accédez à vos sites et à leurs statistiques.</p>
-            <form onSubmit={submit} className="mt-6 space-y-4" aria-busy={busy}>
+            <p className="mt-1 text-[14px] text-ink-3">{member ? 'Connectez-vous avec le compte créé depuis votre invitation.' : 'Accédez à vos sites et à leurs statistiques.'}</p>
+            <div className="tabs mt-5 w-full" role="tablist" aria-label="Type de compte">
+              <button type="button" role="tab" aria-selected={!member} className={`tab flex-1 ${!member ? 'tab-active' : ''}`} onClick={() => { setMember(false); setError(''); }}>Propriétaire</button>
+              <button type="button" role="tab" aria-selected={member} className={`tab flex-1 ${member ? 'tab-active' : ''}`} onClick={() => { setMember(true); setError(''); }}>Membre de l’équipe</button>
+            </div>
+            <form onSubmit={submit} className="mt-5 space-y-4" aria-busy={busy}>
+              {member && (
+                <div>
+                  <label className="label" htmlFor="email">E-mail</label>
+                  <input id="email" type="email" autoComplete="username" required className="input !h-11" value={email} onChange={(e) => setEmail(e.target.value)} spellCheck={false} />
+                </div>
+              )}
               <div>
                 <label className="label" htmlFor="pw">Mot de passe</label>
                 <div className="relative">

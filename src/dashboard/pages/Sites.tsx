@@ -8,6 +8,7 @@ import { UiIcon } from '../components/UiIcon';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { api, type Site } from '../lib/api';
 import { fmtNumber } from '../lib/format';
+import { useMe } from '../lib/me';
 
 export function Sites() {
   const [sites, setSites] = useState<Site[] | null>(null);
@@ -15,6 +16,8 @@ export function Sites() {
   const [loadError, setLoadError] = useState('');
   const [attempt, setAttempt] = useState(0);
   const [search, setSearch] = useState('');
+  const me = useMe();
+  const isOwner = me?.role === 'owner';
 
   useEffect(() => {
     const controller = new AbortController();
@@ -48,6 +51,7 @@ export function Sites() {
           <button onClick={() => navigate('/sites')} aria-label="Mes sites" className="flex min-h-[44px] items-center rounded-md"><Logo small /></button>
           <div className="flex items-center gap-1 sm:gap-2">
             <button className="btn-ghost hidden !text-[13px] sm:inline-flex" onClick={() => navigate('/demo')}>Démo publique</button>
+            <a href="/team" onClick={(e) => { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); navigate('/team'); }} className="btn-ghost !text-[13px]" aria-label={isOwner ? 'Équipe et sécurité' : 'Mon compte et sessions'}><UiIcon name="users" size={15} /><span className="hidden sm:inline">{isOwner ? 'Équipe' : 'Mon compte'}</span></a>
             <ThemeToggle />
             <button className="btn-ghost !text-[13px]" onClick={logout} aria-label="Se déconnecter"><UiIcon name="logout" size={15} /><span className="hidden sm:inline">Déconnexion</span></button>
           </div>
@@ -62,7 +66,7 @@ export function Sites() {
           </div>
           <div className="flex w-full items-center gap-2 sm:w-auto">
             {sites && sites.length > 3 && <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-4"><UiIcon name="search" size={15}/></span><input aria-label="Rechercher un site" className="input !pl-9" type="search" placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)}/></div>}
-            <button className="btn-dark shrink-0" onClick={() => setAdding(true)}><UiIcon name="plus" size={15}/>Ajouter un site</button>
+            {isOwner && <button className="btn-dark shrink-0" onClick={() => setAdding(true)}><UiIcon name="plus" size={15}/>Ajouter un site</button>}
           </div>
         </div>
 
@@ -102,7 +106,7 @@ export function Sites() {
             );
           })}
 
-          {sites && sites.length > 0 && <button onClick={() => setAdding(true)} className="flex min-h-[184px] flex-col items-center justify-center rounded-xl border border-dashed border-line-strong p-6 text-center text-ink-3 transition-colors hover:border-ink-4 hover:text-ink"><UiIcon name="plus" size={18}/><span className="mt-2 text-[14px] font-medium">Connecter un site</span><span className="mt-1 text-[12px] text-ink-4">Une balise à coller, c’est tout.</span></button>}
+          {isOwner && sites && sites.length > 0 && <button onClick={() => setAdding(true)} className="flex min-h-[184px] flex-col items-center justify-center rounded-xl border border-dashed border-line-strong p-6 text-center text-ink-3 transition-colors hover:border-ink-4 hover:text-ink"><UiIcon name="plus" size={18}/><span className="mt-2 text-[14px] font-medium">Connecter un site</span><span className="mt-1 text-[12px] text-ink-4">Une balise à coller, c’est tout.</span></button>}
 
           {sites && sites.length === 0 && <section className="col-span-full rounded-xl border border-line bg-surface p-6 sm:p-10">
             <h2 className="text-xl font-semibold tracking-tight">Connectez votre premier site</h2>

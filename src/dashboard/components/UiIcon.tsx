@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-type IconName = 'share' | 'heart' | 'repeat' | 'message' | 'copy' | 'file-text' | 'filter' | 'code' | 'arrow-up-right' | 'arrow-right' | 'activity' | 'eye' | 'users' | 'clock' | 'refresh' | 'globe' | 'mouse' | 'target' | 'layers' | 'check' | 'plus' | 'logout' | 'search' | 'shield' | 'bar-chart' | 'sparkles' | 'external' | 'calendar' | 'menu' | 'chevron-down' | 'link' | 'play' | 'megaphone' | 'grid' | 'compass' | 'settings' | 'command' | 'download' | 'info' | 'x' | 'lock' | 'smartphone' | 'zap';
+type IconName = 'share' | 'heart' | 'repeat' | 'message' | 'copy' | 'file-text' | 'filter' | 'code' | 'arrow-up-right' | 'arrow-right' | 'activity' | 'eye' | 'users' | 'clock' | 'refresh' | 'globe' | 'mouse' | 'target' | 'layers' | 'check' | 'plus' | 'logout' | 'search' | 'shield' | 'bar-chart' | 'sparkles' | 'external' | 'calendar' | 'menu' | 'chevron-down' | 'link' | 'play' | 'megaphone' | 'grid' | 'compass' | 'settings' | 'command' | 'download' | 'info' | 'x' | 'lock' | 'smartphone' | 'zap' | 'bot' | 'star' | 'upload' | 'key';
 
 export function UiIcon({ name, size = 20, className = '' }: { name: IconName; size?: number; className?: string }) {
   const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -13,6 +13,10 @@ export function UiIcon({ name, size = 20, className = '' }: { name: IconName; si
     'file-text': <><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></>,
     filter: <><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"/></>,
     code: <><path d="m8 7-5 5 5 5m8-10 5 5-5 5"/></>,
+    bot: <><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 17h5"/><circle cx="12" cy="3.5" r="1"/></>,
+    star: <><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/></>,
+    upload: <><path d="M12 16V4m-5 5 5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></>,
+    key: <><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9m-4 4 3 3m-5-1 2 2"/></>,
     megaphone: <><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z"/><path d="M15 9a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/></>,
     grid: <><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></>,
     compass: <><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/></>,

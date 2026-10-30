@@ -76,7 +76,7 @@ const USE_CASES: { icon: IconName; title: string; text: string }[] = [
 
 /** Pricing lines are kept word for word; a short tag says when a line needs setup or is not available yet. */
 const FEATURE_TAG: Record<string, string> = {
-  '100K requêtes de bots IA': 'Bientôt',
+  '100K requêtes de bots IA': 'Extrait serveur requis',
   'API, CLI & MCP': 'CLI & MCP bientôt',
   'Mentions sur les réseaux sociaux': 'Clé API X requise',
 };
