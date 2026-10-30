@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { api } from './lib/api';
-import { Dashboard } from './pages/Dashboard';
-import { Login } from './pages/Login';
-import { Realtime } from './pages/Realtime';
-import { PublicDemo } from './pages/PublicDemo';
-import { Settings } from './pages/Settings';
-import { Sites } from './pages/Sites';
+
+// One chunk per page: the public landing no longer downloads the dashboard (recharts, panels…) and vice versa.
+const Dashboard = lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })));
+const Login = lazy(() => import('./pages/Login').then((m) => ({ default: m.Login })));
+const Realtime = lazy(() => import('./pages/Realtime').then((m) => ({ default: m.Realtime })));
+const PublicDemo = lazy(() => import('./pages/PublicDemo').then((m) => ({ default: m.PublicDemo })));
+const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
+const Sites = lazy(() => import('./pages/Sites').then((m) => ({ default: m.Sites })));
+
+const Loading = () => <div className="flex min-h-screen items-center justify-center text-sm text-stone-500">Chargement…</div>;
 
 export function navigate(to: string) {
   window.history.pushState(null, '', to);
@@ -23,6 +27,14 @@ function usePath() {
 }
 
 export function App() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <Routes />
+    </Suspense>
+  );
+}
+
+function Routes(): ReactNode {
   const path = usePath();
   const [auth, setAuth] = useState<boolean | null>(null);
 
@@ -35,7 +47,7 @@ export function App() {
 
   // A genuine, read-only public demonstration; private customer data stays behind authentication.
   if (path === '/' || path === '/demo') return <PublicDemo />;
-  if (auth === null) return <div className="flex min-h-screen items-center justify-center text-sm text-stone-500">Chargement…</div>;
+  if (auth === null) return <Loading />;
   if (!auth) return <Login onLogin={() => { setAuth(true); navigate('/sites'); }} />;
 
   if (path === '/admin' || path === '/sites') return <Sites />;
