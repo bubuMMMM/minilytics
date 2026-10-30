@@ -17,6 +17,8 @@ export interface BlockSeries { bucket: string; impressions: number; clicks: numb
 export interface BlocksReport {
   range: { granularity: string };
   totals: { impressions: number; viewers: number; clicks: number; clickers: number; ctr: number };
+  /** Admin only: sessions whose clicks look automated (≥10 clicks, clicks with no impression, or > 3× impressions). */
+  anomalies?: { sessions: number; clicks: number; impressions: number };
   blocks: BlockRow[];
   sponsors: { sponsor: string | null; impressions: number; clicks: number; clickers: number; ctr: number; placements: number }[];
   series: BlockSeries[];

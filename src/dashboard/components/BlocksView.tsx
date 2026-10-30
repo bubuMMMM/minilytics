@@ -88,6 +88,18 @@ export function BlocksView({ kind }: { kind: BlockKind }) {
         <button type="button" className="btn" onClick={exportCsv} disabled={!rows.length}><UiIcon name="download" size={16} /> Exporter en CSV</button>
       </div>
 
+      {kind === 'sponsor' && data?.anomalies && data.anomalies.sessions > 0 && (
+        <div role="status" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-[13px] leading-relaxed text-amber-900">
+          <UiIcon name="info" size={18} className="mt-0.5 shrink-0 text-amber-600" />
+          <p>
+            <b>{fmtNumber(data.anomalies.sessions)} {data.anomalies.sessions > 1 ? 'visites ont' : 'visite a'} un comportement inhabituel</b>{' '}
+            ({fmtNumber(data.anomalies.clicks)} clic{data.anomalies.clicks > 1 ? 's' : ''} pour {fmtNumber(data.anomalies.impressions)} impression{data.anomalies.impressions > 1 ? 's' : ''}) :
+            10 clics ou plus, des clics sans impression, ou plus de 3 fois plus de clics que d’impressions. Elles sont incluses dans les chiffres ci-dessous ;
+            vérifiez-les avant de facturer un sponsor.
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard loading={loading && !data} icon="eye" label="Impressions" value={t ? fmtNumber(t.impressions) : '—'} hint={t ? `${fmtNumber(t.viewers)} visiteurs uniques` : undefined}
           help="Affichages réels : au moins 50 % de l’élément visible pendant 1 seconde. Compté une fois par page vue et par emplacement." />
