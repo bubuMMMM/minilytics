@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Thumb, fmtWatch } from '../components/VideosView';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { navigate } from '../App';
 import { Logo } from '../components/Logo';
@@ -81,6 +82,14 @@ export function PublicDemo() {
     setSiteId(id); setData(null);
     const url = new URL(window.location.href); url.searchParams.set('site', id); window.history.replaceState(null, '', url.toString());
   };
+  const [vids, setVids] = useState<{ siteId: string; totals: { plays: number; viewers: number; watchSeconds: number; completionRate: number }; videos: { id: string; title: string | null; channel: string | null; plays: number; viewers: number; watchSeconds: number; avgWatchSeconds: number; completionRate: number }[] } | null>(null);
+  useEffect(() => {
+    if (!siteId) return;
+    const controller = new AbortController();
+    fetch('/api/public/videos?days=' + days + '&site=' + encodeURIComponent(siteId), { signal: controller.signal, cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null).then((v: any) => { if (!controller.signal.aborted) setVids(v ? { siteId, ...(v as any) } : null); }).catch(() => {});
+    return () => controller.abort();
+  }, [siteId, days, reload]);
   const refresh = useCallback(() => setReload(n => n + 1), []);
   useEffect(() => {
     const controller = new AbortController();
@@ -108,6 +117,7 @@ export function PublicDemo() {
           <a href="#globe" className="hover:text-[#4f62ef]">Live Globe</a>
           <a href="#insights" className="hover:text-[#4f62ef]">Insights</a>
           <a href="#engagement" className="hover:text-[#4f62ef]">Comportement</a>
+          {vids && vids.videos.length > 0 && <a href="#videos" className="hover:text-[#4f62ef]">Vidéos</a>}
         </nav>
         <div className="flex items-center gap-2.5">
           <span className="hidden md:inline-flex"><StatusPill active>Démo en direct</StatusPill></span>
@@ -202,6 +212,22 @@ export function PublicDemo() {
           </div>
         </div>
       </section>
+
+      {vids && vids.siteId === siteId && vids.videos.length > 0 && <section id="videos" className="scroll-mt-[104px] pt-20">
+        <SectionHeading eyebrow="VIDÉOS / VISIONNAGE" title="Les vidéos les plus regardées." description={`${nf(vids.totals.plays)} lectures · ${nf(vids.totals.viewers)} spectateurs · ${fmtWatch(vids.totals.watchSeconds)} de visionnage · ${Math.round(vids.totals.completionRate * 100)} % de complétion, sur ${days} jours. Chiffres agrégés uniquement.`}/>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {vids.videos.slice(0, 8).map((v, i) => <div key={v.id} className="ml-bento overflow-hidden p-3">
+            <div className="relative"><Thumb id={v.id} className="aspect-video w-full"/><span className="absolute left-2 top-2 rounded-md bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-[#1d2b45]">#{i + 1}</span></div>
+            <div className="mt-3 line-clamp-2 text-[13px] font-semibold leading-snug text-[#1d2b45]">{v.title ?? v.id}</div>
+            <div className="mt-1 truncate text-[11px] text-[#8b98ad]">{v.channel ?? '—'}</div>
+            <div className="mt-3 grid grid-cols-3 gap-2 border-t border-[#edf0f6] pt-3 text-center text-[11px] text-[#8b98ad]">
+              <div><div className="text-[15px] font-semibold tabular-nums text-[#1d2b45]">{nf(v.plays)}</div>lectures</div>
+              <div><div className="text-[15px] font-semibold tabular-nums text-[#1d2b45]">{fmtWatch(v.avgWatchSeconds)}</div>moyenne</div>
+              <div><div className="text-[15px] font-semibold tabular-nums text-[#1d2b45]">{Math.round(v.completionRate * 100)} %</div>complétion</div>
+            </div>
+          </div>)}
+        </div>
+      </section>}
 
       <section id="engagement" className="scroll-mt-[104px] pt-20">
         <SectionHeading eyebrow="04 / BEHAVIOR" title="Ce que font vraiment vos visiteurs." description="Profondeur de scroll, temps actif, pages consultées, clics internes et formulaires. Des mesures enregistrées, jamais inventées."/>

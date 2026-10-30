@@ -23,6 +23,8 @@ const SESSION_FILTERS = [
   'entry_page',
   'exit_page',
   'hostname',
+  'language',
+  'screen',
 ] as const;
 
 export type Filters = Partial<Record<(typeof SESSION_FILTERS)[number] | 'page' | 'goal', string>>;
@@ -42,7 +44,7 @@ export function parseFilters(raw: string | undefined): Filters {
 }
 
 /** SQL + params restricting sessions `s` by the dashboard filters (not by time). */
-function filterSql(f: Filters): { sql: string; params: unknown[] } {
+export function filterSql(f: Filters): { sql: string; params: unknown[] } {
   const parts: string[] = [];
   const params: unknown[] = [];
   for (const k of SESSION_FILTERS) {
@@ -65,9 +67,9 @@ function filterSql(f: Filters): { sql: string; params: unknown[] } {
   return { sql: parts.length ? ' AND ' + parts.join(' AND ') : '', params };
 }
 
-const hasFilters = (f: Filters) => Object.keys(f).length > 0;
+export const hasFilters = (f: Filters) => Object.keys(f).length > 0;
 
-interface Ctx {
+export interface Ctx {
   db: D1Database;
   site: Site;
   range: Range;
@@ -230,6 +232,9 @@ const SESSION_DIMS: Record<string, string> = {
   exit_page: 's.exit_page',
   hostname: 's.hostname',
   referrer: 's.referrer',
+  language: 's.language',
+  screen: 's.screen',
+  visitor_type: "CASE WHEN s.is_new = 1 THEN 'Nouveau' WHEN s.is_new = 0 THEN 'Récurrent' END",
 };
 
 export interface BreakdownRow {
@@ -300,6 +305,24 @@ export async function breakdown(ctx: Ctx, dim: string, limit = 100): Promise<Bre
         .bind(...params, ctx.site.id, ctx.range.from, ctx.range.to),
     ]);
     return merge(v.results as any[], r.results as any[]);
+  }
+
+  if (dim === 'action' || dim === 'search' || dim === 'share') {
+    // Custom UI interactions (minilytics('event', name, { label })). `search` lists the queries typed.
+    const f = filterSql(ctx.filters);
+    const join = hasFilters(ctx.filters) ? 'JOIN sessions s ON s.site_id = e.site_id AND s.id = e.session_id' : '';
+    const labelCol = dim === 'action' ? 'e.name' : dim === 'search' ? 'LOWER(e.label)' : 'e.label';
+    const nameSql = dim === 'action' ? '' : ' AND e.name = ?';
+    const params = [ctx.site.id, ctx.range.from, ctx.range.to, ...(dim === 'action' ? [] : [dim]), ...f.params];
+    const r = await db
+      .prepare(
+        `SELECT ${labelCol} AS label, COUNT(DISTINCT e.visitor_id) AS visitors, COUNT(*) AS pageviews
+         FROM events e ${join} WHERE e.site_id = ? AND e.type = 'action' AND e.ts >= ? AND e.ts < ?${nameSql}${f.sql}
+         GROUP BY 1 ORDER BY pageviews DESC LIMIT ${lim}`,
+      )
+      .bind(...params)
+      .all();
+    return merge(r.results as any[], []);
   }
 
   if (dim === 'exit_link' || dim === 'goal') {

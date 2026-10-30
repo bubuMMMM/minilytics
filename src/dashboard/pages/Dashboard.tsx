@@ -10,6 +10,7 @@ import { OverviewCard } from '../components/OverviewCard';
 import { Panel, renderLabel } from '../components/Panel';
 import { Toolbar } from '../components/Toolbar';
 import { VisitorModal } from '../components/VisitorModal';
+import { VideosTeaser, VideosView } from '../components/VideosView';
 import { qs, type Overview, type Site } from '../lib/api';
 import { DashContext, type Dash } from '../lib/context';
 import { fmtMoney } from '../lib/format';
@@ -33,10 +34,12 @@ const FILTER_LABELS: Record<string, { label: string; dim: string }> = {
   page: { label: 'Page visitée', dim: 'page' },
   entry_page: { label: 'Page d’entrée', dim: 'entry_page' },
   hostname: { label: 'Domaine', dim: 'hostname' },
+  screen: { label: 'Écran', dim: 'screen' },
+  language: { label: 'Langue', dim: 'language' },
   goal: { label: 'Objectif atteint', dim: 'goal' },
 };
 
-export function Dashboard({ siteId }: { siteId: string }) {
+export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?: 'overview' | 'videos' }) {
   const [q, update] = useQueryState();
   const [reloadKey, setReloadKey] = useState(0);
   const [visitor, setVisitor] = useState<string | null>(null);
@@ -82,12 +85,12 @@ export function Dashboard({ siteId }: { siteId: string }) {
         <header className="border-b border-[#e8edf5] bg-[#ffffff]/85">
           <div className="mx-auto flex h-[76px] max-w-[1480px] items-center justify-between gap-3 px-4 sm:px-6">
             <button aria-label="Retour aux sites" onClick={() => navigate('/sites')}><Logo /></button>
-            <div className="flex items-center gap-2"><button className="btn hidden sm:inline-flex" onClick={() => navigate('/')}>Voir la démo <UiIcon name="external" size={16}/></button><button className="btn" onClick={() => navigate('/site/' + site.id + '/realtime')}><LiveDot on={!!overview?.online} /><span className="hidden sm:inline">Temps réel</span></button><button className="btn" onClick={() => navigate('/sites')}><UiIcon name="layers" size={16}/><span className="hidden sm:inline">Mes sites</span></button><button className="btn-dark" onClick={() => navigate('/site/' + site.id + '/settings')}><UiIcon name="shield" size={16}/><span className="hidden sm:inline">Réglages</span></button></div>
+            <div className="flex items-center gap-2"><button className="btn hidden sm:inline-flex" onClick={() => navigate('/')}>Voir la démo <UiIcon name="external" size={16}/></button><button className={view === 'videos' ? 'btn-dark' : 'btn'} onClick={() => navigate('/site/' + site.id + (view === 'videos' ? '' : '/videos') + window.location.search)}><UiIcon name={view === 'videos' ? 'bar-chart' : 'play'} size={16}/><span className="hidden sm:inline">{view === 'videos' ? 'Vue d’ensemble' : 'Vidéos'}</span></button><button className="btn" onClick={() => navigate('/site/' + site.id + '/realtime')}><LiveDot on={!!overview?.online} /><span className="hidden sm:inline">Temps réel</span></button><button className="btn" onClick={() => navigate('/sites')}><UiIcon name="layers" size={16}/><span className="hidden sm:inline">Mes sites</span></button><button className="btn-dark" onClick={() => navigate('/site/' + site.id + '/settings')}><UiIcon name="shield" size={16}/><span className="hidden sm:inline">Réglages</span></button></div>
           </div>
         </header>
         <div className="mx-auto max-w-[1480px] px-4 py-9 sm:px-6 lg:py-12">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div><div className="ml-kicker"><span className="ml-dot" /> ANALYSE / VOTRE SITE</div><h1 className="ml-heading mt-3 text-[clamp(2.3rem,4.4vw,3.7rem)]">{site.name}<span className="text-[#4f62ef]">.</span></h1><p className="mt-3 text-[13px] text-[#8290a3]">Les performances et connexions de <span className="font-medium text-[#56657e]">{site.domain}</span></p></div>
+            <div><div className="ml-kicker"><span className="ml-dot" /> {view === 'videos' ? 'ANALYSE / VIDÉOS' : 'ANALYSE / VOTRE SITE'}</div><h1 className="ml-heading mt-3 text-[clamp(2.3rem,4.4vw,3.7rem)]">{view === 'videos' ? 'Vidéos · ' + site.name : site.name}<span className="text-[#4f62ef]">.</span></h1><p className="mt-3 text-[13px] text-[#8290a3]">Les performances et connexions de <span className="font-medium text-[#56657e]">{site.domain}</span></p></div>
             <button onClick={() => navigate('/site/' + site.id + '/realtime')} title="Ouvrir la vue temps réel" className="inline-flex items-center gap-2 rounded-full border border-[#d8f2e7] bg-[#f1fbf6] px-4 py-2 text-[12px] font-semibold text-[#179569] transition hover:border-[#bfe9d6] hover:bg-[#e8f8f0]"><LiveDot on={!!overview?.online} />{overview ? overview.online + ' en ligne maintenant' : 'Données en temps réel'} <span aria-hidden>→</span></button>
           </div>
           <div className="ml-panel mb-5 flex flex-wrap items-center gap-2 p-3 sm:p-4">
@@ -111,6 +114,7 @@ export function Dashboard({ siteId }: { siteId: string }) {
           </div>
         )}
 
+        {view === 'videos' ? <div className="mt-5"><VideosView /></div> : <>
         {overview && overview.current.visitors === 0 && overview.previous.visitors === 0 && !Object.keys(q.filters).length && (
           <div className="ml-bento mt-5 flex flex-col items-start gap-4 border-dashed bg-[#f8faff] p-5 sm:flex-row sm:items-center">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#4f62ef]"><UiIcon name="sparkles" size={20} /></span>
@@ -125,6 +129,7 @@ export function Dashboard({ siteId }: { siteId: string }) {
         <div className="mt-5">
           <OverviewCard data={overview} />
         </div>
+        <VideosTeaser onOpen={() => navigate('/site/' + site.id + '/videos' + window.location.search)} />
 
         <section className="mt-7 scroll-mt-[110px]" aria-label="Analyse comportementale">
           <div className="mb-5">
@@ -152,6 +157,8 @@ export function Dashboard({ siteId }: { siteId: string }) {
               { label: 'UTM source', dim: 'utm_source', filter: 'utm_source' },
               { label: 'UTM medium', dim: 'utm_medium', filter: 'utm_medium' },
               { label: 'Mot-clé', dim: 'keyword', filter: 'utm_term' },
+              { label: 'URL référente', dim: 'referrer' },
+              { label: 'Ref', dim: 'ref', filter: 'ref' },
             ]}
           />
           <Panel
@@ -178,6 +185,18 @@ export function Dashboard({ siteId }: { siteId: string }) {
               { label: 'Appareil', dim: 'device', filter: 'device' },
               { label: 'Navigateur', dim: 'browser', filter: 'browser' },
               { label: 'OS', dim: 'os', filter: 'os' },
+              { label: 'Écran', dim: 'screen', filter: 'screen' },
+              { label: 'Langue', dim: 'language', filter: 'language' },
+              { label: 'Nouveaux / récurrents', dim: 'visitor_type' },
+            ]}
+          />
+          <Panel
+            title="Interactions"
+            tabs={[
+              { label: 'Actions', dim: 'action' },
+              { label: 'Recherches', dim: 'search' },
+              { label: 'Partages', dim: 'share' },
+              { label: 'Objectifs', dim: 'goal', filter: 'goal' },
             ]}
           />
         </div>
@@ -187,6 +206,7 @@ export function Dashboard({ siteId }: { siteId: string }) {
           <GoalsPanel totalVisitors={overview?.current.visitors ?? 0} />
         </div>
 
+        </>}
         <p className="mt-8 text-center text-xs text-stone-400">
           Heures en {site.timezone} · Revenus en {site.currency} ·{' '}
           <button className="underline-offset-2 hover:underline" onClick={() => navigate(`/site/${site.id}/settings`)}>

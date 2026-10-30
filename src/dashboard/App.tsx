@@ -43,6 +43,8 @@ export function App() {
   if (settings) return <Settings siteId={settings[1]} />;
   const realtime = /^\/site\/([\w-]+)\/realtime\/?$/.exec(path);
   if (realtime) return <Realtime siteId={realtime[1]} />;
+  const videos = /^\/site\/([\w-]+)\/videos\/?$/.exec(path);
+  if (videos) return <Dashboard key={'v' + videos[1]} siteId={videos[1]} view="videos" />;
   const site = /^\/site\/([\w-]+)\/?$/.exec(path);
   if (site) return <Dashboard siteId={site[1]} />;
   return <Sites />;

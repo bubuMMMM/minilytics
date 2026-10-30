@@ -102,7 +102,7 @@
   function send(type, extra, beacon) {
     if (isExcluded()) return;
     var id = ids();
-    var body = { w: siteId, t: type, u: cleanUrl(loc.href), vid: id.vid, sid: id.sid, sw: w.screen ? screen.width : 0 };
+    var body = { w: siteId, t: type, u: cleanUrl(loc.href), vid: id.vid, sid: id.sid, sw: w.screen ? screen.width : 0, lang: (nav.language || '').slice(0, 35) || undefined };
     for (var k in extra) if (extra[k] !== undefined) body[k] = extra[k];
     var json = JSON.stringify(body);
     // text/plain keeps this a "simple" request: no CORS preflight, works with sendBeacon.
@@ -306,6 +306,10 @@
     if (cmd === 'goal' || cmd === 'track') goal(a, b);
     else if (cmd === 'identify' && a) send('identify', { p: { user_id: a.user_id || a.id, email: a.email, name: a.name } });
     else if (cmd === 'pageview') { lastPage = null; pageview(); }
+    // Video player lifecycle: minilytics('video', 'start'|'play'|'pause'|'seek'|'progress'|'complete'|'watch', { id, title, channel, duration, pct, s, t })
+    else if (cmd === 'video' && a && b && b.id) send('video', { n: String(a).slice(0, 16), p: b }, a === 'watch' || a === 'pause' || a === 'complete');
+    // Named UI interactions that are not conversions: minilytics('event', 'search', { label: 'query' })
+    else if (cmd === 'event' && a) send('action', { n: String(a).slice(0, 64), p: b || undefined }, true);
   }
   api.attribution = attribution;
   w.minilytics = api;

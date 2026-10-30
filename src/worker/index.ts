@@ -9,6 +9,7 @@ import { forgetSite, type AppEnv, type Site } from './env.js';
 import { passwordsMatch, randomId, signToken, verifyToken } from './lib/crypto.js';
 import { handleDodoWebhook, handleGoalApi, handlePaymentApi, rematchPayments } from './payments.js';
 import { realtime, sparklines, toCsv } from './insights.js';
+import { publicTopVideos, videoDetail, videoReport } from './videos.js';
 import { breakdown, customers, engagementReport, funnel, makeCtx, overview, visitorProfile, visitors, type FunnelStep } from './stats.js';
 
 const app = new Hono<AppEnv>();
@@ -67,6 +68,19 @@ app.get('/api/public/engagement', async (c) => {
   } catch (error) {
     console.error('Public engagement analytics failed', error);
     return c.json({ error: 'Engagement analytics temporarily unavailable' }, 503);
+  }
+});
+// Public top videos for a public site; aggregates only.
+app.get('/api/public/videos', async (c) => {
+  try {
+    const site = await resolvePublicSite(c.env.DB, c.req.query('site'));
+    if (!site) return c.json({ error: 'Site not public' }, 404);
+    const range = resolveRange({ period: c.req.query('days') === '30' ? '30d' : '7d' }, site.timezone, site.created_at);
+    c.header('Cache-Control', 'no-store');
+    return c.json(await publicTopVideos({ db: c.env.DB, site, range, filters: {}, offset: tzOffset(site.timezone, range.to) }));
+  } catch (error) {
+    console.error('Public videos failed', error);
+    return c.json({ error: 'Video analytics temporarily unavailable' }, 503);
   }
 });
 app.post('/api/webhooks/dodo/:siteId', handleDodoWebhook);
@@ -294,6 +308,12 @@ app.get('/api/sites/:id/export', async (c) => {
 });
 
 app.get('/api/sites/:id/overview', async (c) => c.json(await overview(makeCtx(c))));
+app.get('/api/sites/:id/videos', async (c) => c.json(await videoReport(makeCtx(c))));
+app.get('/api/sites/:id/videos/:vid', async (c) => {
+  const vid = c.req.param('vid');
+  if (!/^[\w-]{1,64}$/.test(vid)) return c.json({ error: 'Invalid video id' }, 400);
+  return c.json(await videoDetail(makeCtx(c), vid));
+});
 
 app.get('/api/sites/:id/breakdown', async (c) => {
   try {

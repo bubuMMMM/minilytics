@@ -5,7 +5,11 @@ import { DEMO_SITE_ID, ensureDemoSite } from './demo.js';
 import { isBot, parseUA } from './lib/ua.js';
 import { creditedSessionSql } from './payments.js';
 
-const TYPES = new Set(['pageview', 'goal', 'outbound', 'ping', 'identify', 'scroll', 'engagement', 'click', 'form']);
+const TYPES = new Set(['pageview', 'goal', 'outbound', 'ping', 'identify', 'scroll', 'engagement', 'click', 'form', 'video', 'action']);
+/** Video player lifecycle events. `watch` carries seconds actually played since the last report. */
+export const VIDEO_ACTIONS = new Set(['start', 'play', 'pause', 'seek', 'progress', 'complete', 'watch', 'error']);
+export const VIDEO_MILESTONES = [10, 25, 50, 75, 90, 100];
+const MAX_WATCH_DELTA_S = 120;
 const MAX_PING_MS = 10 * 60_000;
 
 interface Payload {
@@ -19,6 +23,7 @@ interface Payload {
   n?: string;
   p?: Record<string, unknown>;
   d?: number;
+  lang?: string;
 }
 
 const clip = (s: unknown, n = 255): string | null =>
@@ -218,8 +223,102 @@ export async function ingest(
       db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
       insertEvent(db, site.id, sid, vid, now, 'form', body.n, path, null),
     );
+  } else if (t === 'video') {
+    const ev = videoEvent(body);
+    if (!ev) return;
+    stmts.push(
+      db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
+      db
+        .prepare('INSERT INTO events (site_id, session_id, visitor_id, ts, type, name, path, props, video_id, value, label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .bind(site.id, sid, vid, now, 'video', ev.action, path, null, ev.id, ev.value, null),
+    );
+    if (ev.title || ev.channel || ev.duration) {
+      stmts.push(
+        db
+          .prepare(
+            `INSERT INTO videos (site_id, id, title, channel, duration, first_seen, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT (site_id, id) DO UPDATE SET title = COALESCE(excluded.title, videos.title),
+               channel = COALESCE(excluded.channel, videos.channel), duration = COALESCE(excluded.duration, videos.duration),
+               last_seen = excluded.last_seen`,
+          )
+          .bind(site.id, ev.id, ev.title, ev.channel, ev.duration, now, now),
+      );
+    }
+  } else if (t === 'action') {
+    // Named UI interactions chosen by the site owner (search, share, filter…). Not conversions.
+    const ev = actionEvent(body);
+    if (!ev) return;
+    stmts.push(
+      db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
+      db
+        .prepare('INSERT INTO events (site_id, session_id, visitor_id, ts, type, name, path, props, video_id, value, label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .bind(site.id, sid, vid, now, 'action', ev.name, path, ev.props, ev.videoId, null, ev.label),
+    );
   }
   await db.batch(stmts);
+}
+
+/** Validate a video event: { n: action, p: { id, title?, channel?, duration?, pct?, s? } }. */
+export function videoEvent(body: Pick<Payload, 'n' | 'p'>) {
+  const action = body.n ?? '';
+  if (!VIDEO_ACTIONS.has(action)) return null;
+  const p = (body.p && typeof body.p === 'object' ? body.p : {}) as Record<string, unknown>;
+  const id = typeof p.id === 'string' && /^[\w-]{1,64}$/.test(p.id) ? p.id : null;
+  if (!id) return null;
+  let value: number | null = null;
+  if (action === 'progress') {
+    const pct = Number(p.pct);
+    if (!VIDEO_MILESTONES.includes(pct)) return null;
+    value = pct;
+  } else if (action === 'watch') {
+    const secs = Math.round(Number(p.s));
+    if (!Number.isFinite(secs) || secs < 1 || secs > MAX_WATCH_DELTA_S) return null;
+    value = secs;
+  } else if (p.t !== undefined) {
+    const pos = Math.round(Number(p.t));
+    value = Number.isFinite(pos) && pos >= 0 && pos < 86400 * 2 ? pos : null;
+  }
+  const dur = Math.round(Number(p.duration));
+  return {
+    action,
+    id,
+    value,
+    title: clip(p.title, 200),
+    channel: clip(p.channel, 120),
+    duration: Number.isFinite(dur) && dur > 0 && dur < 86400 * 2 ? dur : null,
+  };
+}
+
+/** Validate a custom action: { n: 'search', p: { label?: 'query', video?: id, ... } }. */
+export function actionEvent(body: Pick<Payload, 'n' | 'p'>) {
+  const name = body.n ?? '';
+  if (!/^[a-z0-9_:.-]{1,64}$/i.test(name)) return null;
+  const p = (body.p && typeof body.p === 'object' && !Array.isArray(body.p) ? body.p : {}) as Record<string, unknown>;
+  const label = clip(p.label, 200);
+  const videoId = typeof p.video === 'string' && /^[\w-]{1,64}$/.test(p.video) ? p.video : null;
+  const rest: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(p)) if (k !== 'label' && k !== 'video' && ['string', 'number', 'boolean'].includes(typeof v)) rest[k] = v;
+  return { name: name.toLowerCase(), label, videoId, props: serializeProperties(rest) };
+}
+
+/** Screen width buckets, so the breakdown stays readable. */
+export function screenBucket(width: number | undefined): string | null {
+  const w = Number(width);
+  if (!Number.isFinite(w) || w <= 0) return null;
+  if (w < 576) return '< 576 px';
+  if (w < 768) return '576–767 px';
+  if (w < 1024) return '768–1023 px';
+  if (w < 1440) return '1024–1439 px';
+  if (w < 1920) return '1440–1919 px';
+  return '≥ 1920 px';
+}
+
+/** Normalise a BCP 47 tag like "fr-fr" to "fr-FR"; null for garbage. */
+export function normalizeLanguage(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const m = /^([a-zA-Z]{2,3})(?:[-_]([a-zA-Z]{2}|\d{3}))?/.exec(raw.trim());
+  if (!m) return null;
+  return m[2] ? `${m[1].toLowerCase()}-${m[2].toUpperCase()}` : m[1].toLowerCase();
 }
 
 /**
@@ -312,8 +411,9 @@ function newSession(
       .prepare(
         `INSERT OR IGNORE INTO sessions (site_id, id, visitor_id, started_at, last_seen_at, pageviews, hostname, entry_page, exit_page,
           referrer, referrer_domain, source, channel, utm_source, utm_medium, utm_campaign, utm_term, utm_content, ref,
-          country, region, city, browser, os, device)
-         VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          country, region, city, browser, os, device, language, screen, is_new)
+         VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+           CASE WHEN EXISTS (SELECT 1 FROM sessions s2 WHERE s2.site_id = ? AND s2.visitor_id = ? AND s2.id <> ?) THEN 0 ELSE 1 END)`,
       )
       .bind(
         site.id,
@@ -340,6 +440,11 @@ function newSession(
         browser,
         os,
         device,
+        normalizeLanguage(body.lang),
+        screenBucket(body.sw),
+        site.id,
+        body.vid,
+        body.sid,
       ),
     // Separate statement so concurrent first events (pageview + goal racing) never double count.
     ...(pageviews

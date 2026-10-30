@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-type IconName = 'arrow-up-right' | 'arrow-right' | 'activity' | 'eye' | 'users' | 'clock' | 'refresh' | 'globe' | 'mouse' | 'target' | 'layers' | 'check' | 'plus' | 'logout' | 'search' | 'shield' | 'bar-chart' | 'sparkles' | 'external' | 'calendar' | 'menu' | 'chevron-down' | 'link';
+type IconName = 'arrow-up-right' | 'arrow-right' | 'activity' | 'eye' | 'users' | 'clock' | 'refresh' | 'globe' | 'mouse' | 'target' | 'layers' | 'check' | 'plus' | 'logout' | 'search' | 'shield' | 'bar-chart' | 'sparkles' | 'external' | 'calendar' | 'menu' | 'chevron-down' | 'link' | 'play';
 
 export function UiIcon({ name, size = 20, className = '' }: { name: IconName; size?: number; className?: string }) {
   const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -27,6 +27,7 @@ export function UiIcon({ name, size = 20, className = '' }: { name: IconName; si
     calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18"/></>,
     menu: <><path d="M4 7h16M4 12h16M4 17h16"/></>,
     'chevron-down': <path d="m6 9 6 6 6-6"/>,
+    play: <><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5.5 3.5-5.5 3.5v-7Z"/></>,
     link: <><path d="M10 13a5 5 0 0 0 8.6 2l2-2a5 5 0 0 0-7-7l-1.1 1.1M14 11a5 5 0 0 0-8.6-2l-2 2a5 5 0 0 0 7 7l1.1-1.1"/></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className} {...common}>{paths[name]}</svg>;

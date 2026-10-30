@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { classify } from '../src/shared/sources';
-import { belongsTo, normalizePath } from '../src/worker/collect';
+import { actionEvent, belongsTo, normalizeLanguage, normalizePath, screenBucket, videoEvent } from '../src/worker/collect';
 import { verifyStandardWebhook } from '../src/worker/lib/crypto';
 import { bucketLabels, resolveRange, startOfDay, tzOffset } from '../src/worker/lib/time';
 import { isBot, parseUA } from '../src/worker/lib/ua';
@@ -124,5 +124,34 @@ describe('insights helpers', () => {
   it('zero-fills per-minute realtime counts', () => {
     const now = 1000 * 60_000 + 10;
     expect(fillMinutes([{ m: 999, n: 1 }, { m: 1000, n: 3 }], now, 3)).toEqual([0, 1, 3]);
+  });
+});
+
+describe('video and action events', () => {
+  it('accepts valid video events and bounds values', () => {
+    expect(videoEvent({ n: 'start', p: { id: 'dQw4w9WgXcQ', title: 'Hello', channel: 'Chan', duration: 212.4 } })).toMatchObject({
+      action: 'start', id: 'dQw4w9WgXcQ', title: 'Hello', channel: 'Chan', duration: 212,
+    });
+    expect(videoEvent({ n: 'progress', p: { id: 'abc', pct: 50 } })?.value).toBe(50);
+    expect(videoEvent({ n: 'progress', p: { id: 'abc', pct: 33 } })).toBeNull();
+    expect(videoEvent({ n: 'watch', p: { id: 'abc', s: 15 } })?.value).toBe(15);
+    expect(videoEvent({ n: 'watch', p: { id: 'abc', s: 9999 } })).toBeNull();
+    expect(videoEvent({ n: 'seek', p: { id: 'abc', t: 42.6 } })?.value).toBe(43);
+    expect(videoEvent({ n: 'hack', p: { id: 'abc' } })).toBeNull();
+    expect(videoEvent({ n: 'start', p: { id: 'bad id!' } })).toBeNull();
+  });
+  it('keeps action labels and scalar properties only', () => {
+    const a = actionEvent({ n: 'Search', p: { label: 'lofi beats', video: 'abc', results: 12, nested: { x: 1 } } });
+    expect(a).toMatchObject({ name: 'search', label: 'lofi beats', videoId: 'abc' });
+    expect(JSON.parse(a!.props!)).toEqual({ results: 12 });
+    expect(actionEvent({ n: 'bad name!' })).toBeNull();
+  });
+  it('buckets screens and normalises languages', () => {
+    expect(screenBucket(390)).toBe('< 576 px');
+    expect(screenBucket(1920)).toBe('≥ 1920 px');
+    expect(screenBucket(0)).toBeNull();
+    expect(normalizeLanguage('fr-fr')).toBe('fr-FR');
+    expect(normalizeLanguage('EN')).toBe('en');
+    expect(normalizeLanguage('???')).toBeNull();
   });
 });
