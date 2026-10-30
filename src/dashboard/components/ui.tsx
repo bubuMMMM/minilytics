@@ -2,7 +2,7 @@
  * Shared building blocks (design v3). Every view composes these instead of ad-hoc markup, so headers,
  * cards, badges, empty states and segmented controls look and behave the same everywhere.
  */
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { UiIcon, type UiIconName } from './UiIcon';
 
 /** Page title block: title, one-line description, meta chips, actions (wrap under on phones). */
@@ -12,7 +12,7 @@ export function PageHeader({ title, description, meta, actions, kicker, translat
   return (
     <div className="mb-6 flex flex-col gap-4 lg:mb-8 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
-        {kicker && <div className="mb-1.5 text-[12px] font-medium text-ink-3">{kicker}</div>}
+        {kicker && <div className="mb-1.5 text-[12px] font-medium text-accent">{kicker}</div>}
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-ink sm:text-[26px]" translate={translateTitle ? undefined : 'no'}>{title}</h1>
         {(description || meta) && (
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13px] text-ink-3">
@@ -31,8 +31,8 @@ export function SectionHeader({ id, kicker, title, description, action }: { id?:
   return (
     <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        {kicker && <div className="mb-1 text-[12px] font-medium text-ink-3">{kicker}</div>}
-        <h2 id={id} className="text-[17px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+        {kicker && <div className="mb-1 text-[12px] font-medium text-accent">{kicker}</div>}
+        <h2 id={id} className="text-[18px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>
         {description && <p className="mt-1 max-w-2xl text-pretty text-[13px] leading-relaxed text-ink-3">{description}</p>}
       </div>
       {action}
@@ -111,6 +111,35 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs:
       {tabs.map((t) => (
         <button key={t.value} type="button" role="tab" aria-selected={value === t.value} onClick={() => onChange(t.value)} className="ml-tab">{t.label}</button>
       ))}
+    </div>
+  );
+}
+
+function guessLang(code: string) {
+  const t = code.trimStart();
+  if (t.startsWith('<')) return 'HTML';
+  if (t.startsWith('curl') || t.startsWith('npm') || t.startsWith('npx') || t.startsWith('minilytics')) return 'Terminal';
+  if (t.startsWith('{') || t.startsWith('[')) return 'JSON';
+  if (/^https?:\/\//.test(t)) return 'URL';
+  if (/^!?\[/.test(t)) return 'Markdown';
+  if (/^(import|const|let|await|fetch|export)\b/.test(t)) return 'JavaScript';
+  return 'Code';
+}
+
+/** Code sample with its own toolbar: the copy button never covers the code, on any width. */
+export function CodeBlock({ code, label, wrap = false, className = '' }: { code: string; label?: string; wrap?: boolean; className?: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className={`min-w-0 overflow-hidden rounded-lg border border-line bg-well ${className}`}>
+      <div className="flex min-h-[36px] items-center justify-between gap-2 border-b border-line py-1 pl-3 pr-1.5">
+        <span className="text-[11px] font-medium text-ink-4">{label ?? guessLang(code)}</span>
+        <button type="button" className="inline-flex min-h-[28px] items-center gap-1.5 rounded-md px-2 text-[12px] font-medium text-ink-3 transition-colors duration-150 hover:bg-surface hover:text-ink"
+          aria-label={copied ? 'Copié' : 'Copier le code'}
+          onClick={() => { navigator.clipboard?.writeText(code).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>
+          <UiIcon name={copied ? 'check' : 'copy'} size={13} />{copied ? 'Copié' : 'Copier'}
+        </button>
+      </div>
+      <pre className={`m-0 overflow-x-auto p-4 font-mono text-[12px] leading-relaxed text-ink-2 sm:text-[12.5px] ${wrap ? 'whitespace-pre-wrap break-all' : 'whitespace-pre'}`}><code>{code}</code></pre>
     </div>
   );
 }

@@ -131,7 +131,7 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
         <RevenueInsights />
         <VideosTeaser onOpen={() => navigate('/site/' + site.id + '/videos' + window.location.search)} />
 
-        <section id="engagement" className="mt-8 scroll-mt-20" aria-label="Analyse comportementale">
+        <section id="engagement" className="mt-10 scroll-mt-20" aria-label="Analyse comportementale">
           <SectionHeader kicker="Audience · Engagement" title="Comment vos pages sont parcourues" description="Scroll, temps actif, liens cliqués et pages de fin de session, sur la même période et les mêmes filtres." />
           <EngagementPanel siteId={siteId} query={q} reloadKey={reloadKey}/>
         </section>
@@ -162,7 +162,7 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
 function SourcesPanels({ full = false }: { full?: boolean }) {
   const { site } = useDash();
   return (
-    <section className="mt-7" aria-labelledby="sources-title">
+    <section className="mt-10" aria-labelledby="sources-title">
       <SectionHeader id="sources-title" kicker={full ? undefined : 'Acquisition'} title={full ? 'Toutes les dimensions' : 'D’où viennent vos visiteurs'} description="Touchez une ligne pour filtrer tout le tableau de bord. Chaque bloc s’exporte en CSV."
         action={!full ? <Link href={`/site/${site.id}/sources${window.location.search}`} className="btn">Toutes les sources <UiIcon name="arrow-right" size={16} /></Link> : undefined} />
         <div className="grid gap-5 lg:grid-cols-2">

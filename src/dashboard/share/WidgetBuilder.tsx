@@ -1,3 +1,4 @@
+import { CodeBlock } from '../components/ui';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api, type Site } from '../lib/api';
 import { UiIcon } from '../components/UiIcon';
@@ -212,12 +213,5 @@ function Seg({ value, onChange, options, small }: { value: string; onChange: (v:
   );
 }
 function CodeBox({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="relative min-w-0">
-      <code className="code block whitespace-pre-wrap break-all !p-4 !pr-20 !text-[12px]">{code}</code>
-      <button className="absolute right-2 top-2 min-h-[32px] rounded-md border border-line bg-surface px-2.5 text-[12px] font-medium text-ink-2 shadow-xs hover:text-ink"
-        onClick={() => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? 'Copié' : 'Copier'}</button>
-    </div>
-  );
+  return <CodeBlock code={code} wrap />;
 }

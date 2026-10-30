@@ -123,7 +123,7 @@ export function BotsView() {
           <h2 className="text-[15px] font-semibold tracking-tight">Passages dans le temps</h2>
           <p className="mb-3 mt-1 text-[12px] text-ink-3">Par type : entraînement des modèles, index de recherche IA, assistants qui lisent une page à la demande d’un utilisateur.</p>
           {data ? (
-            <TrendChart height={220} granularity={data.range.granularity} buckets={data.series.map((s) => s.bucket)} series={(['assistant', 'search', 'training'] as BotCategory[]).map((c) => ({ key: c, label: BOT_CATEGORY_LABEL[c], color: CAT_COLOR[c], values: data.series.map((s) => s[c]) }))} />
+            <TrendChart peers height={220} granularity={data.range.granularity} buckets={data.series.map((s) => s.bucket)} series={(['assistant', 'search', 'training'] as BotCategory[]).map((c) => ({ key: c, label: BOT_CATEGORY_LABEL[c], color: CAT_COLOR[c], values: data.series.map((s) => s[c]) }))} />
           ) : <div className="ml-skeleton h-[220px] w-full" />}
         </section>
         <section className="card min-w-0 p-4 sm:p-5">

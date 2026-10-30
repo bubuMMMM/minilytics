@@ -12,7 +12,7 @@ import { ShareSettings } from '../share/ShareSettings';
 import { WidgetBuilder } from '../share/WidgetBuilder';
 import { Link } from '../components/Link';
 import { UiIcon } from '../components/UiIcon';
-import { PageHeader } from '../components/ui';
+import { CodeBlock, PageHeader } from '../components/ui';
 import { LEGACY_SETTINGS_HASH, SETTINGS_SECTIONS } from '../lib/nav';
 
 /** Left sub-navigation on desktop; horizontally scrolling chips on phones / tablets. */
@@ -51,22 +51,7 @@ function Section({ title, desc, children }: { title: string; desc?: ReactNode; c
 }
 
 function Code({ children }: { children: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="relative min-w-0">
-      <code className="code !p-4 !pr-20 !text-[12px] sm:!p-5 sm:!text-[13px]">{children}</code>
-      <button
-        className="absolute right-2 top-2 min-h-[32px] rounded-md border border-line bg-surface px-2.5 text-[12px] font-medium text-ink-2 shadow-xs hover:text-ink"
-        onClick={() => {
-          navigator.clipboard.writeText(children);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        }}
-      >
-        {copied ? 'Copié' : 'Copier'}
-      </button>
-    </div>
-  );
+  return <CodeBlock code={children} />;
 }
 
 export function Settings({ siteId, section }: { siteId: string; section?: string }) {

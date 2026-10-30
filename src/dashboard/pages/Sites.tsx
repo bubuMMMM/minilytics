@@ -90,8 +90,6 @@ export function Sites() {
             );
           })}
 
-          {isOwner && sites && sites.length > 0 && <button onClick={() => setAdding(true)} className="flex min-h-[184px] flex-col items-center justify-center rounded-xl border border-dashed border-line-strong p-6 text-center text-ink-3 transition-colors hover:border-ink-4 hover:text-ink"><UiIcon name="plus" size={18}/><span className="mt-2 text-[14px] font-medium">Connecter un site</span><span className="mt-1 text-[12px] text-ink-4">Une balise à coller, c’est tout.</span></button>}
-
           {sites && sites.length === 0 && <section className="col-span-full rounded-xl border border-line bg-surface p-6 sm:p-10">
             <h2 className="text-xl font-semibold tracking-tight">Connectez votre premier site</h2>
             <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-ink-3">Quelques minutes suffisent pour commencer à voir de vraies visites.</p>

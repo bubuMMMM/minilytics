@@ -8,8 +8,10 @@ export interface TrendSeries { key: string; label: string; color: string; values
  * a visually hidden data table for screen readers, and fixed height so nothing shifts while loading.
  * Pattern adapted from 21st.dev "Stat Card" (OSAGI) trend line.
  */
-export function TrendChart({ buckets, granularity, series, height = 220, format = fmtNumber }: {
+export function TrendChart({ buckets, granularity, series, height = 220, format = fmtNumber, peers = false }: {
   buckets: string[]; granularity: string; series: TrendSeries[]; height?: number; format?: (n: number) => string;
+  /** Series are equals (e.g. bot categories): all solid lines. Default: the first is primary, the others are dashed comparisons. */
+  peers?: boolean;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -68,7 +70,7 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
           {series.map((s, k) => (
             <g key={s.key}>
               {k === 0 && n > 1 && <path d={`${path(s.values, s.axis)} L${x(n - 1)},${H - 24} L${x(0)},${H - 24} Z`} fill={`url(#${gid}-${s.key})`} />}
-              <path d={path(s.values, s.axis)} fill="none" stroke={s.color} strokeWidth={k === 0 ? 2 : 1.5} strokeDasharray={k === 0 ? undefined : '4 4'} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+              <path d={path(s.values, s.axis)} fill="none" stroke={s.color} strokeWidth={k === 0 || peers ? 2 : 1.5} strokeDasharray={k === 0 || peers ? undefined : '4 4'} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
             </g>
           ))}
           {h !== null && <line x1={x(h)} x2={x(h)} y1="8" y2={H - 24} stroke="rgb(var(--line-strong))" vectorEffect="non-scaling-stroke" />}
