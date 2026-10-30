@@ -1,3 +1,4 @@
+import { InfoTip } from './InfoTip';
 import { useState } from 'react';
 import { Area, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { Kpis, Overview } from '../lib/api';
@@ -21,9 +22,9 @@ interface KpiDef {
 
 function KpiCard({ k, cur, prev }: { k: KpiDef; cur: number; prev: number }) {
   return (
-    <div className="ml-bento ml-bento-interactive group relative flex min-w-0 flex-col overflow-hidden p-4 sm:p-5" title={k.hint}>
+    <div className="ml-bento ml-bento-interactive group relative flex min-w-0 flex-col p-4 sm:p-5">
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-[12px] font-semibold text-[#77849b]">{k.label}</span>
+        <span className="flex min-w-0 items-center text-[12px] font-semibold text-[#77849b]"><span className="truncate">{k.label}</span>{k.hint && <InfoTip text={k.hint} label={`Comment est calculé « ${k.label} » ?`} />}</span>
         <Trend cur={cur} prev={prev} invert={k.invert} />
       </div>
       <div className="tnum mt-2 text-[clamp(1.6rem,2.4vw,2.1rem)] font-semibold leading-none tracking-[-.05em] text-[#111b33]">{k.value}</div>
@@ -37,9 +38,9 @@ export function KpiSkeleton() {
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
       {Array.from({ length: 6 }, (_, i) => (
         <div key={i} className="card p-4">
-          <div className="skeleton h-3.5 w-20" />
-          <div className="skeleton mt-3 h-7 w-24" />
-          <div className="skeleton mt-3 h-8 w-full" />
+          <div className="ml-skeleton h-3.5 w-20" />
+          <div className="ml-skeleton mt-3 h-7 w-24" />
+          <div className="ml-skeleton mt-3 h-8 w-full" />
         </div>
       ))}
     </div>
@@ -57,12 +58,12 @@ export function OverviewCard({ data }: { data: Overview | null }) {
 
   const kpis: KpiDef[] = c
     ? [
-        { key: 'visitors', label: 'Visiteurs', value: fmtNumber(c.visitors), spark: s.map((x) => x.visitors), color: 'text-visitors', hint: 'Visiteurs uniques' },
-        { key: 'pageviews', label: 'Pages vues', value: fmtNumber(c.pageviews), spark: s.map((x) => x.pageviews), color: 'text-brand' },
+        { key: 'visitors', label: 'Visiteurs', value: fmtNumber(c.visitors), spark: s.map((x) => x.visitors), color: 'text-visitors', hint: 'Personnes distinctes (un cookie visiteur first-party par navigateur), robots exclus.' },
+        { key: 'pageviews', label: 'Pages vues', value: fmtNumber(c.pageviews), spark: s.map((x) => x.pageviews), color: 'text-brand', hint: 'Chaque page affichée, navigations internes des applications React/Next.js comprises. Les doublons de moins de 1,5 s sont ignorés.' },
         { key: 'revenue', label: 'Revenus', value: money(c.revenue, true), spark: s.map((x) => x.revenue), color: 'text-revenue' },
         { key: 'conversionRate', label: 'Conversion', value: fmtPct(c.conversionRate, c.conversionRate >= 0.1 ? 0 : 2), hint: 'Clients / visiteurs' },
-        { key: 'bounceRate', label: 'Taux de rebond', value: fmtPct(c.bounceRate), invert: true, hint: 'Visites d’une seule page sans objectif' },
-        { key: 'avgDuration', label: 'Durée de visite', value: fmtDuration(c.avgDuration), hint: 'Temps moyen passé par visite' },
+        { key: 'bounceRate', label: 'Taux de rebond', value: fmtPct(c.bounceRate), invert: true, hint: 'Visites d’une seule page, sans clic, vidéo, objectif ni 10 s d’activité' },
+        { key: 'avgDuration', label: 'Durée de visite', value: fmtDuration(c.avgDuration), hint: 'Temps moyen passé par visite, onglet visible uniquement.' },
       ]
     : [];
 
@@ -107,7 +108,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
           </div>
         </div>
         <div className="h-[320px] px-2 pb-3 pt-4 sm:px-4">
-          {!data && <div className="skeleton h-full w-full" />}
+          {!data && <div className="ml-skeleton h-full w-full" />}
           {data && (
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={data.series} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>

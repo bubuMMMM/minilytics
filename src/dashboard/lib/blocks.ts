@@ -20,13 +20,14 @@ export interface BlocksReport {
   blocks: BlockRow[];
   sponsors: { sponsor: string | null; impressions: number; clicks: number; clickers: number; ctr: number; placements: number }[];
   series: BlockSeries[];
+  pages?: { page: string | null; blocks: number; impressions: number; viewers: number; clicks: number; clickers: number; ctr: number }[];
 }
 export interface BreakRow { label: string | null; impressions: number; clicks: number; ctr: number }
 export interface BlockDetail {
   range: { granularity: string };
   block: BlockRow;
   series: BlockSeries[];
-  breakdown: Record<'page' | 'device' | 'country' | 'source', BreakRow[]>;
+  breakdown: Partial<Record<'page' | 'device' | 'country' | 'source' | 'channel' | 'browser' | 'os' | 'utm_campaign' | 'visitor_type', BreakRow[]>>;
   items: { item: string; title: string | null; pos: number | null; impressions: number; clicks: number; ctr: number }[];
 }
 

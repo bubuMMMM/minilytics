@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { qs } from '../lib/api';
 import { blockName, downloadCsv, type BlockDetail, type BlockKind, type BlockRow, type BlocksReport, type BreakRow } from '../lib/blocks';
 import { useDash } from '../lib/context';
-import { countryName, fmtAgo, fmtNumber, fmtPct } from '../lib/format';
+import { channelName, countryName, fmtAgo, fmtNumber, fmtPct } from '../lib/format';
 import { useApi } from '../lib/useApi';
 import { Flag, SourceIcon } from './Icons';
 import { Modal } from './Modal';
@@ -196,6 +196,27 @@ export function BlocksView({ kind }: { kind: BlockKind }) {
             )}
           </div>
 
+          {kind === 'content' && data?.pages && data.pages.length > 0 && (
+            <div className="ml-bento mt-5 p-4 sm:p-5">
+              <h3 className="text-[15px] font-semibold">Impressions par page</h3>
+              <p className="mb-3 text-[12px] text-[#8b97aa]">Toutes sections confondues, sur la période.</p>
+              <ul className="space-y-1">
+                {data.pages.map((pg) => {
+                  const max = Math.max(1, ...data.pages!.map((x) => x.impressions));
+                  return (
+                    <li key={pg.page ?? '—'} className="relative flex min-h-[40px] items-center gap-3 rounded-lg px-3 text-[13px]">
+                      <div className="absolute inset-y-0 left-0 rounded-lg bg-[#eef1ff]" style={{ width: `${(pg.impressions / max) * 100}%` }} aria-hidden />
+                      <span className="relative min-w-0 flex-1 truncate font-medium" translate="no">{pg.page ?? '—'}</span>
+                      <span className="relative hidden text-[12px] text-[#6f7d94] sm:inline">{pg.blocks} section{pg.blocks > 1 ? 's' : ''}</span>
+                      <span className="tnum relative w-20 text-right">{fmtNumber(pg.impressions)}</span>
+                      <span className="tnum relative w-14 text-right font-semibold">{fmtPct(pg.ctr, 1)}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
           {kind === 'sponsor' && data && data.sponsors.length > 0 && (
             <div className="ml-bento mt-5 p-4 sm:p-5">
               <h3 className="mb-3 text-[15px] font-semibold">Par sponsor</h3>
@@ -226,6 +247,7 @@ export function BlocksView({ kind }: { kind: BlockKind }) {
 
 const BREAK_TABS: { key: keyof BlockDetail['breakdown']; label: string }[] = [
   { key: 'page', label: 'Page' }, { key: 'device', label: 'Appareil' }, { key: 'country', label: 'Pays' }, { key: 'source', label: 'Source' },
+  { key: 'channel', label: 'Canal' }, { key: 'utm_campaign', label: 'Campagne' }, { key: 'browser', label: 'Navigateur' }, { key: 'visitor_type', label: 'Nouveaux / récurrents' },
 ];
 
 function BreakList({ dim, rows }: { dim: string; rows: BreakRow[] }) {
@@ -239,6 +261,8 @@ function BreakList({ dim, rows }: { dim: string; rows: BreakRow[] }) {
           <span className="relative flex min-w-0 flex-1 items-center gap-2">
             {dim === 'country' ? <><Flag cc={r.label} /><span className="truncate">{countryName(r.label)}</span></>
               : dim === 'source' ? <><SourceIcon source={r.label ?? 'Direct'} /><span className="truncate">{r.label ?? 'Direct'}</span></>
+              : dim === 'channel' ? <span className="truncate">{channelName(r.label)}</span>
+              : dim === 'visitor_type' ? <span className="truncate">{r.label === 'new' ? 'Nouveaux' : r.label === 'returning' ? 'Récurrents' : r.label ?? '—'}</span>
               : <span className="truncate" translate="no">{r.label ?? '—'}</span>}
           </span>
           <span className="tnum relative w-16 text-right">{fmtNumber(r.impressions)}</span>
@@ -281,7 +305,7 @@ function BlockModal({ row, kind, onClose }: { row: BlockRow | null; kind: BlockK
               </div>
               <div className="mt-5">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className="tabs" role="tablist" aria-label="Répartition">
+                  <div className="tabs min-w-0" role="tablist" aria-label="Répartition">
                     {BREAK_TABS.map((b) => <button key={b.key} role="tab" aria-selected={tab === b.key} className={`tab ${tab === b.key ? 'tab-active' : ''}`} onClick={() => setTab(b.key)}>{b.label}</button>)}
                   </div>
                   <span className="hidden text-[11px] text-[#9aa7ba] sm:block">impr. · clics · CTR</span>
