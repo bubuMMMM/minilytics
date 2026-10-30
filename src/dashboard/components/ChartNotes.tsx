@@ -27,9 +27,10 @@ export function bucketOfTs(ts: number, g: string, tz: string): string {
 }
 
 export function useNotes() {
-  const { site, q, reloadKey } = useDash();
+  const { site, q, reloadKey, share } = useDash();
   const [version, setVersion] = useState(0);
-  const { data } = useApi<Note[]>(`/api/sites/${site.id}/notes?${qs({ ...q, filters: {} })}`, reloadKey + version);
+  // Notes are private to the team: shared dashboards never request them.
+  const { data } = useApi<Note[]>(share ? null : `/api/sites/${site.id}/notes?${qs({ ...q, filters: {} })}`, reloadKey + version);
   return {
     list: data ?? [],
     async add(day: string, text: string) {

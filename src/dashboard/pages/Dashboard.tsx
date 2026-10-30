@@ -22,6 +22,7 @@ import { DashContext, useDash, type Dash } from '../lib/context';
 import { fmtMoney } from '../lib/format';
 import { useApi } from '../lib/useApi';
 import { useQueryState } from '../lib/useQueryState';
+import { useMe } from '../lib/me';
 
 export type DashView = 'overview' | 'videos' | 'sponsors' | 'content' | 'sources' | 'social' | 'bots';
 const VIEW_META: Record<DashView, { kicker: string; title: (name: string) => string; sub: string }> = {
@@ -38,6 +39,7 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
   const [q, update] = useQueryState();
   const [reloadKey, setReloadKey] = useState(0);
   const [visitor, setVisitor] = useState<string | null>(null);
+  const me = useMe();
   const { data: sites } = useApi<Site[]>('/api/sites');
   const site = sites?.find((s) => s.id === siteId);
   const { data: overview, loading } = useApi<Overview>(site ? `/api/sites/${siteId}/overview?${qs(q)}` : null, reloadKey);
@@ -90,6 +92,7 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {me && me.role !== 'viewer' && <Link href={`/site/${site.id}/settings#partage`} className="btn" aria-label="Partager le tableau de bord"><UiIcon name="share" size={15} /><span className="hidden sm:inline">Partager</span></Link>}
               <Toolbar site={site} sites={sites!} q={q} update={update} overview={overview} onRefresh={() => setReloadKey((k) => k + 1)} loading={loading} />
             </div>
           </div>

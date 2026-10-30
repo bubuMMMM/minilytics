@@ -11,6 +11,7 @@ const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m
 const MapPage = lazy(() => import('./map/MapPage').then((m) => ({ default: m.MapPage })));
 const Sites = lazy(() => import('./pages/Sites').then((m) => ({ default: m.Sites })));
 const Team = lazy(() => import('./pages/Team').then((m) => ({ default: m.Team })));
+const SharePage = lazy(() => import('./share/SharePage').then((m) => ({ default: m.SharePage })));
 const Invite = lazy(() => import('./pages/Team').then((m) => ({ default: m.Invite })));
 
 
@@ -57,6 +58,9 @@ export function App() {
   // A genuine, read-only public demonstration; private customer data stays behind authentication.
   if (path === '/demo/map') return <Suspense fallback={<Loading />}><MapPage publicSiteId={new URLSearchParams(window.location.search).get('site') || '2z1f1t02626v5c5w'} /></Suspense>;
   if (path === '/demo') return <Suspense fallback={<Loading />}><PublicDemo /></Suspense>;
+  // Read-only shared dashboards: no login, the link (and its optional password) is the credential.
+  const share = /^\/share\/([\w-]{20,80})(?:\/(\w+))?$/.exec(path);
+  if (share) return <Suspense fallback={<Loading />}><SharePage key={share[1]} token={share[1]} view={share[2]} /></Suspense>;
   const invite = /^\/invite\/([\w-]{20,100})$/.exec(path);
   if (invite) return <Suspense fallback={<Loading />}><Invite token={invite[1]} onJoined={() => loadMe(true).then(() => { setAuth(true); navigate('/sites'); })} /></Suspense>;
   if (auth === null) return <Loading />;

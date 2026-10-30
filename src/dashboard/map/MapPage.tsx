@@ -66,13 +66,15 @@ function useLookup<T>(url: string, need: boolean) {
   return data;
 }
 
-export function MapPage({ siteId, publicSiteId }: { siteId?: string; publicSiteId?: string }) {
+export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publicSiteId?: string; share?: { token: string; header: ReactNode; cities: boolean; title: string } }) {
   const [q, update] = useQueryState();
   const isPublic = !!publicSiteId;
+  const isShare = !!share;
+  const countryOnly = isPublic || (isShare && !share.cities);
   const period = isPublic ? (['7d', '30d', 'all'].includes(q.period) ? q.period : '30d') : q.period;
-  const { data: sites } = useApi<Site[]>(isPublic ? null : '/api/sites');
+  const { data: sites } = useApi<Site[]>(isPublic || isShare ? null : '/api/sites');
   const site = sites?.find((s) => s.id === siteId);
-  const url = isPublic
+  const url = isShare ? `/api/share/${share.token}/map?${qs({ ...q, filters: {} })}` : isPublic
     ? `/api/public/map?site=${encodeURIComponent(publicSiteId!)}&days=${period === '7d' ? 7 : period === 'all' ? 'all' : 30}`
     : site ? `/api/sites/${siteId}/map?${qs({ ...q })}` : null;
   const { data, error } = useApi<MapData>(url);
@@ -88,7 +90,7 @@ export function MapPage({ siteId, publicSiteId }: { siteId?: string; publicSiteI
   const mapRef = useRef<GeoMapHandle>(null);
   const world = useWorld(zoom >= 2.4);
   const tz = data?.timezone ?? site?.timezone ?? 'UTC';
-  const title = isPublic ? 'Démo' : site?.name;
+  const title = isShare ? share.title : isPublic ? 'Démo' : site?.name;
 
   useEffect(() => { localStorage.setItem('ml-map-mode', mode); }, [mode]);
   useEffect(() => { document.title = `Carte${title ? ' · ' + title : ''} — Minilytics`; }, [title]);
@@ -113,7 +115,7 @@ export function MapPage({ siteId, publicSiteId }: { siteId?: string; publicSiteI
   useEffect(() => {
     if (!data) return;
     let alive = true;
-    const liveUrl = isPublic ? `/api/public/map/live?site=${encodeURIComponent(publicSiteId!)}` : `/api/sites/${siteId}/map/live`;
+    const liveUrl = isShare ? `/api/share/${share!.token}/map/live` : isPublic ? `/api/public/map/live?site=${encodeURIComponent(publicSiteId!)}` : `/api/sites/${siteId}/map/live`;
     const tick = () => api<LiveData>(liveUrl).then((l) => {
       if (!alive) return;
       setLive(l);
@@ -132,7 +134,7 @@ export function MapPage({ siteId, publicSiteId }: { siteId?: string; publicSiteI
     tick();
     const t = setInterval(tick, 10_000);
     return () => { alive = false; clearInterval(t); };
-  }, [data, isPublic, publicSiteId, siteId]);
+  }, [data, isPublic, publicSiteId, siteId, isShare, share?.token]);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 9000); return () => clearTimeout(t); }, [toast]);
 
   const maxV = Math.max(1, ...(data?.countries ?? []).map((c) => c.visitors));
@@ -176,7 +178,7 @@ export function MapPage({ siteId, publicSiteId }: { siteId?: string; publicSiteI
   }, []);
   const flyToPlace = (lon: number, lat: number) => mapRef.current?.flyTo(lon, lat, 14);
 
-  const header = isPublic ? (
+  const header = isShare ? share.header : isPublic ? (
     <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="flex h-14 items-center justify-between gap-3 px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-2"><Link href="/" aria-label="Accueil" className="flex min-h-[44px] items-center"><Logo small /></Link><span className="text-ink-4">/</span><Link href={`/demo?site=${encodeURIComponent(publicSiteId!)}`} className="text-[14px] text-ink-3 hover:text-ink">Démo</Link><span className="text-ink-4">/</span><span className="text-[14px] font-medium">Carte</span></div>
@@ -189,14 +191,14 @@ export function MapPage({ siteId, publicSiteId }: { siteId?: string; publicSiteI
     <Panel
       data={data} error={error} tab={tab} setTab={setTab} selected={selected} select={select} tz={tz} live={live}
       discovered={discovered} discovery={discovery} badges={badges} conts={conts} line={line} streak={st} reached={reached} lvl={lvl}
-      regionNames={regionNames} locate={locate} flyToPlace={flyToPlace} isPublic={isPublic}
+      regionNames={regionNames} locate={locate} flyToPlace={flyToPlace} isPublic={countryOnly}
     />
   );
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-canvas text-ink">
       {header}
-      <main id="contenu" className={`relative flex min-h-0 flex-1 ${isPublic ? '' : 'pb-[calc(57px+env(safe-area-inset-bottom))] md:pb-0'}`}>
+      <main id="contenu" className={`relative flex min-h-0 flex-1 ${isPublic || isShare ? '' : 'pb-[calc(57px+env(safe-area-inset-bottom))] md:pb-0'}`}>
         <section className="relative min-w-0 flex-1 overflow-hidden" aria-label="Carte des visiteurs">
           <div className="absolute inset-0">
             {world ? (
@@ -275,7 +277,7 @@ export function MapPage({ siteId, publicSiteId }: { siteId?: string; publicSiteI
         </section>
         <aside className="hidden w-[380px] shrink-0 flex-col border-l border-line bg-surface md:flex" aria-label="Classement et succès">{panel}</aside>
       </main>
-      {!isPublic && siteId && <BottomNav siteId={siteId} active="map" />}
+      {!isPublic && !isShare && siteId && <BottomNav siteId={siteId} active="map" />}
     </div>
   );
 }

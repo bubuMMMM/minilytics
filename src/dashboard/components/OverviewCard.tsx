@@ -58,7 +58,7 @@ export function KpiSkeleton() {
 type Metric = 'visitors' | 'pageviews' | 'revenue' | 'conversionRate' | 'bounceRate' | 'avgDuration' | 'revenuePerVisitor';
 
 export function OverviewCard({ data }: { data: Overview | null }) {
-  const { money, site } = useDash();
+  const { money, site, share } = useDash();
   const [metric, setMetric] = useState<Metric>('visitors');
   const notes = useNotes();
   const col = COLORS;
@@ -66,17 +66,17 @@ export function OverviewCard({ data }: { data: Overview | null }) {
   const c = data?.current;
   const p = data?.previous;
   const s = data?.series ?? [];
-  const hasRevenue = !!c && (c.revenue !== 0 || (p?.revenue ?? 0) !== 0);
+  const hasRevenue = !share?.hideRevenue && !!c && (c.revenue !== 0 || (p?.revenue ?? 0) !== 0);
 
   const kpis: KpiDef[] = c
-    ? [
+    ? ([
         { key: 'visitors', label: 'Visiteurs', value: fmtNumber(c.visitors), spark: s.map((x) => x.visitors), color: 'text-visitors', hint: 'Personnes distinctes (un cookie visiteur first-party par navigateur), robots exclus.' },
         { key: 'pageviews', label: 'Pages vues', value: fmtNumber(c.pageviews), spark: s.map((x) => x.pageviews), color: 'text-brand', hint: 'Chaque page affichée, navigations internes des applications React/Next.js comprises. Les doublons de moins de 1,5 s sont ignorés.' },
         { key: 'revenue', label: 'Revenus', value: money(c.revenue, true), spark: s.map((x) => x.revenue), color: 'text-revenue' },
         { key: 'conversionRate', label: 'Conversion', value: fmtPct(c.conversionRate, c.conversionRate >= 0.1 ? 0 : 2), hint: 'Clients / visiteurs' },
         { key: 'bounceRate', label: 'Taux de rebond', value: fmtPct(c.bounceRate), invert: true, hint: 'Visites d’une seule page, sans clic, vidéo, objectif ni 10 s d’activité' },
         { key: 'avgDuration', label: 'Durée de visite', value: fmtDuration(c.avgDuration), hint: 'Temps moyen passé par visite, onglet visible uniquement.' },
-      ]
+      ] as KpiDef[]).filter((k) => !share?.hideRevenue || (k.key !== 'revenue' && k.key !== 'conversionRate'))
     : [];
 
   const g = data?.range.granularity ?? 'day';
@@ -89,7 +89,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
   return (
     <div className="ml-bento overflow-hidden">
       {c && p ? (
-        <div className="grid grid-cols-2 gap-px border-b border-line bg-line md:grid-cols-3 xl:grid-cols-6 [&>*]:bg-surface">
+        <div className={`grid grid-cols-2 gap-px border-b border-line bg-line ${kpis.length === 4 ? "md:grid-cols-4" : "md:grid-cols-3 xl:grid-cols-6"} [&>*]:bg-surface`}>
           {kpis.map((k) => (
             <KpiCard key={k.key} k={k} cur={c[k.key]} prev={p[k.key]} selected={metric === k.key} onSelect={() => setMetric(k.key as Metric)} />
           ))}
@@ -199,7 +199,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
             </ResponsiveContainer>
           )}
         </div>
-        <NotesBar notes={notes} />
+        {!share && <NotesBar notes={notes} />}
       </div>
     </div>
   );

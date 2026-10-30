@@ -7,6 +7,8 @@ import { api, type Site } from '../lib/api';
 import { ExclusionsSettings, RevenueIntegrations } from '../components/SettingsGrowth';
 import { PlausibleImport } from '../components/PlausibleImport';
 import { useMe } from '../lib/me';
+import { ShareSettings } from '../share/ShareSettings';
+import { WidgetBuilder } from '../share/WidgetBuilder';
 
 function Section({ title, desc, children }: { title: string; desc?: ReactNode; children: ReactNode }) {
   return (
@@ -51,6 +53,13 @@ export function Settings({ siteId }: { siteId: string }) {
       setForm({ name: s.name, domain: s.domain, timezone: s.timezone, currency: s.currency, dodo_webhook_secret: s.dodo_webhook_secret ?? '' });
     });
   }, [siteId]);
+
+  // Deep links (#partage, #widgets) land on their section once the page has rendered.
+  useEffect(() => {
+    if (!site || !window.location.hash) return;
+    const t = setTimeout(() => document.querySelector(window.location.hash)?.scrollIntoView({ block: 'start' }), 60);
+    return () => clearTimeout(t);
+  }, [site]);
 
   async function save(patch: Partial<Site>, msg = 'Enregistré') {
     setError('');
@@ -277,6 +286,9 @@ curl -X POST ${origin}/api/v1/goals \\
       </Section>
 
       <LinkBuilder domain={site.domain} />
+
+      <ShareSettings site={site} />
+      <WidgetBuilder site={site} />
 
       <Section title="Page d'accueil publique">
         <p className="text-sm text-muted">Affiche les statistiques agrégées de ce site (visiteurs, pages, sources, pays) sur la page d'accueil de Minilytics, sans connexion. Aucune donnée individuelle ni clé API n'est exposée.</p>

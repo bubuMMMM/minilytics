@@ -9,6 +9,8 @@ export interface Dash {
   money: (minor: number, compact?: boolean) => string;
   addFilter: (key: string, value: string) => void;
   openVisitor: (visitorId: string) => void;
+  /** Set on a read-only shared dashboard (/share/:token): every request goes to `base`, revenue can be hidden. */
+  share?: { base: string; hideRevenue: boolean };
 }
 
 export const DashContext = createContext<Dash | null>(null);
