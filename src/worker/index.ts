@@ -102,7 +102,7 @@ app.get('/api/public/blocks', async (c) => {
     const site = await resolvePublicSite(c.env.DB, c.req.query('site'));
     if (!site) return c.json({ error: 'Site not public' }, 404);
     const range = resolveRange({ period: c.req.query('days') === '30' ? '30d' : '7d' }, site.timezone, site.created_at);
-    c.header('Cache-Control', 'no-store');
+    c.header('Cache-Control', PUBLIC_CACHE);
     return c.json(await publicBlocks({ db: c.env.DB, site, range, filters: {}, offset: tzOffset(site.timezone, range.to) }, parseKind(c.req.query('kind'))));
   } catch (error) {
     console.error('Public blocks failed', error);
