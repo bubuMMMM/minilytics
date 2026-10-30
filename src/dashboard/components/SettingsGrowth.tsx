@@ -2,13 +2,14 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { api, type Site } from '../lib/api';
 import { fmtAgo } from '../lib/format';
 
-type ProviderKey = 'stripe' | 'lemonsqueezy' | 'polar';
+type ProviderKey = 'stripe' | 'lemonsqueezy' | 'polar' | 'paddle' | 'shopify' | 'woocommerce' | 'kajabi' | 'podia';
 interface ProviderStatus {
   connected: boolean;
   connectedAt: number | null;
   lastEventAt: number | null;
   lastEvent: string | null;
   webhookUrl: string;
+  tokenInUrl?: boolean;
 }
 type Status = Record<ProviderKey, ProviderStatus> & { dodo: { connected: boolean; webhookUrl: string } };
 
@@ -36,6 +37,45 @@ const PROVIDERS: { key: ProviderKey; name: string; events: string; secretHint: s
     secretHint: 'votre secret de webhook',
     where: 'Polar › Settings › Webhooks › Add endpoint (format Raw).',
     metadata: <>Passez <code>metadata: {'{'} ml_visitor_id {'}'}</code> à la session de paiement.</>,
+  },  {
+    key: 'paddle',
+    name: 'Paddle',
+    events: 'transaction.completed, adjustment.created, adjustment.updated',
+    secretHint: 'pdl_ntfset_… (secret key)',
+    where: 'Paddle › Developer tools › Notifications › New destination, puis copiez la « Secret key ».',
+    metadata: <>Passez <code>customData: {'{'} ml_visitor_id {'}'}</code> à <code>Paddle.Checkout.open()</code>. Sinon, la correspondance se fait par e-mail.</>,
+  },
+  {
+    key: 'shopify',
+    name: 'Shopify',
+    events: 'orders/paid, refunds/create',
+    secretHint: 'secret de signature des webhooks',
+    where: 'Shopify › Paramètres › Notifications › Webhooks › Créer un webhook (JSON) ; la clé de signature est affichée sous la liste.',
+    metadata: <>Rien à faire si le script est installé sur la boutique : il enregistre le visiteur dans les attributs du panier (<code>ml_visitor_id</code>).</>,
+  },
+  {
+    key: 'woocommerce',
+    name: 'WooCommerce',
+    events: 'Commande mise à jour (order.updated)',
+    secretHint: 'le « Secret » du webhook',
+    where: 'WooCommerce › Réglages › Avancé › Webhooks › Ajouter, sujet « Commande mise à jour », puis un secret de votre choix.',
+    metadata: <>Ajoutez la méta de commande <code>_ml_visitor_id</code> (valeur du cookie <code>ml_vid</code>) au checkout ; sinon correspondance par e-mail.</>,
+  },
+  {
+    key: 'kajabi',
+    name: 'Kajabi',
+    events: 'Purchase, Payment succeeded',
+    secretHint: '',
+    where: 'Kajabi › Settings › Webhooks (ou une offre › Automations) › Add webhook, puis collez l’URL secrète.',
+    metadata: <>Kajabi ne signe pas ses webhooks : l’URL contient un jeton secret. Correspondance par e-mail du membre.</>,
+  },
+  {
+    key: 'podia',
+    name: 'Podia (via Zapier)',
+    events: 'Zap « New sale » → Webhooks by Zapier (POST, JSON)',
+    secretHint: '',
+    where: 'Podia n’a pas de webhooks : créez un Zap Podia « New sale » → Webhooks by Zapier « POST » vers l’URL secrète, avec les champs id, amount, currency, email.',
+    metadata: <>Correspondance par e-mail de l’acheteur (ajoutez <code>visitor_id</code> si vous l’avez).</>,
   },
 ];
 
@@ -55,8 +95,8 @@ export function RevenueIntegrations({ site, Section, Code }: { site: Site; Secti
   }, [site.id]);
   return (
     <Section
-      title="Stripe, Lemon Squeezy, Polar (attribution des revenus)"
-      desc="Reliez votre outil de paiement : chaque vente est rattachée au visiteur et à la source qui l’a amené (revenu par source, par page d’entrée, par campagne, dans les entonnoirs)."
+      title="Stripe, Lemon Squeezy, Polar, Paddle, Shopify, WooCommerce, Kajabi, Podia"
+      desc="Reliez votre outil de paiement : chaque vente est rattachée au visiteur et à la source qui l’a amené. Renouvellements et remboursements sont suivis ; une vente dans une autre devise est convertie dans la devise du site (taux BCE du jour)."
     >
       {error && <p className="mb-3 text-sm text-danger">{error}</p>}
       <div className="space-y-3">
@@ -77,7 +117,9 @@ function ProviderCard({ site, p, st, onChange, Code }: { site: Site; p: (typeof 
   const [secret, setSecret] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [secretUrl, setSecretUrl] = useState('');
   const connected = !!st?.connected;
+  const tokenMode = !!st?.tokenInUrl;
   return (
     <div className="rounded-xl border border-line p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -86,7 +128,7 @@ function ProviderCard({ site, p, st, onChange, Code }: { site: Site; p: (typeof 
           {st === null ? <span className="ml-skeleton h-5 w-20" /> : connected ? (
             <span className="rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-success">Connecté</span>
           ) : (
-            <span className="rounded-full border border-warning/40 bg-warning-soft px-2 py-0.5 text-[11px] font-medium text-warning">À configurer · secret requis</span>
+            <span className="rounded-full border border-warning/40 bg-warning-soft px-2 py-0.5 text-[11px] font-medium text-warning">{st.tokenInUrl ? 'À configurer · URL à générer' : 'À configurer · secret requis'}</span>
           )}
         </div>
         <div className="flex gap-2">
@@ -109,10 +151,25 @@ function ProviderCard({ site, p, st, onChange, Code }: { site: Site; p: (typeof 
       <p className="mt-1 text-[12px] text-ink-3">
         {connected
           ? st?.lastEventAt ? `Dernier événement reçu ${fmtAgo(Date.now() - st.lastEventAt)} (${st.lastEvent}).` : 'En attente du premier événement de votre compte.'
-          : `Nécessite votre propre secret de signature ${p.name} : rien n’est envoyé à ${p.name} depuis Minilytics.`}
+          : st?.tokenInUrl ? `Générez une URL secrète puis collez-la dans ${p.name}.` : `Nécessite votre propre secret de signature ${p.name} : rien n’est envoyé à ${p.name} depuis Minilytics.`}
       </p>
       {open && (
         <div className="mt-3 space-y-3 text-sm">
+          {tokenMode ? (
+          <div>
+            <div className="mb-1 font-medium">URL secrète du webhook</div>
+            <p className="mb-2 text-[12px] text-ink-3">{p.where}</p>
+            {secretUrl ? <Code>{secretUrl}</Code> : (
+              <button className="btn-dark" disabled={busy} onClick={async () => {
+                if (connected && !confirm('Générer une nouvelle URL ? L’ancienne cessera de fonctionner.')) return;
+                setBusy(true); setError('');
+                try { const r = await api<Status & { secretUrl: string }>(`/api/sites/${site.id}/integrations/${p.key}`, { method: 'PUT', json: {} }); setSecretUrl(r.secretUrl); onChange(r); } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
+              }}>{connected ? 'Générer une nouvelle URL' : 'Générer l’URL secrète'}</button>
+            )}
+            {error && <p className="mt-1 text-[12px] text-danger">{error}</p>}
+            <p className="mt-1 text-[11px] text-ink-4">Affichée une seule fois. Événements : <code>{p.events}</code></p>
+          </div>
+          ) : (<>
           <div>
             <div className="mb-1 font-medium">1. URL du webhook</div>
             <Code>{st?.webhookUrl ?? ''}</Code>
@@ -144,6 +201,7 @@ function ProviderCard({ site, p, st, onChange, Code }: { site: Site; p: (typeof 
             {error && <p className="mt-1 text-[12px] text-danger">{error}</p>}
             <p className="mt-1 text-[11px] text-ink-4">Stocké côté serveur, jamais réaffiché. Chaque webhook est vérifié avec ce secret.</p>
           </div>
+          </>)}
           <div>
             <div className="mb-1 font-medium">3. Identifier le visiteur (recommandé)</div>
             <p className="text-[12px] text-ink-3">{p.metadata}</p>

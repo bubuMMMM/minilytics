@@ -9,6 +9,21 @@ export interface Env {
   X_BEARER_TOKEN?: string;
   /** Secret Vercel Cron sends as `Authorization: Bearer …` to /api/cron/*. */
   CRON_SECRET?: string;
+  /** Resend API key: enables e-mail reports and alerts (in-app notifications work without it). */
+  RESEND_API_KEY?: string;
+  /** Sender for reports, e.g. `Minilytics <rapports@votre-domaine.com>` (domain verified in Resend). */
+  REPORT_FROM_EMAIL?: string;
+  /** Optional GitHub token (higher rate limit, private repos) for commit annotations. */
+  GITHUB_TOKEN?: string;
+  /** Reddit "script"/web app credentials (app-only OAuth) when Reddit blocks anonymous JSON search. */
+  REDDIT_CLIENT_ID?: string;
+  REDDIT_CLIENT_SECRET?: string;
+  /** Google OAuth client (Search Console, scope webmasters.readonly). */
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  /** Meta app (Marketing API, scope ads_read). */
+  META_APP_ID?: string;
+  META_APP_SECRET?: string;
 }
 
 export interface Site {
@@ -25,6 +40,8 @@ export interface Site {
   exclusions?: string | null;
   /** JSON: { stripe|lemonsqueezy|polar: { secret, connected_at, … } }. Secrets never leave the server. */
   integrations?: string | null;
+  /** JSON: allowed hostnames (cross-domain), alerts & reports, GitHub repo, Reddit keywords. No secrets. */
+  settings?: string | null;
 }
 
 export type Role = 'owner' | 'admin' | 'viewer';

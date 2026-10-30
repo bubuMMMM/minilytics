@@ -147,3 +147,11 @@ export function randomToken(bytes = 32): string {
   const a = crypto.getRandomValues(new Uint8Array(bytes));
   return bytesToB64(a.buffer).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
+
+/** HMAC-SHA256 of `data` keyed with the UTF-8 secret, base64 (Shopify, WooCommerce). */
+export async function hmacBase64(secret: string, data: string): Promise<string> {
+  const encoded = enc.encode(secret);
+  const key = new Uint8Array(encoded.byteLength);
+  key.set(encoded);
+  return bytesToB64(await hmac(key, data));
+}

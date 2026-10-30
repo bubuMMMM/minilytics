@@ -1,0 +1,10 @@
+{
+  "name": "minilytics-cli",
+  "version": "0.1.0",
+  "description": "Minilytics analytics from your terminal: stats, pages, sources, goals, realtime, revenue, plus an MCP config helper.",
+  "type": "module",
+  "bin": { "minilytics": "bin/minilytics.mjs" },
+  "files": ["bin", "README.md"],
+  "engines": { "node": ">=18" },
+  "license": "MIT"
+}

@@ -5,8 +5,9 @@
  */
 import type { Context, Hono } from 'hono';
 import { getSite, forgetSite, type AppEnv, type Site } from './env.js';
-import { randomId, verifyStandardWebhook, verifyStripeSignature, hmacHex, constantTimeEqual } from './lib/crypto.js';
-import { recordPayment, str, type PaymentInput } from './payments.js';
+import { randomId, randomToken, verifyStandardWebhook, verifyStripeSignature, hmacHex, constantTimeEqual } from './lib/crypto.js';
+import { recordPayment, str, toSiteCurrency, type PaymentInput } from './payments.js';
+import { parseExtra, TOKEN_PROVIDERS, verifyExtra } from './revenue.js';
 import { filterSql, hasFilters, makeCtx, parseFilters, type Ctx } from './stats.js';
 import { bucketLabels, bucketSql } from './lib/time.js';
 import { rawRequestIp } from './lib/security.js';
@@ -68,7 +69,7 @@ export function isExcluded(site: Site, v: { path: string; ip: string | null; cou
 
 // ---------------------------------------------------------------- integrations
 
-export const PROVIDERS = ['stripe', 'lemonsqueezy', 'polar'] as const;
+export const PROVIDERS = ['stripe', 'lemonsqueezy', 'polar', 'paddle', 'shopify', 'woocommerce', 'kajabi', 'podia'] as const;
 export type Provider = (typeof PROVIDERS)[number];
 type IntegrationState = { secret: string; connected_at: number; last_event_at?: number; last_event?: string };
 type Integrations = Partial<Record<Provider, IntegrationState>>;
@@ -94,6 +95,8 @@ export function integrationStatus(site: Site, origin: string) {
       lastEventAt: s?.last_event_at ?? null,
       lastEvent: s?.last_event ?? null,
       webhookUrl: `${origin}/api/webhooks/${p}/${site.id}`,
+      // Kajabi / Podia (Zapier) can't sign: the URL itself carries the secret token, shown once when generated.
+      tokenInUrl: TOKEN_PROVIDERS.has(p),
     };
   }
   out.dodo = { connected: !!site.dodo_webhook_secret, webhookUrl: `${origin}/api/webhooks/dodo/${site.id}` };
@@ -114,18 +117,22 @@ const pick = (meta: Record<string, unknown> | null | undefined, keys: string[]) 
 };
 const upper = (v: unknown, fallback: string) => (str(v) ?? fallback).toUpperCase();
 
-async function recordRefund(db: D1Database, site: Site, provider: string, refundId: string, paymentId: string | null, amount: number, currency: string, ts: number) {
+async function recordRefund(db: D1Database, site: Site, provider: string, refundId: string, paymentId: string | null, rawAmount: number, rawCurrency: string, ts: number) {
+  const money = await toSiteCurrency(db, site, Math.abs(rawAmount), rawCurrency, ts);
+  const amount = money.amount;
+  const currency = money.currency;
   const original = paymentId
     ? await db.prepare('SELECT visitor_id, session_id, customer_id, email, name FROM payments WHERE id = ? AND site_id = ?').bind(paymentId, site.id).first<any>()
     : null;
   await db
     .prepare(
-      `INSERT INTO payments (id, site_id, provider, ts, amount, kind, currency, visitor_id, session_id, customer_id, email, name)
-       VALUES (?, ?, ?, ?, ?, 'refund', ?, ?, ?, ?, ?, ?)
+      `INSERT INTO payments (id, site_id, provider, ts, amount, kind, currency, visitor_id, session_id, customer_id, email, name, orig_amount, orig_currency, fx_rate)
+       VALUES (?, ?, ?, ?, ?, 'refund', ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (id) DO UPDATE SET amount = excluded.amount`,
     )
     .bind(refundId, site.id, provider, ts, -Math.abs(amount), currency, original?.visitor_id ?? null, original?.session_id ?? null,
-      original?.customer_id ?? null, original?.email ?? null, original?.name ?? null)
+      original?.customer_id ?? null, original?.email ?? null, original?.name ?? null,
+      money.orig_amount == null ? null : -Math.abs(money.orig_amount), money.orig_currency, money.fx_rate)
     .run();
 }
 
@@ -157,6 +164,8 @@ export function parseStripe(event: any, site: Site): WebhookAction {
         email: str(o.customer_details?.email)?.toLowerCase() ?? str(o.customer_email)?.toLowerCase() ?? null,
         name: str(o.customer_details?.name),
         subscriptionId: str(o.subscription),
+        // The return page carries ?session_id={CHECKOUT_SESSION_ID} (cs_…), claimed by the tracker.
+        claimIds: [str(o.id)].filter(Boolean) as string[],
       },
     };
   }
@@ -212,6 +221,7 @@ export function parseLemonSqueezy(event: any, site: Site): WebhookAction {
         customerId: a.customer_id != null ? String(a.customer_id) : null,
         email: str(a.user_email)?.toLowerCase() ?? null,
         name: str(a.user_name),
+        claimIds: [String(event.data.id), str(a.identifier), a.order_number != null ? String(a.order_number) : null].filter(Boolean) as string[],
       },
     };
   }
@@ -265,6 +275,7 @@ export function parsePolar(event: any, site: Site): WebhookAction {
         name: str(d.customer?.name),
         subscriptionId: str(d.subscription_id),
         renewal: d.billing_reason === 'subscription_cycle',
+        claimIds: [str(d.checkout_id)].filter(Boolean) as string[],
       },
     };
   }
@@ -275,6 +286,7 @@ export function parsePolar(event: any, site: Site): WebhookAction {
 }
 
 async function verify(provider: Provider, secret: string, c: Context<AppEnv>, body: string): Promise<boolean> {
+  if (provider !== 'stripe' && provider !== 'lemonsqueezy' && provider !== 'polar') return verifyExtra(provider, secret, c, body);
   if (provider === 'stripe') return verifyStripeSignature(secret, c.req.header('stripe-signature') ?? null, body);
   if (provider === 'lemonsqueezy') {
     const sig = c.req.header('x-signature') ?? '';
@@ -295,6 +307,8 @@ async function handleProviderWebhook(c: Context<AppEnv>, provider: Provider) {
   if (!state?.secret) return c.json({ error: `${provider} is not connected for this site` }, 400);
   const body = await c.req.text();
   if (body.length > 512_000) return c.json({ error: 'payload too large' }, 413);
+  // WooCommerce pings a new webhook once with a form body `webhook_id=…` (unsigned): acknowledge it, record nothing.
+  if (provider === 'woocommerce' && /^webhook_id=\d+$/.test(body.trim())) return c.json({ ok: true, action: 'ping' });
   if (!(await verify(provider, state.secret, c, body))) return c.json({ error: 'invalid signature' }, 401);
   let event: any;
   try {
@@ -302,9 +316,16 @@ async function handleProviderWebhook(c: Context<AppEnv>, provider: Provider) {
   } catch {
     return c.json({ error: 'invalid json' }, 400);
   }
-  const action = provider === 'stripe' ? parseStripe(event, site) : provider === 'lemonsqueezy' ? parseLemonSqueezy(event, site) : parsePolar(event, site);
-  if (action.kind === 'payment') await recordPayment(c.env.DB, site, action.payment);
-  else if (action.kind === 'refund') await recordRefund(c.env.DB, site, provider, action.refundId, action.paymentId, action.amount, action.currency, action.ts);
+  const actions =
+    provider === 'stripe' ? [parseStripe(event, site)]
+    : provider === 'lemonsqueezy' ? [parseLemonSqueezy(event, site)]
+    : provider === 'polar' ? [parsePolar(event, site)]
+    : parseExtra(provider, c, event, site);
+  for (const action of actions) {
+    if (action.kind === 'payment') await recordPayment(c.env.DB, site, action.payment);
+    else if (action.kind === 'refund') await recordRefund(c.env.DB, site, provider, action.refundId, action.paymentId, action.amount, action.currency, action.ts);
+  }
+  const action = actions.find((a) => a.kind !== 'ignore') ?? actions[0];
   // Remember that the integration works (shown in Settings).
   const fresh = (await c.env.DB.prepare('SELECT * FROM sites WHERE id = ?').bind(site.id).first<Site>()) ?? site;
   const all = readIntegrations(fresh);
@@ -512,6 +533,16 @@ export function registerGrowth(app: Hono<AppEnv>) {
     const provider = c.req.param('provider') as Provider;
     if (!PROVIDERS.includes(provider)) return c.json({ error: 'unknown provider' }, 404);
     const b = await c.req.json<{ secret?: string }>().catch(() => ({}) as any);
+    if (TOKEN_PROVIDERS.has(provider)) {
+      // No signature exists for these: we mint the secret and put it in the URL (shown only now).
+      const site = c.get('site');
+      const all = readIntegrations(site);
+      const token = randomToken(24);
+      all[provider] = { secret: token, connected_at: Date.now() };
+      await saveIntegrations(c.env.DB, site, all);
+      const origin = new URL(c.req.url).origin;
+      return c.json({ ...integrationStatus({ ...site, integrations: JSON.stringify(all) }, origin), secretUrl: `${origin}/api/webhooks/${provider}/${site.id}?token=${token}` });
+    }
     const secret = str(b.secret)?.trim();
     if (!secret || secret.length < 8 || secret.length > 300 || /\s/.test(secret)) return c.json({ error: 'Paste the webhook signing secret from your provider' }, 400);
     if (provider === 'stripe' && !secret.startsWith('whsec_')) return c.json({ error: 'A Stripe signing secret starts with whsec_' }, 400);

@@ -3,6 +3,8 @@ import { getSite, type AppEnv, type Site } from './env.js';
 import { verifyStandardWebhook } from './lib/crypto.js';
 import { serializeProperties } from './collect.js';
 import { DEMO_SITE_ID } from './demo.js';
+import { convertMinor } from './fx.js';
+import { notify } from './alerts.js';
 
 export function currencyDecimals(currency: string): number {
   try {
@@ -26,6 +28,21 @@ export interface PaymentInput {
   name?: string | null;
   subscriptionId?: string | null;
   renewal?: boolean;
+  /** Other ids the return page may carry (Stripe checkout session, Polar checkout, Lemon Squeezy order). */
+  claimIds?: string[];
+}
+
+/**
+ * Amounts are stored in the site currency so every revenue sum is meaningful; the original amount and
+ * the ECB rate of the payment day are kept alongside (orig_amount, orig_currency, fx_rate).
+ */
+export async function toSiteCurrency(db: D1Database, site: Site, amount: number, currency: string, ts: number) {
+  const cur = currency.toUpperCase();
+  const target = site.currency.toUpperCase();
+  if (cur === target) return { amount, currency: target, orig_amount: null, orig_currency: null, fx_rate: null };
+  const fx = await convertMinor(db, amount, cur, target, ts);
+  if (!fx) return { amount, currency: cur, orig_amount: null, orig_currency: null, fx_rate: null };
+  return { amount: fx.amount, currency: target, orig_amount: amount, orig_currency: cur, fx_rate: fx.rate };
 }
 
 export type MatchedBy = 'metadata' | 'return_page' | 'customer' | 'email' | 'timing';
@@ -52,9 +69,10 @@ async function attribute(db: D1Database, site: Site, p: PaymentInput) {
   let renewal = !!p.renewal;
 
   if (!visitorId) {
+    const ids = [p.id, p.subscriptionId ?? p.id, ...(p.claimIds ?? [])].filter(Boolean).slice(0, 6) as string[];
     const claim = await db
-      .prepare('SELECT visitor_id FROM payment_claims WHERE site_id = ? AND payment_id IN (?, ?) ORDER BY ts LIMIT 1')
-      .bind(site.id, p.id, p.subscriptionId ?? p.id)
+      .prepare(`SELECT visitor_id FROM payment_claims WHERE site_id = ? AND payment_id IN (${ids.map(() => '?').join(', ')}) ORDER BY ts LIMIT 1`)
+      .bind(site.id, ...ids)
       .first<{ visitor_id: string }>();
     if (claim) [visitorId, matchedBy] = [claim.visitor_id, 'return_page'];
   }
@@ -149,20 +167,22 @@ async function matchByTiming(db: D1Database, site: Site, p: PaymentInput): Promi
 
 export async function recordPayment(db: D1Database, site: Site, p: PaymentInput) {
   const { visitorId, sessionId, renewal, matchedBy } = await attribute(db, site, p);
+  const money = await toSiteCurrency(db, site, p.amount, p.currency, p.ts);
+  const fresh = !(await db.prepare('SELECT 1 FROM payments WHERE id = ?').bind(p.id).first());
   const stmts = [
     db
       .prepare(
-        `INSERT OR IGNORE INTO payments (id, site_id, provider, ts, amount, kind, currency, visitor_id, session_id, customer_id, email, name, renewal, matched_by, subscription_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT OR IGNORE INTO payments (id, site_id, provider, ts, amount, kind, currency, visitor_id, session_id, customer_id, email, name, renewal, matched_by, subscription_id, orig_amount, orig_currency, fx_rate, checkout_ref)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         p.id,
         site.id,
         p.provider,
         p.ts,
-        p.amount,
+        money.amount,
         p.kind,
-        p.currency.toUpperCase(),
+        money.currency,
         visitorId,
         sessionId,
         p.customerId ?? null,
@@ -171,6 +191,10 @@ export async function recordPayment(db: D1Database, site: Site, p: PaymentInput)
         renewal ? 1 : 0,
         matchedBy,
         p.subscriptionId ?? null,
+        money.orig_amount,
+        money.orig_currency,
+        money.fx_rate,
+        p.claimIds?.[0] ?? null,
       ),
   ];
   // A payment tells us who an anonymous visitor really is.
@@ -183,6 +207,16 @@ export async function recordPayment(db: D1Database, site: Site, p: PaymentInput)
     );
   }
   await db.batch(stmts);
+  if (fresh && p.kind === 'payment' && site.id !== DEMO_SITE_ID) {
+    const major = (money.amount / 10 ** currencyDecimals(money.currency)).toLocaleString('fr-FR', { style: 'currency', currency: money.currency });
+    await notify(db, site, {
+      kind: 'payment',
+      title: `${renewal ? 'Renouvellement' : 'Paiement'} de ${major}`,
+      body: [p.name || p.email ? 'Client identifié' : null, `via ${p.provider}`, visitorId ? 'attribué à une visite' : 'non attribué'].filter(Boolean).join(' · '),
+      dedupe: `payment:${p.id}`,
+      ts: p.ts,
+    });
+  }
   return { visitorId, sessionId };
 }
 
@@ -280,7 +314,9 @@ export async function handleDodoWebhook(c: Context<AppEnv>) {
     const original = await c.env.DB.prepare('SELECT * FROM payments WHERE id = ? AND site_id = ?')
       .bind(String(data.payment_id), site.id)
       .first<{ visitor_id: string | null; session_id: string | null; currency: string; amount: number }>();
-    const amount = Number(data.amount) || original?.amount || 0;
+    const refundTs = ts;
+    const money = await toSiteCurrency(c.env.DB, site, Math.abs(Number(data.amount) || original?.amount || 0), String(data.currency ?? original?.currency ?? site.currency), refundTs);
+    const amount = money.amount;
     await c.env.DB.prepare(
       `INSERT OR IGNORE INTO payments (id, site_id, provider, ts, amount, kind, currency, visitor_id, session_id, customer_id, email, name)
        VALUES (?, ?, 'dodo', ?, ?, 'refund', ?, ?, ?, ?, ?, ?)`,
@@ -290,7 +326,7 @@ export async function handleDodoWebhook(c: Context<AppEnv>) {
         site.id,
         ts,
         -Math.abs(amount),
-        String(data.currency ?? original?.currency ?? site.currency).toUpperCase(),
+        money.currency,
         original?.visitor_id ?? null,
         original?.session_id ?? null,
         str(customer.customer_id),

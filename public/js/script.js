@@ -5,9 +5,19 @@
   var script = d.currentScript;
   if (!script) return;
 
+  function opt(n) { var v = script.getAttribute('data-' + n); return v !== null && v !== 'false'; }
   var siteId = script.getAttribute('data-website-id');
-  var endpoint = script.getAttribute('data-api') || new URL(script.src).origin + '/api/event';
-  var allowLocal = script.hasAttribute('data-allow-localhost');
+  // data-api-url (or data-api): full URL or a path resolved against the page (first-party proxy).
+  var apiAttr = script.getAttribute('data-api-url') || script.getAttribute('data-api');
+  var endpoint = new URL(script.src).origin + '/api/event';
+  try { if (apiAttr) endpoint = new URL(apiAttr, loc.href).toString(); } catch (e) {}
+  var allowLocal = opt('allow-localhost');
+  var allowFile = opt('allow-file-protocol');
+  // No cookies, no storage: the server derives a daily-rotating id (GDPR-friendly, no banner needed for analytics).
+  var cookieless = opt('cookieless');
+  var hashMode = opt('hash') || /script\.hash\.js/.test(script.src);
+  var noPayments = opt('disable-payments');
+  var allowedHosts = (script.getAttribute('data-allowed-hostnames') || '').split(',').map(function (h) { return h.trim().toLowerCase().replace(/^www\./, ''); }).filter(Boolean);
   var onlyHost = script.getAttribute('data-only-host');
   var excludedPaths = (script.getAttribute('data-exclude-paths') || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
   function isExcluded() {
@@ -51,8 +61,10 @@
     w.minilytics.attribution = function () { return {}; };
     return;
   }
-  var local = /^(localhost|127\.|0\.0\.0\.0|\[::1\]|.*\.local$)/.test(loc.hostname) || loc.protocol === 'file:';
-  if (!siteId || ignored || automated() || (local && !allowLocal) || (onlyHost && loc.hostname !== onlyHost)) {
+  var local = /^(localhost|127\.|0\.0\.0\.0|\[::1\]|.*\.local$)/.test(loc.hostname);
+  var framed = false;
+  try { framed = w.self !== w.top; } catch (e) { framed = true; }
+  if (!siteId || ignored || automated() || (local && !allowLocal) || (loc.protocol === 'file:' && !allowFile) || (framed && !opt('debug')) || (onlyHost && loc.hostname !== onlyHost)) {
     w.minilytics = noop;
     w.minilytics.attribution = function () { return {}; };
     return;
@@ -81,8 +93,9 @@
     }
     return null;
   }
-  var domain = rootDomain();
+  var domain = cookieless ? null : rootDomain();
   function writeCookie(name, value, maxAge) {
+    if (cookieless) return;
     try { d.cookie = name + '=' + encodeURIComponent(value) + '; path=/; max-age=' + maxAge + '; SameSite=Lax' +
       (domain ? '; domain=' + domain : '') + (loc.protocol === 'https:' ? '; Secure' : ''); } catch (e) {}
   }
@@ -97,7 +110,19 @@
   // It deliberately lasts only for this document; it is not a fingerprint.
   var memoryVid, memorySid, lastActivity = 0;
   function today(t) { try { var x = new Date(t); return x.getFullYear() * 10000 + (x.getMonth() + 1) * 100 + x.getDate(); } catch (e) { return Math.floor(t / 864e5); } }
+  // Cross-domain: a link from another allowed hostname carries ?_mlv=<visitor>&_mls=<visit>; adopt them, then tidy the URL.
+  try {
+    var xp = new URLSearchParams(loc.search), xv = xp.get('_mlv'), xs = xp.get('_mls');
+    if (xv && /^[\w-]{8,64}$/.test(xv) && !cookieless) {
+      memoryVid = xv; if (xs && /^[\w-]{8,64}$/.test(xs)) { memorySid = xs; lastActivity = Date.now(); }
+      writeCookie(VID, xv, YEAR);
+      xp.delete('_mlv'); xp.delete('_mls');
+      var qs = xp.toString();
+      w.history.replaceState(w.history.state, '', loc.pathname + (qs ? '?' + qs : '') + loc.hash);
+    }
+  } catch (e) {}
   function ids() {
+    if (cookieless) return { vid: 'cookieless', sid: 'cookieless' };
     var now = Date.now();
     var vid = readCookie(VID) || memoryVid || uuid();
     // Session cookie value is "<id>.<local yyyymmdd>": a visit ends after 30 min idle OR at local midnight.
@@ -144,7 +169,7 @@
   var QKEY = 'ml_retry_' + siteId;
   function loadQueue() { try { return JSON.parse(localStorage.getItem(QKEY) || '[]') || []; } catch (e) { return []; } }
   function saveQueue(q) { try { if (q.length) localStorage.setItem(QKEY, JSON.stringify(q.slice(-40))); else localStorage.removeItem(QKEY); } catch (e) {} }
-  function enqueue(body) { var q = loadQueue(); body.qt = Date.now(); q.push(body); saveQueue(q); }
+  function enqueue(body) { if (cookieless) return; var q = loadQueue(); body.qt = Date.now(); q.push(body); saveQueue(q); }
   function post(body, retry) {
     var json = JSON.stringify(body);
     try {
@@ -171,7 +196,7 @@
     if (isExcluded()) return;
     var id = ids();
     var body = { w: siteId, t: type, u: cleanUrl(loc.href), vid: id.vid, sid: id.sid, sw: w.screen ? screen.width : 0, lang: (nav.language || '').slice(0, 35) || undefined,
-      tz: ctx.tz, cn: ctx.cn, ch: ctx.ch };
+      tz: ctx.tz, cn: ctx.cn, ch: ctx.ch, cl: cookieless ? 1 : undefined, hp: hashMode && loc.hash.length > 1 ? loc.hash.slice(0, 200) : undefined };
     for (var k in extra) if (extra[k] !== undefined) body[k] = extra[k];
     var json = JSON.stringify(body);
     // text/plain keeps this a "simple" request: no CORS preflight, works with sendBeacon.
@@ -263,8 +288,18 @@
 
   // ---- pageviews (including single-page-app navigation)
   var lastPage = null, firstView = true, lastViewAt = 0, lastViewPage = null;
+  // Return pages of Stripe / Polar / Lemon Squeezy / Paddle checkouts: their ids are removed from the URL we send,
+  // so pass them separately; the server links the payment to this visitor.
+  function checkoutIds() {
+    if (noPayments) return undefined;
+    try {
+      var q = new URLSearchParams(loc.search), out = [];
+      ['session_id', 'checkout_id', 'order_id', '_ptxn', 'transaction_id'].forEach(function (k) { var v = q.get(k); if (v && /^[\w-]{6,120}$/.test(v)) out.push(v); });
+      return out.length ? out.slice(0, 3) : undefined;
+    } catch (e) { return undefined; }
+  }
   function pageview() {
-    var page = loc.pathname + loc.search;
+    var page = loc.pathname + loc.search + (hashMode ? loc.hash : '');
     if (page === lastPage) return;
     // React strict mode, router replaceState + pushState pairs and manual calls can fire twice in a row.
     if (page === lastViewPage && Date.now() - lastViewAt < 1500) { lastPage = page; return; }
@@ -279,7 +314,7 @@
     pings = 0;
     flushBlocks(true);
     seenBlocks = {};
-    send('pageview', { r: firstView ? cleanUrl(d.referrer) : '' });
+    send('pageview', { r: firstView ? cleanUrl(d.referrer) : '', pi: firstView ? checkoutIds() : undefined });
     var again = !firstView;
     firstView = false;
     setTimeout(again ? rearm : scanBlocks, 0);
@@ -292,6 +327,7 @@
     });
     w.addEventListener('popstate', pageview);
   }
+  if (hashMode) w.addEventListener('hashchange', pageview);
 
   // ---- blocks: sponsor placements and content sections/items
   // <div data-ml-block="trending-sponsor-2" data-ml-kind="sponsor" data-ml-sponsor="Acme" data-ml-href="https://acme.com">
@@ -358,7 +394,7 @@
     scanBlocks();
   }
   var scanQueued = false;
-  function queueScan() { if (scanQueued) return; scanQueued = true; setTimeout(function () { scanQueued = false; scanBlocks(); }, 200); }
+  function queueScan() { if (scanQueued) return; scanQueued = true; setTimeout(function () { scanQueued = false; scanBlocks(); scanScroll(); }, 200); }
   if (w.MutationObserver) new MutationObserver(queueScan).observe(d.documentElement, { childList: true, subtree: true });
   d.addEventListener('visibilitychange', function () { if (d.visibilityState === 'hidden') flushBlocks(true); else rearm(); });
   w.addEventListener('pagehide', function () { flushBlocks(true); });
@@ -378,6 +414,34 @@
   }
 
   // ---- goals, outbound links, Dodo Payments checkout links
+  // data-ml-goal-product-id="x" → { product_id: "x" } (max 10, values ≤ 255 chars).
+  function params(el, pre) {
+    var props = {}, n = 0;
+    for (var i = 0; i < el.attributes.length && n < 10; i++) {
+      var at = el.attributes[i];
+      if (at.name.indexOf(pre) === 0 && !/^(threshold|delay)$/.test(at.name.slice(pre.length))) { props[at.name.slice(pre.length).replace(/-/g, '_')] = at.value.slice(0, 255); n++; }
+    }
+    return n ? props : undefined;
+  }
+  // Scroll goals: <section data-ml-scroll="viewed_pricing" data-ml-scroll-threshold="0.5" data-ml-scroll-delay="0"> (also data-fast-scroll).
+  var scrollSeen = {};
+  var sio;
+  function scrollIO() { return sio || (sio = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      var el = en.target, pre = el.hasAttribute('data-ml-scroll') ? 'data-ml-scroll' : 'data-fast-scroll';
+      var name = el.getAttribute(pre), th = parseFloat(el.getAttribute(pre + '-threshold'));
+      if (!(th >= 0 && th <= 1)) th = 0.5;
+      if (!name || scrollSeen[name] || !en.isIntersecting || en.intersectionRatio < th - 0.001) { if (el._mlT) { clearTimeout(el._mlT); el._mlT = 0; } return; }
+      var fire = function () { if (!scrollSeen[name]) { scrollSeen[name] = true; goal(name, params(el, pre + '-')); sio.unobserve(el); } };
+      var delay = parseInt(el.getAttribute(pre + '-delay'), 10) || 0;
+      if (delay > 0) { if (!el._mlT) el._mlT = setTimeout(fire, delay); } else fire();
+    });
+  }, { threshold: [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1] })); }
+  function scanScroll() {
+    if (!w.IntersectionObserver) return;
+    var els = d.querySelectorAll('[data-ml-scroll],[data-fast-scroll]');
+    for (var i = 0; i < els.length; i++) if (!els[i]._mlS) { els[i]._mlS = 1; scrollIO().observe(els[i]); }
+  }
   function goal(name, props) {
     if (!name) return;
     send('goal', { n: String(name).slice(0, 64), p: props || undefined }, true);
@@ -416,9 +480,19 @@
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', tagDodoLinks);
   else tagDodoLinks();
   // Refresh right before a click starts, in case the session id rotated while the page sat idle.
+  function decorate(a) {
+    if (!allowedHosts.length || cookieless) return;
+    try {
+      var u = new URL(a.href, loc.href), h = u.hostname.replace(/^www\./, '');
+      if (h === loc.hostname.replace(/^www\./, '')) return;
+      if (!allowedHosts.some(function (x) { return h === x || h.slice(-(x.length + 1)) === '.' + x; })) return;
+      var id = ids(); u.searchParams.set('_mlv', id.vid); u.searchParams.set('_mls', id.sid);
+      a.href = u.toString();
+    } catch (e) {}
+  }
   function onPress(e) {
     var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
-    if (a) tagDodoLink(a);
+    if (a) { tagDodoLink(a); decorate(a); }
   }
   d.addEventListener('pointerdown', onPress, true);
   d.addEventListener('keydown', function (e) { if (e.key === 'Enter') onPress(e); }, true);
@@ -426,21 +500,17 @@
     if (e.type === 'auxclick' && e.button !== 1) return;
     var el = e.target && e.target.closest ? e.target : null;
     if (!el) return;
-    var g = el.closest('[data-ml-goal]');
+    var g = el.closest('[data-ml-goal],[data-fast-goal]');
     if (g) {
-      var props = {};
-      for (var i = 0; i < g.attributes.length; i++) {
-        var at = g.attributes[i];
-        if (at.name.indexOf('data-ml-goal-') === 0) props[at.name.slice(13)] = at.value.slice(0, 255);
-      }
-      goal(g.getAttribute('data-ml-goal'), Object.keys(props).length ? props : undefined);
+      var pre = g.hasAttribute('data-ml-goal') ? 'data-ml-goal' : 'data-fast-goal';
+      goal(g.getAttribute(pre), params(g, pre + '-'));
     }
     var a = el.closest('a[href]');
     if (a && !a.closest('[data-ml-ignore]')) {
-      tagDodoLink(a);
+      tagDodoLink(a); decorate(a);
       try {
         var u = new URL(a.href, loc.href);
-        if (/^https?:$/.test(u.protocol) && u.hostname !== loc.hostname && !(domain && (u.hostname === domain || u.hostname.slice(-(domain.length + 1)) === '.' + domain))) {
+        if (/^https?:$/.test(u.protocol) && u.hostname !== loc.hostname && !(domain && (u.hostname === domain || u.hostname.slice(-(domain.length + 1)) === '.' + domain)) && !/[?&]_mlv=/.test(u.search)) {
           send('outbound', { n: u.origin + u.pathname }, true);
         } else if (u.origin === loc.origin && u.pathname !== loc.pathname) {
           // Only the destination path, never URL query/hash or clicked text.
@@ -465,7 +535,7 @@
   // ---- public API
   function api(cmd, a, b) {
     if (cmd === 'goal' || cmd === 'track') goal(a, b);
-    else if (cmd === 'identify' && a) send('identify', { p: { user_id: a.user_id || a.id, email: a.email, name: a.name } });
+    else if ((cmd === 'identify' || cmd === 'payment') && a) send('identify', { p: { user_id: a.user_id || a.id, email: a.email, name: a.name } });
     else if (cmd === 'pageview') { lastPage = null; pageview(); }
     else if (cmd === 'impression' && a) blockView(a, b || {});
     else if (cmd === 'active') markActive();
@@ -477,12 +547,29 @@
   }
   api.attribution = attribution;
   w.minilytics = api;
+  // Drop-in for DataFast snippets: window.datafast('signup', { plan }) is a goal; 'identify' / 'payment' link the user.
+  if (!w.datafast || w.datafast.q) {
+    var dq = (w.datafast && w.datafast.q) || [];
+    w.datafast = function (cmd, a, b) { /^(identify|payment|pageview|goal|track)$/.test(cmd) ? api(cmd, a, b) : goal(cmd, a); };
+    for (var di = 0; di < dq.length; di++) w.datafast.apply(null, dq[di]);
+  }
+  // Shopify: store the visitor on the cart so the orders/paid webhook carries it (note_attributes).
+  try {
+    if (w.Shopify && w.Shopify.shop && !cookieless && w.fetch) {
+      var cid = ids(), ck = 'ml_cart_' + cid.sid;
+      if (!sessionStorage.getItem(ck)) {
+        sessionStorage.setItem(ck, '1');
+        fetch('/cart/update.js', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ attributes: { ml_visitor_id: cid.vid, ml_session_id: cid.sid } }) }).catch(noop);
+      }
+    }
+  } catch (e) {}
 
   function start() {
     pageview();
     for (var q = 0; q < queued.length; q++) api.apply(null, queued[q]);
     flushQueue();
     scanBlocks();
+    scanScroll();
   }
   if (chReady) start();
   else { var started = false, go = function () { if (!started) { started = true; start(); } }; setTimeout(go, 300); (function wait() { if (chReady) go(); else if (!started) setTimeout(wait, 20); })(); }

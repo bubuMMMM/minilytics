@@ -22,6 +22,12 @@ import { registerImports } from './imports.js';
 import { registerShare } from './share.js';
 import { registerWidgets } from './widgets.js';
 import { registerReplay } from './replay.js';
+import { registerAlerts, runDailyAlerts } from './alerts.js';
+import { currentPlan, registerPlatform } from './platform.js';
+import { registerConnectors, syncGithub, syncReddit } from './connectors.js';
+import { revenuePrediction, revenueSummary } from './revenue.js';
+import { toSiteCurrency } from './payments.js';
+import { readSettings } from './settings.js';
 
 const app = new Hono<AppEnv>();
 
@@ -36,6 +42,9 @@ app.use('/api/sites/*', csrfGuard);
 app.use('/api/team', csrfGuard);
 app.use('/api/team/*', csrfGuard);
 app.use('/api/invites/*', csrfGuard);
+app.use('/api/tokens', csrfGuard);
+app.use('/api/tokens/*', csrfGuard);
+app.use('/api/usage/*', csrfGuard);
 
 // ---------- public: tracking, webhooks, server-side API
 
@@ -154,6 +163,23 @@ app.get('/api/cron/x-sync', async (c) => {
 
 app.post('/api/v1/payments', handlePaymentApi);
 app.post('/api/v1/goals', handleGoalApi);
+// Daily (vercel.json): e-mail reports (Mondays / 1st of the month), alert digest, GitHub + Reddit refresh.
+app.get('/api/cron/daily', async (c) => {
+  const secret = c.env.CRON_SECRET;
+  if (!secret || c.req.header('Authorization') !== `Bearer ${secret}`) return c.json({ error: 'unauthorized' }, 401);
+  const sites = (await c.env.DB.prepare('SELECT * FROM sites').all<Site>()).results;
+  const origin = new URL(c.req.url).origin;
+  const sources: Record<string, unknown> = {};
+  for (const s of sites) {
+    const st = readSettings(s);
+    sources[s.domain] = {
+      github: st.github.repo ? await syncGithub(c.env.DB, s, c.env).catch((e) => ({ ok: false, error: String(e) })) : null,
+      reddit: st.reddit.keywords.length ? await syncReddit(c.env.DB, s, c.env).catch((e) => ({ ok: false, error: String(e) })) : null,
+    };
+  }
+  return c.json({ alerts: await runDailyAlerts(c.env, sites, Date.now(), origin), sources });
+});
+registerPlatform(app);
 
 // ---------- login, sessions, team (src/worker/auth.ts)
 
@@ -222,6 +248,9 @@ app.get('/api/sites', async (c) => {
 
 app.post('/api/sites', async (c) => {
   if (c.get('principal').role !== 'owner') return c.json({ error: 'Réservé au propriétaire' }, 403);
+  const plan = await currentPlan(c.env.DB);
+  const count = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM sites').first<{ n: number }>();
+  if (Number(count?.n ?? 0) >= plan.sites) return c.json({ error: `L’offre ${plan.name} inclut ${plan.sites} site(s).` }, 403);
   const b = await c.req.json<Partial<Site>>().catch(() => ({}) as Partial<Site>);
   const domain = cleanDomain(b.domain ?? '');
   if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) return c.json({ error: 'Enter a domain like example.com' }, 400);
@@ -282,7 +311,7 @@ app.delete('/api/sites/:id', async (c) => {
   if (c.get('principal').role !== 'owner') return c.json({ error: 'Réservé au propriétaire' }, 403);
   const id = c.get('site').id;
   await c.env.DB.batch(
-    ['events', 'sessions', 'visitors', 'payments', 'funnels', 'segments', 'notes', 'bot_hits', 'imports', 'imported_stats', 'share_links', 'widget_tokens'].map((t) =>
+    ['events', 'sessions', 'visitors', 'payments', 'funnels', 'segments', 'notes', 'bot_hits', 'imports', 'imported_stats', 'share_links', 'widget_tokens', 'notifications', 'github_commits', 'reddit_mentions', 'payment_claims'].map((t) =>
       c.env.DB.prepare(`DELETE FROM ${t} WHERE site_id = ?`).bind(id),
     ).concat(c.env.DB.prepare('DELETE FROM sites WHERE id = ?').bind(id)),
   );
@@ -432,12 +461,39 @@ app.get('/api/sites/:id/funnels/:fid/stats', async (c) => {
   return c.json(await funnel(makeCtx(c), JSON.parse(f.steps)));
 });
 
+app.get('/api/sites/:id/revenue/summary', async (c) => c.json(await revenueSummary(makeCtx(c))));
+app.get('/api/sites/:id/revenue/predictions', async (c) => c.json(await revenuePrediction(makeCtx(c))));
+// Convert payments stored in another currency (e.g. before a rate was available, or after changing the site currency).
+app.post('/api/sites/:id/revenue/reconvert', async (c) => {
+  const site = c.get('site');
+  const rows = (
+    await c.env.DB.prepare('SELECT id, ts, amount, currency, orig_amount, orig_currency FROM payments WHERE site_id = ? AND (currency != ? OR (orig_currency IS NOT NULL AND orig_currency != ? AND currency != ?)) LIMIT 1000')
+      .bind(site.id, site.currency, site.currency, site.currency)
+      .all<{ id: string; ts: number; amount: number; currency: string; orig_amount: number | null; orig_currency: string | null }>()
+  ).results;
+  let converted = 0;
+  for (const r of rows) {
+    const srcAmount = r.orig_amount ?? r.amount;
+    const srcCur = r.orig_currency ?? r.currency;
+    const m = await toSiteCurrency(c.env.DB, site, Math.abs(Number(srcAmount)), srcCur, Number(r.ts));
+    if (m.currency !== site.currency.toUpperCase()) continue;
+    const sign = Number(srcAmount) < 0 ? -1 : 1;
+    await c.env.DB.prepare('UPDATE payments SET amount = ?, currency = ?, orig_amount = ?, orig_currency = ?, fx_rate = ? WHERE site_id = ? AND id = ?')
+      .bind(sign * m.amount, m.currency, m.orig_amount == null ? null : sign * m.orig_amount, m.orig_currency, m.fx_rate, site.id, r.id)
+      .run();
+    converted++;
+  }
+  return c.json({ checked: rows.length, converted });
+});
+
 registerGrowth(app);
 registerBots(app);
 registerImports(app);
 registerShare(app);
 registerWidgets(app);
 registerReplay(app);
+registerAlerts(app);
+registerConnectors(app);
 
 app.all('/api/*', (c) => c.json({ error: 'not found' }, 404));
 

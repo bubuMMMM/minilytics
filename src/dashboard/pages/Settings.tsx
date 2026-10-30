@@ -6,6 +6,7 @@ import { buildAiPrompt } from '../lib/aiPrompt';
 import { api, type Site } from '../lib/api';
 import { ExclusionsSettings, RevenueIntegrations } from '../components/SettingsGrowth';
 import { PlausibleImport } from '../components/PlausibleImport';
+import { AlertsSettings, ApiAccess, ConnectorsSettings, CrossDomain, PlanUsage, TrackerOptions } from '../components/SettingsParity';
 import { useMe } from '../lib/me';
 import { ShareSettings } from '../share/ShareSettings';
 import { WidgetBuilder } from '../share/WidgetBuilder';
@@ -255,6 +256,18 @@ const session = await dodo.checkoutSessions.create({
       </Section>
 
       <RevenueIntegrations site={site} Section={Section} Code={Code} />
+
+      <AlertsSettings site={site} Section={Section} canEdit />
+
+      <ConnectorsSettings site={site} Section={Section} canEdit />
+
+      <TrackerOptions site={site} origin={origin} Section={Section} Code={Code} />
+
+      <CrossDomain site={site} Section={Section} Code={Code} canEdit />
+
+      <ApiAccess site={site} Section={Section} Code={Code} />
+
+      <PlanUsage Section={Section} />
 
       <ExclusionsSettings site={site} Section={Section} />
 

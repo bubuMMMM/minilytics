@@ -54,10 +54,10 @@ const FEATURES: { icon: IconName; title: string; text: string }[] = [
   { icon: 'target', title: 'Objectifs et entonnoirs', text: 'Inscriptions, achats, clics sur un bouton : un attribut data-ml-goal suffit. Entonnoirs étape par étape pour voir où l’on décroche.' },
   { icon: 'arrow-up-right', title: 'Clics sortants', text: 'Chaque lien externe cliqué est compté automatiquement, même ouvert dans un nouvel onglet.' },
   { icon: 'file-text', title: 'Scroll et temps de lecture', text: 'Profondeur de lecture (25, 50, 75, 90, 100 %) et temps réellement actif sur la page : idéal pour les articles et les pages longues.' },
-  { icon: 'bar-chart', title: 'Revenus et paiements', text: 'Reliez Dodo Payments ou l’API de paiements : revenus par source, par campagne et par page, et qui a payé après quelle visite.' },
-  { icon: 'share', title: 'Réseaux sociaux et 𝕏', text: 'Visites par réseau, liens 𝕏 traçables attribués au post près, et mentions de votre domaine sur 𝕏 (avec votre clé API X).' },
-  { icon: 'download', title: 'Export et API', text: 'Export CSV de chaque tableau, API HTTP pour envoyer objectifs et paiements depuis votre serveur.' },
-  { icon: 'lock', title: 'Léger et respectueux', text: 'Script d’environ 5 Ko compressé. Cookies first-party uniquement, aucune donnée revendue, robots et navigateurs automatisés ignorés.' },
+  { icon: 'bar-chart', title: 'Revenus et paiements', text: 'Stripe, Lemon Squeezy, Polar, Paddle, Shopify, WooCommerce, Dodo, Kajabi, Podia ou l’API : revenus par source, renouvellements et remboursements, conversion de devises, et une estimation des ventes à venir.' },
+  { icon: 'share', title: 'Réseaux sociaux et 𝕏', text: 'Visites par réseau, liens 𝕏 traçables attribués au post près, mentions sur 𝕏 et Reddit (avec vos clés API), commits GitHub en annotations.' },
+  { icon: 'download', title: 'API, CLI et MCP', text: 'Export CSV, API REST documentée avec bac à sable, CLI et serveur MCP pour interroger vos stats depuis Claude, Cursor ou ChatGPT.' },
+  { icon: 'lock', title: 'Léger et respectueux', text: 'Script d’environ 6 Ko compressé, servable depuis votre domaine. Cookies first-party ou mode sans cookie, aucune donnée revendue, robots ignorés.' },
 ];
 
 const ADVANCED: { icon: IconName; title: string; when: string; text: string }[] = [
@@ -77,8 +77,7 @@ const USE_CASES: { icon: IconName; title: string; text: string }[] = [
 /** Pricing lines are kept word for word; a short tag says when a line needs setup or is not available yet. */
 const FEATURE_TAG: Record<string, string> = {
   '100K requêtes de bots IA': 'Extrait serveur requis',
-  'API, CLI & MCP': 'CLI & MCP bientôt',
-  'Mentions sur les réseaux sociaux': 'Clé API X requise',
+  'Mentions sur les réseaux sociaux': 'Clé API X ou Reddit requise',
 };
 const PLANS: { name: string; price: string; features: string[]; note?: string; highlight?: boolean }[] = [
   {

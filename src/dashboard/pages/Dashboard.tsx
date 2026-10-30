@@ -1,3 +1,4 @@
+import { RevenueInsights } from '../components/RevenueInsights';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { navigate } from '../App';
 import { GoalsPanel } from '../components/GoalsPanel';
@@ -122,6 +123,7 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
           <OverviewCard data={overview} />
         </div>
         <ImportedCard siteId={site.id} />
+        <RevenueInsights />
         <VideosTeaser onOpen={() => navigate('/site/' + site.id + '/videos' + window.location.search)} />
 
         <section className="mt-7 scroll-mt-[110px]" aria-label="Analyse comportementale">

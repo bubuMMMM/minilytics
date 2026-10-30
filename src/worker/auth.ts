@@ -11,6 +11,7 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import type { AppEnv, Principal, Role, Site } from './env.js';
 import { hashPassword, passwordsMatch, randomId, randomToken, sha256Hex, signToken, verifyPassword, verifyToken } from './lib/crypto.js';
 import { RateLimiter, cookieSecure, requestIp, sessionKey } from './lib/security.js';
+import { currentPlan } from './platform.js';
 
 export const AUTH_COOKIE = 'ml_auth';
 const AUTH_DAYS = 30;
@@ -269,6 +270,9 @@ export function registerAuth(app: Hono<AppEnv>) {
     const known = new Set(((await c.env.DB.prepare('SELECT id FROM sites').all<{ id: string }>()).results).map((s) => s.id));
     const sites = sitesInput(b.sites, known);
     if (!role || !sites) return c.json({ error: 'Choisissez un rôle et au moins un site.' }, 400);
+    const plan = await currentPlan(c.env.DB);
+    const seats = await c.env.DB.prepare('SELECT (SELECT COUNT(*) FROM users WHERE disabled_at IS NULL) + (SELECT COUNT(*) FROM invites WHERE used_at IS NULL AND revoked_at IS NULL AND expires_at > ?) AS n').bind(Date.now()).first<{ n: number }>();
+    if (1 + Number(seats?.n ?? 0) >= plan.members) return c.json({ error: `L’offre ${plan.name} inclut ${plan.members} membre(s) d’équipe (propriétaire compris).` }, 403);
     const token = randomToken(32);
     const id = randomId(8);
     const now = Date.now();

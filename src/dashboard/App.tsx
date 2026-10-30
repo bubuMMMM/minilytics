@@ -13,6 +13,7 @@ const Sites = lazy(() => import('./pages/Sites').then((m) => ({ default: m.Sites
 const Team = lazy(() => import('./pages/Team').then((m) => ({ default: m.Team })));
 const SharePage = lazy(() => import('./share/SharePage').then((m) => ({ default: m.SharePage })));
 const Invite = lazy(() => import('./pages/Team').then((m) => ({ default: m.Invite })));
+const ApiDocs = lazy(() => import('./pages/ApiDocs').then((m) => ({ default: m.ApiDocs })));
 
 
 export function navigate(to: string) {
@@ -57,6 +58,7 @@ export function App() {
   if (path === '/signup') return <Signup />;
   // A genuine, read-only public demonstration; private customer data stays behind authentication.
   if (path === '/demo/map') return <Suspense fallback={<Loading />}><MapPage publicSiteId={new URLSearchParams(window.location.search).get('site') || '2z1f1t02626v5c5w'} /></Suspense>;
+  if (path === '/api-docs') return <Suspense fallback={<Loading />}><ApiDocs /></Suspense>;
   if (path === '/demo') return <Suspense fallback={<Loading />}><PublicDemo /></Suspense>;
   // Read-only shared dashboards: no login, the link (and its optional password) is the credential.
   const share = /^\/share\/([\w-]{20,80})(?:\/(\w+))?$/.exec(path);

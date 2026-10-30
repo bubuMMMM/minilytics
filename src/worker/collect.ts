@@ -6,6 +6,9 @@ import { androidAppDomain, classify } from '../shared/sources.js';
 import { getSite, type AppEnv, type Site } from './env.js';
 import { DEMO_SITE_ID, ensureDemoSite } from './demo.js';
 import { isBot, parseUA, uaDetails } from './lib/ua.js';
+import { hostAllowed, readSettings } from './settings.js';
+import { goalAlerts } from './alerts.js';
+import { hmacHex } from './lib/crypto.js';
 import { creditedSessionSql } from './payments.js';
 import { RateLimiter, rawRequestIp, requestIp } from './lib/security.js';
 
@@ -33,6 +36,12 @@ interface Payload {
   ch?: { m?: string; pv?: string; bv?: string };
   /** Milliseconds this event waited in the browser's retry queue. */
   age?: number;
+  /** Cookieless mode (data-cookieless): the server derives daily-rotating ids, the browser stores nothing. */
+  cl?: number;
+  /** Hash route (#/pricing) when the script runs in hash mode. */
+  hp?: string;
+  /** Checkout ids read from the return page URL before it is cleaned (Stripe cs_, Polar checkout, LS order, Paddle txn). */
+  pi?: string[];
 }
 
 const clip = (s: unknown, n = 255): string | null =>
@@ -103,7 +112,10 @@ export async function handleEvent(c: Context<AppEnv>) {
   } catch {
     return c.body(null, 400);
   }
-  if (!body || !isId(body.w) || !TYPES.has(body.t) || !isId(body.vid) || !isId(body.sid)) return c.body(null, 400);
+  if (!body || !isId(body.w) || !TYPES.has(body.t)) return c.body(null, 400);
+  if (body.cl === 1) {
+    body.vid = body.sid = 'cookieless';
+  } else if (!isId(body.vid) || !isId(body.sid)) return c.body(null, 400);
 
   const ua = c.req.header('user-agent') ?? '';
   // AI agents that do run the script (ChatGPT agent, headless assistants) are logged as bot hits, not visits.
@@ -133,15 +145,18 @@ export async function handleEvent(c: Context<AppEnv>) {
   } catch {
     return c.body(null, 400);
   }
-  // Only accept data for the site's own domain, so nobody can pollute your stats from elsewhere.
-  if (!/^https?:$/.test(url.protocol) || !belongsTo(url.hostname, site.domain)) return c.body(null, 403);
-  if (!originAllowed(c.req.header('origin'), site.domain)) return c.body(null, 403);
+  // Only accept data for the site's own domain (and the extra hostnames set for cross-domain tracking),
+  // so nobody can pollute your stats from elsewhere.
+  if (!/^https?:$/.test(url.protocol) || !hostAllowed(site, url.hostname, belongsTo)) return c.body(null, 403);
+  const origin = c.req.header('origin');
+  if (!originAllowed(origin, site.domain) && !(origin && readSettings(site).allowedHostnames.some((h) => originAllowed(origin, h)))) return c.body(null, 403);
   // Site exclusions (Settings › Exclusions): your own IP, internal paths, countries, staging hostnames.
   const geo = geoOf(c);
   if (isExcluded(site, { path: url.pathname, ip: rawRequestIp(c), country: geo.country, hostname: url.hostname })) return c.body(null, 202);
 
   const age = Number(body.age);
   const now = Date.now() - (Number.isFinite(age) && age > 0 ? Math.min(age, 86_400_000) : 0);
+  if (body.cl === 1) Object.assign(body, await cookielessIds(c.env.DB, site, c.env.SESSION_SECRET ?? '', rawRequestIp(c), ua, now));
   await ingest(c.env.DB, site, body, url, ua, geo, now);
   return c.body(null, 202);
 }
@@ -197,7 +212,9 @@ export async function ingest(
   geo: Geo,
   now: number,
 ) {
-  const path = normalizePath(url.pathname);
+  let path = normalizePath(url.pathname);
+  // Hash routing (#/pricing, #about): the route is part of the page.
+  if (typeof body.hp === 'string' && /^#[^\s]{1,200}$/.test(body.hp)) path = (path === '/' ? '/' : path) + body.hp.replace(/[?].*$/, '').slice(0, 200);
   const { t, vid, sid } = body;
 
   if (t === 'ping') {
@@ -242,11 +259,12 @@ export async function ingest(
       );
     }
     stmts.push(insertEvent(db, site.id, sid, vid, now, 'pageview', null, path, null));
-    stmts.push(...claimPayment(db, site.id, vid, url, now));
+    stmts.push(...claimPayment(db, site.id, vid, url, now, body.pi));
   } else if (t === 'goal') {
     const name = clip(body.n, 64);
     if (!name) return;
     const props = serializeProperties(body.p);
+    await goalAlerts(db, site, name, path, now);
     stmts.push(
       db.prepare('UPDATE sessions SET goals = goals + 1, last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
       insertEvent(db, site.id, sid, vid, now, 'goal', name, path, props),
@@ -523,9 +541,16 @@ export function normalizeLanguage(raw: unknown): string | null {
  * Dodo sends buyers back to your return URL with ?payment_id=pay_... . Seeing that on a pageview tells us
  * exactly which visitor made the payment, even when the checkout had no metadata.
  */
-function claimPayment(db: D1Database, siteId: string, vid: string, url: URL, now: number): D1PreparedStatement[] {
-  const paymentId = url.searchParams.get('payment_id') ?? url.searchParams.get('subscription_id');
-  if (!paymentId || !/^(pay|sub)_[\w-]{4,64}$/.test(paymentId)) return [];
+function claimPayment(db: D1Database, siteId: string, vid: string, url: URL, now: number, extra?: unknown): D1PreparedStatement[] {
+  const ids: string[] = [];
+  const dodo = url.searchParams.get('payment_id') ?? url.searchParams.get('subscription_id');
+  if (dodo && /^(pay|sub)_[\w-]{4,64}$/.test(dodo)) ids.push(dodo);
+  // Stripe ?session_id=cs_…, Polar ?checkout_id=…, Lemon Squeezy ?order_id=…, Paddle ?_ptxn=txn_… (read by the tracker).
+  if (Array.isArray(extra)) for (const x of extra.slice(0, 3)) if (typeof x === 'string' && /^[\w-]{6,120}$/.test(x) && !ids.includes(x)) ids.push(x);
+  return ids.flatMap((paymentId) => claimOne(db, siteId, vid, now, paymentId));
+}
+
+function claimOne(db: D1Database, siteId: string, vid: string, now: number, paymentId: string): D1PreparedStatement[] {
   return [
     db
       .prepare('INSERT OR IGNORE INTO payment_claims (site_id, payment_id, visitor_id, ts) VALUES (?, ?, ?, ?)')
@@ -535,16 +560,16 @@ function claimPayment(db: D1Database, siteId: string, vid: string, url: URL, now
       .prepare(
         `UPDATE payments SET visitor_id = ?, matched_by = 'return_page',
            session_id = (${creditedSessionSql()})
-         WHERE site_id = ? AND (id = ? OR subscription_id = ?) AND visitor_id IS NULL`,
+         WHERE site_id = ? AND (id = ? OR subscription_id = ? OR checkout_ref = ?) AND visitor_id IS NULL`,
       )
-      .bind(vid, siteId, vid, now + 60_000, siteId, paymentId, paymentId),
+      .bind(vid, siteId, vid, now + 60_000, siteId, paymentId, paymentId, paymentId),
     db
       .prepare(
-        `UPDATE visitors SET email = COALESCE(email, (SELECT email FROM payments WHERE site_id = ? AND (id = ? OR subscription_id = ?) LIMIT 1)),
-           name = COALESCE(name, (SELECT name FROM payments WHERE site_id = ? AND (id = ? OR subscription_id = ?) LIMIT 1))
+        `UPDATE visitors SET email = COALESCE(email, (SELECT email FROM payments WHERE site_id = ? AND (id = ? OR subscription_id = ? OR checkout_ref = ?) LIMIT 1)),
+           name = COALESCE(name, (SELECT name FROM payments WHERE site_id = ? AND (id = ? OR subscription_id = ? OR checkout_ref = ?) LIMIT 1))
          WHERE site_id = ? AND id = ?`,
       )
-      .bind(siteId, paymentId, paymentId, siteId, paymentId, paymentId, siteId, vid),
+      .bind(siteId, paymentId, paymentId, paymentId, siteId, paymentId, paymentId, paymentId, siteId, vid),
   ];
 }
 
@@ -585,7 +610,7 @@ function newSession(
     try {
       const r = new URL(body.r);
       // Navigation between your own pages/subdomains is not a referral.
-      if (/^https?:$/.test(r.protocol) && !belongsTo(r.hostname, site.domain)) {
+      if (/^https?:$/.test(r.protocol) && !hostAllowed(site, r.hostname, belongsTo)) {
         referrerDomain = stripWww(r.hostname);
         referrer = (r.hostname + normalizePath(r.pathname)).slice(0, 500);
       }
@@ -664,4 +689,22 @@ function newSession(
       ? [db.prepare('UPDATE sessions SET pageviews = pageviews + 1 WHERE site_id = ? AND id = ?').bind(site.id, body.sid)]
       : []),
   ];
+}
+
+const COOKIELESS_SESSION_MS = 30 * 60_000;
+
+/**
+ * Cookieless visitor ids: HMAC(daily salt, site + IP + user agent). The salt is derived from SESSION_SECRET and
+ * the UTC day and never stored, so ids can't be linked across days and the IP is never kept. A visit continues
+ * while the same id was active in the last 30 minutes.
+ */
+export async function cookielessIds(db: D1Database, site: Site, secret: string, ip: string, ua: string, now: number) {
+  const day = new Date(now).toISOString().slice(0, 10);
+  const salt = await hmacHex(secret || 'minilytics-cookieless', `cookieless:${day}`);
+  const vid = 'cl' + (await hmacHex(salt, `${site.id}|${ip}|${ua}`)).slice(0, 30);
+  const s = await db
+    .prepare('SELECT id FROM sessions WHERE site_id = ? AND visitor_id = ? AND last_seen_at > ? ORDER BY last_seen_at DESC LIMIT 1')
+    .bind(site.id, vid, now - COOKIELESS_SESSION_MS)
+    .first<{ id: string }>();
+  return { vid, sid: s?.id ?? 'cs' + (await hmacHex(salt, `${vid}|${now}`)).slice(0, 30) };
 }
