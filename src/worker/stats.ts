@@ -155,7 +155,8 @@ export async function overview(ctx: Ctx) {
   const pb = bucketSql('p.ts', range.granularity, ctx.offset);
   const now = Date.now();
 
-  const [k1, k0, r1, r0, online, ts, tr] = await db.batch([
+  const prevRange = { ...range, from: prevFrom, to: range.from };
+  const [k1, k0, r1, r0, online, ts, tr, tp] = await db.batch([
     db.prepare(KPI_SQL(cur.sql)).bind(...cur.params),
     db.prepare(KPI_SQL(prev.sql)).bind(...prev.params),
     db.prepare(REVENUE_SQL(curPay.sql)).bind(...curPay.params),
@@ -175,6 +176,9 @@ export async function overview(ctx: Ctx) {
          FROM ${curPay.sql} GROUP BY b`,
       )
       .bind(...curPay.params),
+    db
+      .prepare(`SELECT ${sb} AS b, COUNT(DISTINCT s.visitor_id) AS visitors FROM sessions s WHERE ${prev.sql} GROUP BY b`)
+      .bind(...prev.params),
   ]);
 
   const visitorsBy = new Map((ts.results as any[]).map((r) => [r.b, r]));
@@ -187,6 +191,13 @@ export async function overview(ctx: Ctx) {
     revenue: revenueBy.get(b)?.revenue ?? 0,
     payments: revenueBy.get(b)?.payments ?? 0,
   }));
+  // Previous period, aligned bucket-by-bucket with the current one so the chart can overlay it.
+  const prevBy = new Map((tp.results as any[]).map((r) => [r.b, r.visitors]));
+  const prevLabels = bucketLabels(prevRange, ctx.offset);
+  const shift = prevLabels.length - labels.length;
+  series.forEach((row, i) => {
+    (row as any).prevVisitors = prevBy.get(prevLabels[i + shift]) ?? 0;
+  });
 
   return {
     range,

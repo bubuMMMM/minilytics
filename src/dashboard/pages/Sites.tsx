@@ -3,6 +3,7 @@ import { navigate } from '../App';
 import { Favicon } from '../components/Icons';
 import { Logo } from '../components/Logo';
 import { Modal } from '../components/Modal';
+import { Sparkline, Trend } from '../components/Sparkline';
 import { UiIcon } from '../components/UiIcon';
 import { api, type Site } from '../lib/api';
 import { fmtNumber } from '../lib/format';
@@ -81,6 +82,20 @@ export function Sites() {
                 <span className="flex items-center gap-1.5 rounded-full border border-[#daf2e6] bg-[#f1fbf6] px-2.5 py-1.5 text-[11px] font-semibold text-[#218b68]"><i className={'inline-block h-1.5 w-1.5 rounded-full ' + (site.online ? 'animate-pulse bg-[#1dbb88]' : 'bg-[#b0bccc]')} />{site.online ?? 0} en ligne</span>
               </div>
               <div className="mt-4 min-w-0"><p className="truncate text-lg font-semibold tracking-tight">{site.name}</p><p className="mt-1 truncate text-[12px] text-[#8b97ab]">{site.domain}</p></div>
+              {(() => {
+                const sp = site.spark ?? [];
+                const last7 = sp.slice(-7).reduce((x, y) => x + y, 0);
+                const prev7 = sp.slice(-14, -7).reduce((x, y) => x + y, 0);
+                return (
+                  <div className="mt-4 flex items-end justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2"><span className="tnum text-[22px] font-semibold leading-none tracking-[-.05em]">{fmtNumber(last7)}</span><Trend cur={last7} prev={prev7} /></div>
+                      <p className="mt-1.5 text-[11px] text-[#96a3b6]">Visiteurs · 7 jours</p>
+                    </div>
+                    <div className="w-28 shrink-0 text-[#4f62ef]" title="Visiteurs par jour, 14 derniers jours"><Sparkline data={sp} height={40} className="text-[#4f62ef]" /></div>
+                  </div>
+                );
+              })()}
               <div className="mt-auto flex items-end justify-between border-t border-[#e9edf5] pt-5">
                 <div><p className="text-[27px] font-semibold leading-none tracking-[-.055em]">{fmtNumber(site.visitors24h ?? 0)}</p><p className="mt-1.5 text-[11px] text-[#96a3b6]">Visiteurs sur 24 heures</p></div>
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#edf1ff] text-[#4f62ef] transition-all group-hover:bg-[#4f62ef] group-hover:text-white"><UiIcon name="arrow-up-right" size={18}/></span>

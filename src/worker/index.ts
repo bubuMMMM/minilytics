@@ -8,6 +8,7 @@ import { liveGlobeStats } from './live-globe.js';
 import { forgetSite, type AppEnv, type Site } from './env.js';
 import { passwordsMatch, randomId, signToken, verifyToken } from './lib/crypto.js';
 import { handleDodoWebhook, handleGoalApi, handlePaymentApi, rematchPayments } from './payments.js';
+import { realtime, sparklines, toCsv } from './insights.js';
 import { breakdown, customers, engagementReport, funnel, makeCtx, overview, visitorProfile, visitors, type FunnelStep } from './stats.js';
 
 const app = new Hono<AppEnv>();
@@ -156,11 +157,13 @@ app.get('/api/sites', async (c) => {
     ).bind(now - 5 * 60_000, now - 86_400_000),
   ]);
   const by = new Map((stats.results as any[]).map((r) => [r.site_id, r]));
+  const spark = await sparklines(c.env.DB, now);
   return c.json(
     (sites.results as unknown as Site[]).map((s) => ({
       ...publicSite(s),
       visitors24h: by.get(s.id)?.visitors ?? 0,
       online: by.get(s.id)?.online ?? 0,
+      spark: spark.get(s.id) ?? new Array(14).fill(0),
     })),
   );
 });
@@ -248,6 +251,33 @@ app.get('/api/sites/:id/engagement', async (c) => {
     return c.json({ error: 'Engagement analytics temporarily unavailable' }, 503);
   }
 });
+app.get('/api/sites/:id/realtime', async (c) => c.json(await realtime(c.env.DB, c.get('site'))));
+
+app.get('/api/sites/:id/export', async (c) => {
+  const dim = c.req.query('dim') ?? 'source';
+  let rows;
+  try {
+    rows = await breakdown(makeCtx(c), dim, 500);
+  } catch (e) {
+    return c.json({ error: (e as Error).message }, 400);
+  }
+  const csv = toCsv(
+    [
+      { key: 'label', label: dim },
+      { key: 'visitors', label: 'visitors' },
+      { key: 'pageviews', label: 'pageviews' },
+      { key: 'revenue', label: 'revenue_minor_units' },
+      { key: 'customers', label: 'customers' },
+    ],
+    rows as unknown as Record<string, unknown>[],
+  );
+  const site = c.get('site');
+  return c.body(csv, 200, {
+    'Content-Type': 'text/csv; charset=utf-8',
+    'Content-Disposition': `attachment; filename="${site.domain}-${dim.replace(/[^\w-]/g, '')}.csv"`,
+  });
+});
+
 app.get('/api/sites/:id/overview', async (c) => c.json(await overview(makeCtx(c))));
 
 app.get('/api/sites/:id/breakdown', async (c) => {

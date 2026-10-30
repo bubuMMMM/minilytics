@@ -33,6 +33,7 @@ export interface Site {
   created_at: number;
   visitors24h?: number;
   online?: number;
+  spark?: number[];
 }
 
 export interface Kpis {
@@ -55,7 +56,7 @@ export interface Overview {
   current: Kpis;
   previous: Kpis;
   online: number;
-  series: { bucket: string; visitors: number; pageviews: number; revenue: number; payments: number }[];
+  series: { bucket: string; visitors: number; pageviews: number; revenue: number; payments: number; prevVisitors?: number }[];
 }
 
 export interface BreakdownRow {
@@ -86,4 +87,13 @@ export function qs(q: Query, extra: Record<string, string | number> = {}) {
   if (Object.keys(q.filters).length) p.set('filters', JSON.stringify(q.filters));
   for (const [k, v] of Object.entries(extra)) p.set(k, String(v));
   return p.toString();
+}
+
+export interface Realtime {
+  now: number;
+  online: number;
+  perMinute: number[];
+  pages: { label: string | null; visitors: number }[];
+  sources: { label: string | null; visitors: number }[];
+  recent: { ts: number; type: string; name: string | null; path: string | null; visitor_id: string; country: string | null; source: string | null; device: string | null; browser: string | null }[];
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from './lib/api';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
+import { Realtime } from './pages/Realtime';
 import { PublicDemo } from './pages/PublicDemo';
 import { Settings } from './pages/Settings';
 import { Sites } from './pages/Sites';
@@ -40,6 +41,8 @@ export function App() {
   if (path === '/admin' || path === '/sites') return <Sites />;
   const settings = /^\/site\/([\w-]+)\/settings\/?$/.exec(path);
   if (settings) return <Settings siteId={settings[1]} />;
+  const realtime = /^\/site\/([\w-]+)\/realtime\/?$/.exec(path);
+  if (realtime) return <Realtime siteId={realtime[1]} />;
   const site = /^\/site\/([\w-]+)\/?$/.exec(path);
   if (site) return <Dashboard siteId={site[1]} />;
   return <Sites />;

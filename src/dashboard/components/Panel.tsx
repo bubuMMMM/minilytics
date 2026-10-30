@@ -108,27 +108,27 @@ function Bars({ rows, dim, tab, sort, limit, onPick }: { rows: BreakdownRow[]; d
         return (
           <div
             key={`${r.label}-${i}`}
-            className={`group relative flex h-10 items-center rounded-lg ${tab.filter ? 'cursor-pointer' : ''}`}
+            className={`group relative flex h-9 items-center rounded-lg ${tab.filter ? 'cursor-pointer' : ''}`}
             onClick={() => onPick?.(r)}
           >
             <div className="absolute inset-0 flex">
-              <div className="rounded-l-lg bg-visitorsSoft transition-all" style={{ width: `${vw}%`, minWidth: r.visitors ? 4 : 0 }} />
+              <div className="rounded-l-lg bg-visitorsSoft transition-all duration-500" style={{ width: `${vw}%`, minWidth: r.visitors ? 4 : 0 }} />
               {rw > 0 && <div className="rounded-r-lg bg-revenueSoft" style={{ width: `${rw}%` }} />}
             </div>
-            <div className="absolute inset-0 hidden rounded-lg ring-1 ring-stone-300/70 group-hover:block" />
-            <div className="relative flex min-w-0 flex-1 items-center gap-2.5 px-3 text-[15px]">{renderLabel(dim, r)}</div>
-            <div className="relative flex shrink-0 items-center gap-3 pr-3 text-[15px] font-medium">
+            <div className="absolute inset-0 hidden rounded-lg ring-1 ring-brand/30 group-hover:block" />
+            <div className="relative flex min-w-0 flex-1 items-center gap-2.5 px-3 text-sm text-stone-800">{renderLabel(dim, r)}</div>
+            <div className="tnum relative flex shrink-0 items-center gap-3 pr-3 text-sm font-semibold text-ink">
               {r.revenue !== 0 && <span className="hidden text-sm font-normal text-revenue group-hover:inline">{money(r.revenue)}</span>}
               {sort === 'revenue' ? money(r.revenue, true) : fmtNumber(r.visitors)}
             </div>
             <div className="pointer-events-none absolute left-1/2 top-full z-30 mt-1 hidden w-60 -translate-x-1/2 rounded-xl bg-ink px-3 py-2 text-xs text-white shadow-lg group-hover:block">
               <div className="mb-1 truncate font-medium">{r.label ?? '(none)'}</div>
-              <div className="flex justify-between"><span className="text-stone-400">Visitors</span>{fmtNumber(r.visitors)}</div>
-              {r.pageviews !== undefined && dim === 'page' && <div className="flex justify-between"><span className="text-stone-400">Pageviews</span>{fmtNumber(r.pageviews)}</div>}
-              <div className="flex justify-between"><span className="text-stone-400">Revenue</span>{money(r.revenue)}</div>
-              <div className="flex justify-between"><span className="text-stone-400">Customers</span>{r.customers}</div>
+              <div className="flex justify-between"><span className="text-stone-400">Visiteurs</span>{fmtNumber(r.visitors)}</div>
+              {r.pageviews !== undefined && dim === 'page' && <div className="flex justify-between"><span className="text-stone-400">Pages vues</span>{fmtNumber(r.pageviews)}</div>}
+              <div className="flex justify-between"><span className="text-stone-400">Revenus</span>{money(r.revenue)}</div>
+              <div className="flex justify-between"><span className="text-stone-400">Clients</span>{r.customers}</div>
               <div className="flex justify-between"><span className="text-stone-400">Conversion</span>{r.visitors ? fmtPct(r.customers / r.visitors, 1) : '—'}</div>
-              {tab.filter && <div className="mt-1 text-stone-400">Click to filter</div>}
+              {tab.filter && <div className="mt-1 text-stone-400">Cliquer pour filtrer</div>}
             </div>
           </div>
         );
@@ -137,7 +137,7 @@ function Bars({ rows, dim, tab, sort, limit, onPick }: { rows: BreakdownRow[]; d
   );
 }
 
-export function Panel({ tabs }: { tabs: TabDef[] }) {
+export function Panel({ tabs, title }: { tabs: TabDef[]; title?: string }) {
   const { site, q, reloadKey, addFilter, money } = useDash();
   const [active, setActive] = useState(tabs[0].dim);
   const [sort, setSort] = useState<'visitors' | 'revenue'>('visitors');
@@ -153,46 +153,67 @@ export function Panel({ tabs }: { tabs: TabDef[] }) {
   };
 
   const filtered = (data ?? []).filter((r) => !search || (r.label ?? '').toLowerCase().includes(search.toLowerCase()));
+  const exportUrl = `/api/sites/${site.id}/export?${qs(q, { dim: active })}`;
 
   return (
-    <div className="card flex min-h-[560px] flex-col p-3">
-      <div className="flex items-center justify-between gap-2 pb-3">
-        <div className="tabs overflow-x-auto">
+    <div className="ml-bento flex min-h-[520px] flex-col p-4 sm:p-5">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        {title && <h3 className="text-[15px] font-semibold tracking-[-.02em] text-[#111b33]">{title}</h3>}
+        <div className="flex items-center gap-0.5">
+          <a className="btn-ghost text-xs" href={exportUrl} download title="Exporter en CSV">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            CSV
+          </a>
+          <button className="btn-ghost text-xs" onClick={() => setSort((s) => (s === 'visitors' ? 'revenue' : 'visitors'))} title="Trier par visiteurs ou revenus">
+            {sort === 'visitors' ? 'Visiteurs' : 'Revenus'} <span className="text-stone-400">↕</span>
+          </button>
+        </div>
+      </div>
+      <div className="mb-3 overflow-x-auto">
+        <div className="tabs">
           {tabs.map((t) => (
             <button key={t.dim} className={`tab whitespace-nowrap ${t.dim === active ? 'tab-active' : ''}`} onClick={() => setActive(t.dim)}>
               {t.label}
             </button>
           ))}
         </div>
-        <button
-          className="flex shrink-0 items-center gap-1 px-2 text-sm font-medium text-stone-600 hover:text-ink"
-          onClick={() => setSort((s) => (s === 'visitors' ? 'revenue' : 'visitors'))}
-          title="Sort by visitors or revenue"
-        >
-          {sort === 'visitors' ? 'Visitors' : 'Revenue'} <span className="text-stone-400">↑↓</span>
-        </button>
       </div>
-      <div className={`flex-1 ${loading && !data ? 'animate-pulse' : ''}`}>
+      <div className="flex-1">
         {error && <p className="p-3 text-sm text-red-600">{error}</p>}
-        {data && data.length === 0 && <p className="p-6 text-center text-sm text-stone-400">No data for this period</p>}
-        {data && <Bars rows={data} dim={active} tab={tab} sort={sort} limit={10} onPick={pick} />}
+        {!data && loading && (
+          <div className="space-y-1.5">
+            {Array.from({ length: 8 }, (_, i) => (
+              <div key={i} className="skeleton h-9" style={{ width: `${95 - i * 9}%` }} />
+            ))}
+          </div>
+        )}
+        {data && data.length === 0 && (
+          <div className="flex h-full min-h-[240px] flex-col items-center justify-center text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-100 text-xl">📭</div>
+            <p className="mt-3 text-sm font-medium text-stone-600">Aucune donnée sur cette période</p>
+            <p className="text-xs text-stone-400">Essayez une période plus longue ou retirez les filtres.</p>
+          </div>
+        )}
+        {data && <div className={loading ? 'opacity-60 transition-opacity' : 'transition-opacity'}><Bars rows={data} dim={active} tab={tab} sort={sort} limit={10} onPick={pick} /></div>}
       </div>
       {data && data.length > 10 && (
-        <button className="mx-auto mt-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-stone-500 hover:text-ink" onClick={() => setDetails(true)}>
-          ⛶ Details
+        <button className="btn-ghost mx-auto mt-3 text-xs" onClick={() => setDetails(true)}>
+          Voir les {data.length} →
         </button>
       )}
       <Modal open={details} onClose={() => setDetails(false)} title={tab.label} width="max-w-3xl">
-        <input className="input mb-4" placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} autoFocus />
+        <input className="input mb-4" placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)} autoFocus />
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-stone-500">
                 <th className="pb-2 font-medium">{tab.label}</th>
-                <th className="pb-2 text-right font-medium">Visitors</th>
-                <th className="pb-2 text-right font-medium">Revenue</th>
+                <th className="pb-2 text-right font-medium">Visiteurs</th>
+                <th className="pb-2 text-right font-medium">Revenus</th>
                 <th className="pb-2 text-right font-medium">Conv.</th>
-                <th className="pb-2 text-right font-medium">Rev/visitor</th>
+                <th className="pb-2 text-right font-medium">Rev./visiteur</th>
               </tr>
             </thead>
             <tbody>

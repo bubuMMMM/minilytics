@@ -100,3 +100,29 @@ describe('Standard Webhooks (Dodo)', () => {
     expect(await verifyStandardWebhook(secret, { id: 'msg_1', timestamp: String(Number(ts) - 3600), signature: `v1,${sig}` }, body)).toBe(false);
   });
 });
+import { fillDaily, fillMinutes, toCsv } from '../src/worker/insights';
+
+describe('insights helpers', () => {
+  it('writes RFC 4180 CSV and escapes quotes, commas and formulas', () => {
+    const csv = toCsv(
+      [
+        { key: 'a', label: 'A' },
+        { key: 'b', label: 'B' },
+      ],
+      [
+        { a: 'hello, "world"', b: 3 },
+        { a: '=HYPERLINK("x")', b: null },
+      ],
+    );
+    expect(csv).toBe('A,B\r\n"hello, ""world""",3\r\n"\'=HYPERLINK(""x"")",\r\n');
+  });
+  it('zero-fills daily sparklines, oldest first', () => {
+    const DAY = 86_400_000;
+    const now = 20_000 * DAY + 5000;
+    expect(fillDaily([{ d: 20_000, n: 4 }, { d: 19_998, n: 2 }, { d: 19_000, n: 9 }], now, 4)).toEqual([0, 2, 0, 4]);
+  });
+  it('zero-fills per-minute realtime counts', () => {
+    const now = 1000 * 60_000 + 10;
+    expect(fillMinutes([{ m: 999, n: 1 }, { m: 1000, n: 3 }], now, 3)).toEqual([0, 1, 3]);
+  });
+});

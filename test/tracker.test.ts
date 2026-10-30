@@ -62,7 +62,7 @@ describe('browser tracker regression coverage', () => {
   });
   it('does not treat lookalike domains as internal or right-clicks as visits', () => {
     const b = browser();
-    const a = { href: 'https://notexample.com/path' };
+    const a = { href: 'https://notexample.com/path', closest: () => null };
     const target = { closest: (selector: string) => selector === 'a[href]' ? a : null };
     b.emit('auxclick', { button: 2, target });
     expect(b.events).toHaveLength(1);

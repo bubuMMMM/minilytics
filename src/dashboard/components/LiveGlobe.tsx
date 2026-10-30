@@ -187,7 +187,7 @@ export function LiveGlobe({ siteId }: { siteId?: string }) {
     const controller = new AbortController();
     fetch('/maps/world-lowres.geojson', { signal: controller.signal })
       .then((r) => { if (!r.ok) throw new Error('Carte indisponible'); return r.json(); })
-      .then((geo) => { if (!controller.signal.aborted) setWorld(makeCountries((geo.features || []) as Shape[])); })
+      .then((json) => { const geo = json as { features?: unknown[] }; if (!controller.signal.aborted) setWorld(makeCountries((geo.features || []) as Shape[])); })
       .catch(() => { if (!controller.signal.aborted) setError('Impossible de charger les contours du monde.'); });
     return () => controller.abort();
   }, []);
