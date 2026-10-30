@@ -1,6 +1,8 @@
 import type { Context } from 'hono';
 import { getSite, type AppEnv, type Site } from './env.js';
 import { verifyStandardWebhook } from './lib/crypto.js';
+import { serializeProperties } from './collect.js';
+import { DEMO_SITE_ID } from './demo.js';
 
 export function currencyDecimals(currency: string): number {
   try {
@@ -301,10 +303,16 @@ export async function handleDodoWebhook(c: Context<AppEnv>) {
   return c.json({ ok: true });
 }
 
+/** Shape of keys minted by the dashboard (`'ml_' + randomId(16)`). */
+export const isApiKey = (k: string) => /^ml_[a-z0-9]{32}$/.test(k);
+
 async function siteFromApiKey(c: Context<AppEnv>): Promise<Site | null> {
-  const key = c.req.header('authorization')?.replace(/^Bearer\s+/i, '');
-  if (!key) return null;
-  return c.env.DB.prepare('SELECT * FROM sites WHERE api_key = ?').bind(key).first<Site>();
+  const key = c.req.header('authorization')?.replace(/^Bearer\s+/i, '').trim();
+  // Real keys are `ml_` + 32 random chars. This also rejects the public demo site's well-known placeholder key,
+  // which used to let anyone inject fake payments/goals into the public demo.
+  if (!key || !isApiKey(key)) return null;
+  const site = await c.env.DB.prepare('SELECT * FROM sites WHERE api_key = ?').bind(key).first<Site>();
+  return site && site.id !== DEMO_SITE_ID ? site : null;
 }
 
 /**
@@ -361,7 +369,7 @@ export async function handleGoalApi(c: Context<AppEnv>) {
     c.env.DB.prepare('UPDATE sessions SET goals = goals + 1 WHERE site_id = ? AND id = ?').bind(site.id, s.id),
     c.env.DB.prepare(
       "INSERT INTO events (site_id, session_id, visitor_id, ts, type, name, path, props) VALUES (?, ?, ?, ?, 'goal', ?, ?, ?)",
-    ).bind(site.id, s.id, vid, now, name, s.exit_page, b?.props ? JSON.stringify(b.props).slice(0, 1000) : null),
+    ).bind(site.id, s.id, vid, now, name, s.exit_page, serializeProperties(b?.props)),
   ]);
   return c.json({ ok: true });
 }

@@ -261,9 +261,10 @@ export interface BreakdownRow {
 
 export async function breakdown(ctx: Ctx, dim: string, limit = 100): Promise<BreakdownRow[]> {
   const { db } = ctx;
-  const lim = Math.max(1, Math.min(500, limit));
+  const lim = Math.max(1, Math.min(500, Math.floor(Number(limit)) || 100));
 
-  if (SESSION_DIMS[dim]) {
+  // Own keys only: `constructor`/`toString` must not resolve to inherited members interpolated into SQL.
+  if (Object.prototype.hasOwnProperty.call(SESSION_DIMS, dim)) {
     const col = SESSION_DIMS[dim];
     const w = sessionsWhere(ctx);
     const pay = paymentsFrom(ctx);

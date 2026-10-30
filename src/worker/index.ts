@@ -1,12 +1,14 @@
 import { Hono, type Context, type Next } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { cors } from 'hono/cors';
+import { secureHeaders } from 'hono/secure-headers';
 import { handleEvent } from './collect.js';
 import { publicDemoStats, listPublicSites, resolvePublicSite } from './demo.js';
 import { resolveRange, tzOffset } from './lib/time.js';
 import { liveGlobeStats } from './live-globe.js';
 import { forgetSite, type AppEnv, type Site } from './env.js';
 import { passwordsMatch, randomId, signToken, verifyToken } from './lib/crypto.js';
+import { PUBLIC_CACHE, cookieSecure, csrfGuard, requestIp, sessionKey } from './lib/security.js';
 import { handleDodoWebhook, handleGoalApi, handlePaymentApi, rematchPayments } from './payments.js';
 import { realtime, sparklines, toCsv } from './insights.js';
 import { publicTopVideos, videoDetail, videoReport } from './videos.js';
@@ -18,6 +20,16 @@ const AUTH_COOKIE = 'ml_auth';
 const AUTH_DAYS = 30;
 const MAX_FAILURES = 10;
 const LOCKOUT_MS = 15 * 60_000;
+/** Across all IPs: caps distributed brute force (botnets, IPv6 rotation) at ~10k guesses/day. */
+const MAX_GLOBAL_FAILURES = 100;
+const MAX_PASSWORD_LENGTH = 1024;
+
+// Security headers on every API response (nosniff, frame-ancestors via X-Frame-Options, referrer policy…).
+app.use('/api/*', secureHeaders({ crossOriginResourcePolicy: false, crossOriginOpenerPolicy: false }));
+// Cookie-authenticated routes refuse cross-site writes (defence in depth on top of SameSite=Strict).
+app.use('/api/auth/*', csrfGuard);
+app.use('/api/sites', csrfGuard);
+app.use('/api/sites/*', csrfGuard);
 
 // ---------- public: tracking, webhooks, server-side API
 
@@ -27,7 +39,7 @@ app.post('/api/event', handleEvent);
 // No visitor-level data or credentials. Private sites return 404.
 app.get('/api/public/sites', async (c) => {
   try {
-    c.header('Cache-Control', 'no-store');
+    c.header('Cache-Control', PUBLIC_CACHE);
     return c.json(await listPublicSites(c.env.DB));
   } catch (error) {
     console.error('Public sites failed', error);
@@ -39,7 +51,7 @@ app.get('/api/public/demo', async (c) => {
     const site = await resolvePublicSite(c.env.DB, c.req.query('site'));
     if (!site) return c.json({ error: 'Site not public' }, 404);
     const days = c.req.query('days') === '30' ? 30 : 7;
-    c.header('Cache-Control', 'no-store');
+    c.header('Cache-Control', PUBLIC_CACHE);
     return c.json(await publicDemoStats(c.env.DB, days, site));
   } catch (error) {
     console.error('Public demo statistics failed', error);
@@ -51,7 +63,7 @@ app.get('/api/public/live-globe', async (c) => {
   try {
     const site = await resolvePublicSite(c.env.DB, c.req.query('site'));
     if (!site) return c.json({ error: 'Site not public' }, 404);
-    c.header('Cache-Control', 'no-store, max-age=0');
+    c.header('Cache-Control', PUBLIC_CACHE);
     return c.json(await liveGlobeStats(c.env.DB, site.id));
   } catch (error) {
     console.error('Live globe failed', error);
@@ -64,7 +76,7 @@ app.get('/api/public/engagement', async (c) => {
     const site = await resolvePublicSite(c.env.DB, c.req.query('site'));
     if (!site) return c.json({ error: 'Site not public' }, 404);
     const range = resolveRange({ period: c.req.query('days') === '30' ? '30d' : '7d' }, site.timezone, site.created_at);
-    c.header('Cache-Control', 'no-store');
+    c.header('Cache-Control', PUBLIC_CACHE);
     return c.json(await engagementReport({ db: c.env.DB, site, range, filters: {}, offset: tzOffset(site.timezone, range.to) }));
   } catch (error) {
     console.error('Public engagement analytics failed', error);
@@ -77,7 +89,7 @@ app.get('/api/public/videos', async (c) => {
     const site = await resolvePublicSite(c.env.DB, c.req.query('site'));
     if (!site) return c.json({ error: 'Site not public' }, 404);
     const range = resolveRange({ period: c.req.query('days') === '30' ? '30d' : '7d' }, site.timezone, site.created_at);
-    c.header('Cache-Control', 'no-store');
+    c.header('Cache-Control', PUBLIC_CACHE);
     return c.json(await publicTopVideos({ db: c.env.DB, site, range, filters: {}, offset: tzOffset(site.timezone, range.to) }));
   } catch (error) {
     console.error('Public videos failed', error);
@@ -104,9 +116,14 @@ app.post('/api/v1/goals', handleGoalApi);
 // ---------- login
 
 async function isLoggedIn(c: Context<AppEnv>) {
-  if (!c.env.SESSION_SECRET) return false;
-  const value = await verifyToken(c.env.SESSION_SECRET, getCookie(c, AUTH_COOKIE));
-  return !!value && Number(value.split('.')[1]) > Date.now();
+  if (!c.env.SESSION_SECRET || !c.env.ADMIN_PASSWORD) return false;
+  const key = await sessionKey(c.env.SESSION_SECRET, c.env.ADMIN_PASSWORD);
+  const value = await verifyToken(key, getCookie(c, AUTH_COOKIE));
+  if (!value) return false;
+  const [who, exp] = value.split('.');
+  const expires = Number(exp);
+  // Reject tampered or absurd expiries even if signed (max one session lifetime ahead).
+  return who === 'admin' && expires > Date.now() && expires <= Date.now() + AUTH_DAYS * 86_400_000 + 60_000;
 }
 
 app.post('/api/auth/login', async (c) => {
@@ -114,16 +131,19 @@ app.post('/api/auth/login', async (c) => {
     return c.json({ error: 'Set ADMIN_PASSWORD and SESSION_SECRET (see README).' }, 500);
   }
   // Lock an IP out after too many wrong passwords, so a public dashboard can't be brute-forced.
-  const ip = c.req.header('cf-connecting-ip') ?? c.req.header('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+  // Only platform-set headers are trusted (see clientIp): a spoofed cf-connecting-ip no longer resets the counter.
+  const ip = requestIp(c);
   const now = Date.now();
-  const recent = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM login_failures WHERE ip = ? AND ts > ?')
+  const recent = await c.env.DB.prepare(
+    'SELECT COUNT(CASE WHEN ip = ? THEN 1 END) AS n, COUNT(*) AS total FROM login_failures WHERE ts > ?',
+  )
     .bind(ip, now - LOCKOUT_MS)
-    .first<{ n: number }>();
-  if ((recent?.n ?? 0) >= MAX_FAILURES) {
+    .first<{ n: number; total: number }>();
+  if ((recent?.n ?? 0) >= MAX_FAILURES || (recent?.total ?? 0) >= MAX_GLOBAL_FAILURES) {
     return c.json({ error: 'Too many wrong attempts. Try again in 15 minutes.' }, 429);
   }
-  const { password } = await c.req.json<{ password?: string }>().catch(() => ({ password: undefined }));
-  if (!password || !passwordsMatch(password, c.env.ADMIN_PASSWORD)) {
+  const { password } = await c.req.json<{ password?: unknown }>().catch(() => ({ password: undefined }));
+  if (typeof password !== 'string' || password.length > MAX_PASSWORD_LENGTH || !passwordsMatch(password, c.env.ADMIN_PASSWORD)) {
     await c.env.DB.batch([
       c.env.DB.prepare('INSERT INTO login_failures (ip, ts) VALUES (?, ?)').bind(ip, now),
       c.env.DB.prepare('DELETE FROM login_failures WHERE ts < ?').bind(now - LOCKOUT_MS),
@@ -133,10 +153,11 @@ app.post('/api/auth/login', async (c) => {
   }
   await c.env.DB.prepare('DELETE FROM login_failures WHERE ip = ?').bind(ip).run();
   const expires = Date.now() + AUTH_DAYS * 86_400_000;
-  setCookie(c, AUTH_COOKIE, await signToken(c.env.SESSION_SECRET, `admin.${expires}`), {
+  setCookie(c, AUTH_COOKIE, await signToken(await sessionKey(c.env.SESSION_SECRET, c.env.ADMIN_PASSWORD), `admin.${expires}`), {
     httpOnly: true,
-    secure: new URL(c.req.url).protocol === 'https:',
-    sameSite: 'Lax',
+    secure: cookieSecure(c.req.url),
+    // The cookie is only ever sent by the dashboard's own same-origin fetches.
+    sameSite: 'Strict',
     path: '/',
     maxAge: AUTH_DAYS * 86_400,
   });
@@ -144,7 +165,7 @@ app.post('/api/auth/login', async (c) => {
 });
 
 app.post('/api/auth/logout', (c) => {
-  deleteCookie(c, AUTH_COOKIE, { path: '/' });
+  deleteCookie(c, AUTH_COOKIE, { path: '/', secure: cookieSecure(c.req.url), sameSite: 'Strict' });
   return c.json({ ok: true });
 });
 
@@ -155,6 +176,8 @@ app.get('/api/auth/me', async (c) => c.json({ loggedIn: await isLoggedIn(c) }));
 const requireAuth = async (c: Context<AppEnv>, next: Next) => {
   if (!(await isLoggedIn(c))) return c.json({ error: 'unauthorized' }, 401);
   await next();
+  // Visitor-level data: never let a shared cache keep it.
+  if (!c.res.headers.get('Cache-Control')) c.res.headers.set('Cache-Control', 'private, no-store');
 };
 app.use('/api/sites', requireAuth);
 app.use('/api/sites/*', requireAuth);

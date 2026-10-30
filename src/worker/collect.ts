@@ -4,6 +4,7 @@ import { getSite, type AppEnv, type Site } from './env.js';
 import { DEMO_SITE_ID, ensureDemoSite } from './demo.js';
 import { isBot, parseUA, uaDetails } from './lib/ua.js';
 import { creditedSessionSql } from './payments.js';
+import { RateLimiter, requestIp } from './lib/security.js';
 
 const TYPES = new Set(['pageview', 'goal', 'outbound', 'ping', 'identify', 'scroll', 'engagement', 'click', 'form', 'video', 'action', 'block']);
 /** Video player lifecycle events. `watch` carries seconds actually played since the last report. */
@@ -70,9 +71,29 @@ export function belongsTo(hostname: string, domain: string): boolean {
   return h === d || h.endsWith('.' + d);
 }
 
+const MAX_BODY = 8192;
+/** Per instance: 240 events/min per IP is far above any real visitor (video heartbeats included). */
+const ingestLimiter = new RateLimiter(240, 60_000);
+
+/**
+ * Browsers always send `Origin` on the tracker's cross-origin POST. When present it must be the site's domain:
+ * this blocks other websites from injecting events with a forged `u`. (curl can still forge both; see SECURITY.md.)
+ */
+export function originAllowed(origin: string | undefined, domain: string): boolean {
+  if (!origin) return true;
+  try {
+    const o = new URL(origin);
+    return /^https?:$/.test(o.protocol) && belongsTo(o.hostname, domain);
+  } catch {
+    return false;
+  }
+}
+
 export async function handleEvent(c: Context<AppEnv>) {
+  if (Number(c.req.header('content-length') ?? 0) > MAX_BODY) return c.body(null, 413);
+  if (!ingestLimiter.allow(requestIp(c))) return c.body(null, 429);
   const raw = await c.req.text();
-  if (raw.length > 8192) return c.body(null, 413);
+  if (raw.length > MAX_BODY) return c.body(null, 413);
   let body: Payload;
   try {
     body = JSON.parse(raw);
@@ -97,6 +118,7 @@ export async function handleEvent(c: Context<AppEnv>) {
   }
   // Only accept data for the site's own domain, so nobody can pollute your stats from elsewhere.
   if (!/^https?:$/.test(url.protocol) || !belongsTo(url.hostname, site.domain)) return c.body(null, 403);
+  if (!originAllowed(c.req.header('origin'), site.domain)) return c.body(null, 403);
 
   const age = Number(body.age);
   const now = Date.now() - (Number.isFinite(age) && age > 0 ? Math.min(age, 86_400_000) : 0);
