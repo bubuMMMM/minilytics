@@ -19,3 +19,12 @@
 - Cloche (AppHeader) : API backend notifications, sondage 60 s, badge non lues, « Tout marquer comme lu », clic → marque lu + ouvre l'URL ; masquée si l'endpoint renvoie 404 (mémorisé 10 min dans sessionStorage) ; lecteurs : lecture seule.
 - Annotations : `useAnnotations()` (ChartNotes.tsx) → commits GitHub ◆ et mentions ◉ en repères sur le graphique, détail dans l'infobulle, puces « Commits et mentions » sous les notes. Jamais en partage public.
 - En-tête mobile : wordmark masqué < 640 px quand un titre de site est affiché (Logo compact).
+
+## DEPLOYED bd21a03 — 31 oct. 2026 00:38 (Europe/Paris) → https://minilytics-six.vercel.app, frontend agent — Design v3
+- Navigation regroupée (src/dashboard/lib/nav.ts, source unique) : Analyse, Audience, Acquisition, Revenus, Contenu, Outils. Barre latérale fixe ≥ 1024 px (site, recherche ⌘K, groupes, pied Mes sites/Équipe/Démo/thème) ; onglets groupés en tablette ; barre basse + feuille « Plus » groupée en mobile. AccountHeader commun (Sites, Équipe).
+- ⌘K : toutes les vues, chaque section de Réglages, périodes, actions (copier le script, créer un lien de partage, thème), pages générales.
+- Réglages en sous-pages `/site/:id/settings/:section` (installation, general, script, revenus, partage, widgets, alertes, integrations, api, donnees, offre) avec sous-nav à gauche (puces en mobile). Anciennes URL `/settings` et `/settings#partage|widgets|alertes` toujours valides. Ancres `#engagement` et `#objectifs` sur l’aperçu.
+- Composants partagés src/dashboard/components/ui.tsx : PageHeader, SectionHeader, Card, Badge (casse normale), EmptyState, Skeleton, Segmented, Tabs. Transitions ≤ 200 ms, focus-visible accent, prefers-reduced-motion global.
+- Landing : nouveau hero + section de 4 captures réelles (carte, Bots IA, partage, widgets) clair/sombre dans public/landing/*.webp (≈30 Ko chacune ; carte en vue publique niveau pays).
+- Corrigé : débordement horizontal Bots IA à 390 px. Audit complet : /workspace/minilytics-team/DESIGN_AUDIT.md.
+- Vérif prod : 24 pages × 1440/390 × clair/sombre, 0 erreur console, 0 débordement ; share_links 0, widget_tokens 0 après vérif.
