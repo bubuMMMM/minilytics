@@ -2,7 +2,7 @@ import { Hono, type Context, type Next } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { cors } from 'hono/cors';
 import { handleEvent } from './collect.js';
-import { publicDemoStats, DEMO_SITE_ID, ensureDemoSite } from './demo.js';
+import { publicDemoStats, listPublicSites, resolvePublicSite } from './demo.js';
 import { resolveRange, tzOffset } from './lib/time.js';
 import { liveGlobeStats } from './live-globe.js';
 import { forgetSite, type AppEnv, type Site } from './env.js';
@@ -21,32 +21,46 @@ const LOCKOUT_MS = 15 * 60_000;
 
 app.use('/api/event', cors({ origin: '*', allowMethods: ['POST', 'OPTIONS'], maxAge: 86400 }));
 app.post('/api/event', handleEvent);
-// Public aggregate numbers for the Minilytics demo. No visitor-level data or credentials.
+// Public aggregate numbers for the demo and for sites marked public (sites.is_public = 1).
+// No visitor-level data or credentials. Private sites return 404.
+app.get('/api/public/sites', async (c) => {
+  try {
+    c.header('Cache-Control', 'no-store');
+    return c.json(await listPublicSites(c.env.DB));
+  } catch (error) {
+    console.error('Public sites failed', error);
+    return c.json({ error: 'Analytics temporarily unavailable' }, 503);
+  }
+});
 app.get('/api/public/demo', async (c) => {
   try {
+    const site = await resolvePublicSite(c.env.DB, c.req.query('site'));
+    if (!site) return c.json({ error: 'Site not public' }, 404);
     const days = c.req.query('days') === '30' ? 30 : 7;
     c.header('Cache-Control', 'no-store');
-    return c.json(await publicDemoStats(c.env.DB, days));
+    return c.json(await publicDemoStats(c.env.DB, days, site));
   } catch (error) {
     console.error('Public demo statistics failed', error);
     return c.json({ error: 'Analytics temporarily unavailable' }, 503);
   }
 });
-// Public read-only location aggregates, scoped to Minilytics itself.
+// Public read-only location aggregates.
 app.get('/api/public/live-globe', async (c) => {
   try {
-    await ensureDemoSite(c.env.DB);
+    const site = await resolvePublicSite(c.env.DB, c.req.query('site'));
+    if (!site) return c.json({ error: 'Site not public' }, 404);
     c.header('Cache-Control', 'no-store, max-age=0');
-    return c.json(await liveGlobeStats(c.env.DB, DEMO_SITE_ID));
+    return c.json(await liveGlobeStats(c.env.DB, site.id));
   } catch (error) {
     console.error('Live globe failed', error);
     return c.json({ error: 'Live activity temporarily unavailable' }, 503);
   }
 });
-// Public analytics for the demo site only; aggregated statistics, no visitor identifiers.
+// Public engagement aggregates; no visitor identifiers.
 app.get('/api/public/engagement', async (c) => {
   try {
-    const site = await ensureDemoSite(c.env.DB);
+    const site = await resolvePublicSite(c.env.DB, c.req.query('site'));
+    if (!site) return c.json({ error: 'Site not public' }, 404);
     const range = resolveRange({ period: c.req.query('days') === '30' ? '30d' : '7d' }, site.timezone, site.created_at);
     c.header('Cache-Control', 'no-store');
     return c.json(await engagementReport({ db: c.env.DB, site, range, filters: {}, offset: tzOffset(site.timezone, range.to) }));
@@ -211,8 +225,9 @@ app.patch('/api/sites/:id', async (c) => {
   if (typeof b.dodo_webhook_secret === 'string' && !b.dodo_webhook_secret.includes('•')) {
     next.dodo_webhook_secret = b.dodo_webhook_secret.trim() || null;
   }
-  await c.env.DB.prepare('UPDATE sites SET name = ?, domain = ?, timezone = ?, currency = ?, dodo_webhook_secret = ? WHERE id = ?')
-    .bind(next.name, next.domain, next.timezone, next.currency, next.dodo_webhook_secret, site.id)
+  if (b.is_public !== undefined) next.is_public = b.is_public ? 1 : 0;
+  await c.env.DB.prepare('UPDATE sites SET name = ?, domain = ?, timezone = ?, currency = ?, dodo_webhook_secret = ?, is_public = ? WHERE id = ?')
+    .bind(next.name, next.domain, next.timezone, next.currency, next.dodo_webhook_secret, Number(next.is_public ?? 0), site.id)
     .run();
   forgetSite(site.id);
   return c.json(publicSite(next));

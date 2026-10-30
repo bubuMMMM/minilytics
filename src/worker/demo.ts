@@ -17,6 +17,24 @@ export async function ensureDemoSite(db: D1Database): Promise<Site> {
   return site;
 }
 
+export interface PublicSite { id: string; name: string; domain: string }
+
+/** Sites explicitly marked public (sites.is_public = 1) plus the built-in demo. Aggregates only, never API keys. */
+export async function listPublicSites(db: D1Database): Promise<PublicSite[]> {
+  await ensureDemoSite(db);
+  const rows = await db.prepare(
+    'SELECT id, name, domain FROM sites WHERE is_public = 1 OR id = ? ORDER BY CASE WHEN id = ? THEN 1 ELSE 0 END, created_at DESC',
+  ).bind(DEMO_SITE_ID, DEMO_SITE_ID).all<PublicSite>();
+  return (rows.results || []).map((r) => ({ id: r.id, name: r.name, domain: r.domain }));
+}
+
+/** Resolve the site shown on the public page: a site marked public, or the demo. Null for private/unknown ids. */
+export async function resolvePublicSite(db: D1Database, id?: string | null): Promise<Site | null> {
+  if (!id || id === DEMO_SITE_ID) return ensureDemoSite(db);
+  const site = await getSite(db, id);
+  return site && Number(site.is_public) === 1 ? site : null;
+}
+
 interface CountRow {
   visitors: number;
   sessions: number;
@@ -46,15 +64,15 @@ function numbers(row?: CountRow) {
   };
 }
 
-export async function publicDemoStats(db: D1Database, days = 7) {
-  await ensureDemoSite(db);
+export async function publicDemoStats(db: D1Database, days = 7, site?: Site) {
+  const target = site ?? (await ensureDemoSite(db));
   const safeDays = days === 30 ? 30 : 7;
   const now = Date.now();
   const from = now - safeDays * 86400000;
   const prevFrom = from - safeDays * 86400000;
   const from24h = now - 86400000;
   const dayStart = Math.floor(now / 86400000) - safeDays + 1;
-  const id = DEMO_SITE_ID;
+  const id = target.id;
   const summarySql = `SELECT COUNT(DISTINCT visitor_id) AS visitors, COUNT(*) AS sessions,
     COALESCE(SUM(pageviews), 0) AS pageviews, COALESCE(AVG(duration), 0) AS avg_duration
     FROM sessions WHERE site_id = ? AND started_at >= ? AND started_at < ?`;
@@ -98,7 +116,7 @@ export async function publicDemoStats(db: D1Database, days = 7) {
     });
 
   return {
-    site: { name: 'Minilytics', domain: DEMO_DOMAIN },
+    site: target.id === DEMO_SITE_ID ? { id: target.id, name: 'Minilytics', domain: DEMO_DOMAIN } : { id: target.id, name: target.name, domain: target.domain },
     days: safeDays,
     updatedAt: now,
     current: numbers(current.results[0] as CountRow | undefined),

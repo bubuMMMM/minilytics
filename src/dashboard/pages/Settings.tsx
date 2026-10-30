@@ -245,6 +245,15 @@ curl -X POST ${origin}/api/v1/goals \\
 
       <LinkBuilder domain={site.domain} />
 
+      <Section title="Page d'accueil publique">
+        <p className="text-sm text-muted">Affiche les statistiques agrégées de ce site (visiteurs, pages, sources, pays) sur la page d'accueil de Minilytics, sans connexion. Aucune donnée individuelle ni clé API n'est exposée.</p>
+        <label className="mt-4 flex items-center gap-3 text-sm font-medium">
+          <input type="checkbox" className="h-4 w-4" checked={Number(site.is_public ?? 0) === 1}
+            onChange={(e) => save({ is_public: e.target.checked ? 1 : 0 }, e.target.checked ? 'Site affiché sur la page publique' : 'Site retiré de la page publique')} />
+          Afficher ce site sur la page d'accueil publique
+        </label>
+      </Section>
+
       <Section title="General">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>

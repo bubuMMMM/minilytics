@@ -29,8 +29,8 @@ function Metric({ label, value, caption, icon }: { label: string; value: string;
   </div>;
 }
 
-export function EngagementPanel({ siteId, days = 7, query, reloadKey = 0 }: {
-  siteId?: string; days?: 7 | 30; query?: Query; reloadKey?: number;
+export function EngagementPanel({ siteId, publicSiteId, days = 7, query, reloadKey = 0 }: {
+  siteId?: string; publicSiteId?: string; days?: 7 | 30; query?: Query; reloadKey?: number;
 }) {
   const [data, setData] = useState<Engagement | null>(null);
   const [error, setError] = useState('');
@@ -39,7 +39,7 @@ export function EngagementPanel({ siteId, days = 7, query, reloadKey = 0 }: {
   const [selected, setSelected] = useState('');
   const endpoint = useMemo(() => siteId
     ? '/api/sites/' + encodeURIComponent(siteId) + '/engagement?' + (query ? qs(query) : '')
-    : '/api/public/engagement?days=' + days, [siteId, query, days]);
+    : '/api/public/engagement?days=' + days + (publicSiteId ? '&site=' + encodeURIComponent(publicSiteId) : ''), [siteId, publicSiteId, query, days]);
 
   useEffect(() => {
     const ctrl = new AbortController();

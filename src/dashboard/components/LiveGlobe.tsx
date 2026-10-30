@@ -172,7 +172,7 @@ function drawGlobe(
   ctx.strokeStyle = 'rgba(88,115,164,.50)'; ctx.lineWidth = 2; ctx.stroke();
 }
 
-export function LiveGlobe({ siteId }: { siteId?: string }) {
+export function LiveGlobe({ siteId, publicSiteId }: { siteId?: string; publicSiteId?: string }) {
   const [data, setData] = useState<Activity | null>(null);
   const [world, setWorld] = useState<GlobeCountry[]>([]);
   const [error, setError] = useState('');
@@ -194,7 +194,7 @@ export function LiveGlobe({ siteId }: { siteId?: string }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    const endpoint = siteId ? '/api/sites/' + encodeURIComponent(siteId) + '/live-globe' : '/api/public/live-globe';
+    const endpoint = siteId ? '/api/sites/' + encodeURIComponent(siteId) + '/live-globe' : '/api/public/live-globe' + (publicSiteId ? '?site=' + encodeURIComponent(publicSiteId) : '');
     const poll = () => {
       if (document.visibilityState !== 'visible') return;
       fetch(endpoint, { cache: 'no-store', credentials: 'same-origin', signal: controller.signal })

@@ -31,6 +31,7 @@ export interface Site {
   api_key: string;
   dodo_webhook_secret: string | null;
   created_at: number;
+  is_public?: number;
   visitors24h?: number;
   online?: number;
   spark?: number[];

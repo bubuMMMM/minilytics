@@ -9,7 +9,7 @@ import { UiIcon } from '../components/UiIcon';
 
 type Group = { label: string; value: number };
 interface LiveData {
-  site: { name: string; domain: string };
+  site: { id?: string; name: string; domain: string };
   days: number;
   updatedAt: number;
   current: { visitors: number; sessions: number; pageviews: number; avgDurationMs: number };
@@ -69,19 +69,32 @@ export function PublicDemo() {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
+  const [sites, setSites] = useState<{id:string;name:string;domain:string}[]>([]);
+  const [siteId, setSiteId] = useState<string>(() => new URLSearchParams(window.location.search).get('site') || '');
+  useEffect(() => {
+    fetch('/api/public/sites', { cache: 'no-store' }).then(r => (r.ok ? r.json() : []) as Promise<{id:string;name:string;domain:string}[]>).then(list => {
+      setSites(list);
+      setSiteId(current => current && list.some(s => s.id === current) ? current : (list[0]?.id || ''));
+    }).catch(() => {});
+  }, []);
+  const pickSite = (id: string) => {
+    setSiteId(id); setData(null);
+    const url = new URL(window.location.href); url.searchParams.set('site', id); window.history.replaceState(null, '', url.toString());
+  };
   const refresh = useCallback(() => setReload(n => n + 1), []);
   useEffect(() => {
     const controller = new AbortController();
+    if(!siteId){return () => controller.abort();}
     setBusy(true);setError('');
-    fetch('/api/public/demo?days=' + days, { signal: controller.signal, cache: 'no-store' })
+    fetch('/api/public/demo?days=' + days + '&site=' + encodeURIComponent(siteId), { signal: controller.signal, cache: 'no-store' })
       .then(async r => {if(!r.ok) throw new Error('Statistiques indisponibles (' + r.status + ')');return r.json() as Promise<LiveData>;})
       .then(value => {if(!controller.signal.aborted)setData(value);})
       .catch((e: Error) => {if(!controller.signal.aborted)setError(e.message || 'Erreur de chargement.');})
       .finally(() => {if(!controller.signal.aborted)setBusy(false);});
     return () => controller.abort();
-  }, [days, reload]);
+  }, [days, reload, siteId]);
   useEffect(() => {const t=window.setInterval(() => {if(document.visibilityState==='visible')refresh();},30000);return () => window.clearInterval(t);},[refresh]);
-  const view = data?.days===days ? data : null;
+  const view = data?.days===days && (!data?.site?.id || data.site.id===siteId) ? data : null;
   const visitorSeries = view?.series.map(d=>d.visitors) || [];
   const pageSeries = view?.series.map(d=>d.pageviews) || [];
   const change = view?.previous.visitors ? Math.round((view.current.visitors-view.previous.visitors)/view.previous.visitors*100) : null;
@@ -120,7 +133,7 @@ export function PublicDemo() {
           <div className="absolute -left-4 -right-4 -top-4 -bottom-4 rounded-[32px] bg-[#f8faff] lg:-left-0"/>
           <div className="ml-bento relative overflow-hidden bg-white p-5 sm:p-6">
             <div className="flex items-center justify-between gap-2 border-b border-[#edf0f7] pb-5">
-              <div className="flex items-center gap-2.5"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5064ec]"><UiIcon name="activity" size={19}/></span><div><div className="text-[13px] font-semibold">Aperçu en direct</div><p className="text-[11px] text-[#a0aec0]">minilytics-six.vercel.app</p></div></div>
+              <div className="flex items-center gap-2.5"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5064ec]"><UiIcon name="activity" size={19}/></span><div><div className="text-[13px] font-semibold">Aperçu en direct</div><p className="text-[11px] text-[#a0aec0]">{view?.site.domain ?? sites.find(s=>s.id===siteId)?.domain ?? '—'}</p></div></div>
               <StatusPill active>LIVE</StatusPill>
             </div>
             <div className="mt-7">
@@ -148,7 +161,7 @@ export function PublicDemo() {
       <section id="analytics" className="scroll-mt-[104px] pt-16 sm:pt-20">
         <SectionHeading eyebrow="01 / OVERVIEW" title="Votre tableau de bord" description="Toutes les métriques importantes, en un coup d'œil." action={<StatusPill active>Statistiques réelles</StatusPill>}/>
         <div className="ml-bento flex flex-wrap items-center justify-between gap-4 px-4 py-3.5 sm:px-5">
-          <div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef2ff] text-[#5165e7]"><UiIcon name="globe" size={20}/></span><div className="min-w-0"><div className="truncate text-[13px] font-semibold">minilytics-six.vercel.app</div><div className="mt-0.5 text-[11px] text-[#9ba8bb]">Dernière actualisation {view?timeLabel(view.updatedAt):'en cours...'}</div></div></div>
+          <div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef2ff] text-[#5165e7]"><UiIcon name="globe" size={20}/></span><div className="min-w-0">{sites.length>1 ? <select aria-label="Site affiché" className="max-w-[260px] truncate rounded-lg border border-[#e3e8f3] bg-white px-2 py-1 text-[13px] font-semibold text-[#1d2b45]" value={siteId} onChange={e=>pickSite(e.target.value)}>{sites.map(s=><option key={s.id} value={s.id}>{s.domain}{s.name!==s.domain?' · '+s.name:''}</option>)}</select> : <div className="truncate text-[13px] font-semibold">{view?.site.domain ?? '—'}</div>}<div className="mt-0.5 text-[11px] text-[#9ba8bb]">Dernière actualisation {view?timeLabel(view.updatedAt):'en cours...'}</div></div></div>
           <div className="flex items-center gap-2"><SegmentedTabs value={days} options={[{value:7,label:'7 jours'},{value:30,label:'30 jours'}]} onChange={setDays} label="Période analysée"/><button className="btn !h-[40px] !w-[40px] !p-0" aria-label="Rafraîchir les données" onClick={refresh} disabled={busy}><UiIcon name="refresh" size={17} className={busy?'animate-spin':''}/></button></div>
         </div>
         {error && <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert"><span>{error}</span><button className="btn" onClick={refresh}>Réessayer</button></div>}
@@ -192,12 +205,12 @@ export function PublicDemo() {
 
       <section id="engagement" className="scroll-mt-[104px] pt-20">
         <SectionHeading eyebrow="04 / BEHAVIOR" title="Ce que font vraiment vos visiteurs." description="Profondeur de scroll, temps actif, pages consultées, clics internes et formulaires. Des mesures enregistrées, jamais inventées."/>
-        <EngagementPanel days={days}/>
+        <EngagementPanel key={siteId} days={days} publicSiteId={siteId||undefined}/>
       </section>
 
       <section id="globe" className="scroll-mt-[104px] pt-20">
         <SectionHeading eyebrow="02 / LIVE MAP" title="Une audience sans frontières." description="La carte mondiale des connexions réelles, actualisée toutes les 15 secondes." action={<StatusPill active>Live globe</StatusPill>}/>
-        <div className="ml-live-globe"><LiveGlobe /></div>
+        <div className="ml-live-globe"><LiveGlobe key={siteId} publicSiteId={siteId||undefined}/></div>
       </section>
 
       <section id="insights" className="scroll-mt-[104px] pt-20">

@@ -16,6 +16,7 @@ export interface Site {
   api_key: string;
   dodo_webhook_secret: string | null;
   created_at: number;
+  is_public?: number;
 }
 
 export type AppEnv = { Bindings: Env; Variables: { site: Site } };
