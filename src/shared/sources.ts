@@ -125,19 +125,25 @@ export function classify(input: {
   let referrerDomain = input.referrerDomain;
   if (!referrerDomain && input.inAppBrowser && IN_APP[input.inAppBrowser]) referrerDomain = IN_APP[input.inAppBrowser];
   const tag = utmSource || ref || null;
-  const known = findKnownSource(tag) ?? findKnownSource(referrerDomain);
+  const knownTag = findKnownSource(tag);
+  const knownRef = findKnownSource(referrerDomain);
+  const known = knownTag ?? (tag ? undefined : knownRef);
 
+  // An explicit tag names the source, even an unknown one ("?utm_source=launch-tweet" from t.co).
   let source: string;
-  if (known) source = known.name;
+  if (knownTag) source = knownTag.name;
   else if (tag) source = tag;
+  else if (knownRef) source = knownRef.name;
   else if (referrerDomain) source = referrerDomain;
   else source = 'Direct';
 
+  // The channel still follows the platform the click came through when the tag is unknown.
   let channel: Channel;
   if (utmMedium && PAID_MEDIUM.test(utmMedium)) channel = 'Paid';
   else if (utmMedium && EMAIL_MEDIUM.test(utmMedium)) channel = 'Email';
   else if (known) channel = known.channel;
   else if (utmMedium && SOCIAL_MEDIUM.test(utmMedium)) channel = 'Organic Social';
+  else if (knownRef) channel = knownRef.channel;
   else if (tag || referrerDomain) channel = 'Referral';
   else channel = 'Direct';
 
