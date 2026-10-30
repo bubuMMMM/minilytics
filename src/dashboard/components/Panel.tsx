@@ -113,7 +113,7 @@ function Bars({ rows, dim, tab, sort, limit, onPick }: { rows: BreakdownRow[]; d
             onClick={() => onPick?.(r)}
           >
             <div className="absolute inset-0 flex">
-              <div className="rounded-l-lg bg-visitorsSoft transition-all duration-500" style={{ width: `${vw}%`, minWidth: r.visitors ? 4 : 0 }} />
+              <div className="rounded-l-lg bg-visitorsSoft transition-[width] duration-200" style={{ width: `${vw}%`, minWidth: r.visitors ? 4 : 0 }} />
               {rw > 0 && <div className="rounded-r-lg bg-revenueSoft" style={{ width: `${rw}%` }} />}
             </div>
             <div className="absolute inset-0 hidden rounded-lg ring-1 ring-brand/30 group-hover:block" />

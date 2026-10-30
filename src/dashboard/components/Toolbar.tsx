@@ -188,7 +188,7 @@ export function Toolbar({
             <>
               {pins.length > 0 && (
                 <>
-                  <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-ink-4">Épinglées</div>
+                  <div className="px-3 pb-1 pt-2 text-[11px] font-medium text-ink-4">Épinglées</div>
                   {pins.map((p) => (
                     <div key={`${p.period}${p.from ?? ''}${p.to ?? ''}`} className="flex items-center">
                       <button className={itemCls(samePin(p, q))} onClick={() => { close(); update({ period: p.period, from: p.from, to: p.to, granularity: undefined }); }}>

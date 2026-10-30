@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
-type IconName = 'share' | 'heart' | 'repeat' | 'message' | 'copy' | 'file-text' | 'filter' | 'code' | 'arrow-up-right' | 'arrow-right' | 'activity' | 'eye' | 'users' | 'clock' | 'refresh' | 'globe' | 'mouse' | 'target' | 'layers' | 'check' | 'plus' | 'logout' | 'search' | 'shield' | 'bar-chart' | 'sparkles' | 'external' | 'calendar' | 'menu' | 'chevron-down' | 'link' | 'play' | 'megaphone' | 'grid' | 'compass' | 'settings' | 'command' | 'download' | 'info' | 'x' | 'lock' | 'smartphone' | 'zap' | 'bot' | 'star' | 'upload' | 'key';
+export type UiIconName = IconName;
+type IconName = 'share' | 'heart' | 'repeat' | 'message' | 'copy' | 'file-text' | 'filter' | 'code' | 'arrow-up-right' | 'arrow-right' | 'activity' | 'eye' | 'users' | 'clock' | 'refresh' | 'globe' | 'mouse' | 'target' | 'layers' | 'check' | 'plus' | 'logout' | 'search' | 'shield' | 'bar-chart' | 'sparkles' | 'external' | 'calendar' | 'menu' | 'chevron-down' | 'link' | 'play' | 'megaphone' | 'grid' | 'compass' | 'settings' | 'command' | 'download' | 'info' | 'x' | 'lock' | 'smartphone' | 'zap' | 'bot' | 'star' | 'upload' | 'key' | 'bell' | 'coins' | 'layout' | 'book' | 'sliders' | 'database' | 'plug' | 'chevron-right' | 'sun';
 
 export function UiIcon({ name, size = 20, className = '' }: { name: IconName; size?: number; className?: string }) {
   const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -52,6 +53,15 @@ export function UiIcon({ name, size = 20, className = '' }: { name: IconName; si
     'chevron-down': <path d="m6 9 6 6 6-6"/>,
     play: <><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5.5 3.5-5.5 3.5v-7Z"/></>,
     link: <><path d="M10 13a5 5 0 0 0 8.6 2l2-2a5 5 0 0 0-7-7l-1.1 1.1M14 11a5 5 0 0 0-8.6-2l-2 2a5 5 0 0 0 7 7l1.1-1.1"/></>,
+    bell: <><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8.5 3 8.5H3S6 15 6 8Z"/><path d="M10.3 20a1.9 1.9 0 0 0 3.4 0"/></>,
+    coins: <><ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M9 15v2c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.6-2.4-2.9-5.5-3"/></>,
+    layout: <><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M3 9h18M9 21V9"/></>,
+    book: <><path d="M4 19.5V5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2Zm0 0A1.5 1.5 0 0 0 5.5 21H19"/><path d="M9 7h6"/></>,
+    sliders: <><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></>,
+    database: <><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></>,
+    plug: <><path d="M9 2v5M15 2v5M6 7h12v4a6 6 0 0 1-12 0V7ZM12 17v5"/></>,
+    'chevron-right': <><path d="m9 6 6 6-6 6"/></>,
+    sun: <><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className} {...common}>{paths[name]}</svg>;
 }

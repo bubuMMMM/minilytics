@@ -73,11 +73,12 @@ export function App() {
 function route(path: string) {
   if (path === '/admin' || path === '/sites' || path === '/login') return <Sites />;
   if (path === '/team') return <Team />;
-  const m = /^\/site\/([\w-]+)(?:\/([\w-]+))?$/.exec(path);
+  const m = /^\/site\/([\w-]+)(?:\/([\w-]+))?(?:\/([\w-]+))?$/.exec(path);
   if (!m) return <Sites />;
-  const [, id, sub] = m;
+  const [, id, sub, section] = m;
+  if (section && sub !== 'settings') return <Sites />;
   if (!sub) return <Dashboard key={'o' + id} siteId={id} />;
-  if (sub === 'settings') return <Settings siteId={id} />;
+  if (sub === 'settings') return <Settings key={'s' + id} siteId={id} section={section} />;
   if (sub === 'realtime') return <Realtime siteId={id} />;
   if (sub === 'map') return <MapPage key={'m' + id} siteId={id} />;
   const view = SITE_VIEWS[sub];

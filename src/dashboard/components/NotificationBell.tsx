@@ -133,7 +133,7 @@ export function NotificationBell({ siteId }: { siteId: string }) {
               )}
           </div>
           <div className="border-t border-line px-4 py-2.5 text-[12px] text-ink-3">
-            <Link href={`/site/${siteId}/settings#alertes`} onClick={() => setOpen(false)} className="hover:text-ink">Réglages des alertes →</Link>
+            <Link href={`/site/${siteId}/settings/alertes`} onClick={() => setOpen(false)} className="hover:text-ink">Réglages des alertes →</Link>
           </div>
         </div>
       )}

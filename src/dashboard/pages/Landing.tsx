@@ -200,6 +200,38 @@ function SectionHead({ id, eyebrow, title, text, center = false }: { id: string;
   );
 }
 
+const SHOWCASE = [
+  { key: 'map', kicker: 'Carte', title: 'Le monde de vos visiteurs, en direct', text: 'Globe interactif, replay des 30 dernières minutes ou des 24 dernières heures, flux en direct avec drapeau, source et page d’entrée. Et des pays à débloquer.', cta: ['/demo/map', 'Ouvrir la carte de démo'] },
+  { key: 'bots', kicker: 'Bots IA', title: 'Qui, parmi les IA, lit votre site', text: 'GPTBot, ClaudeBot, Perplexity… : passages par robot et par page, transmis par votre serveur, séparés des vraies visites venues de ChatGPT ou Claude.', cta: ['#fonctionnalites', 'Voir toutes les fonctions'] },
+  { key: 'share', kicker: 'Partage', title: 'Un tableau de bord public, sur vos règles', text: 'Liens en lecture seule avec mot de passe et expiration. Vous choisissez les vues, masquez les revenus ou les villes : tout est appliqué côté serveur.', cta: ['/demo', 'Voir la démo publique'] },
+  { key: 'widgets', kicker: 'Widgets', title: 'Vos chiffres, sur votre site', text: 'Compteur en ligne, graphique, top pages, carte ou badge SVG à intégrer en une ligne. Thème, couleur et langue au choix, mis à jour toutes les 30 secondes.', cta: ['/signup', 'Commencer gratuitement'] },
+] as const;
+
+/** Real product captures of the features that set Minilytics apart (light / dark variants). */
+function Showcase() {
+  return (
+    <section aria-labelledby="sc-title" className="mx-auto max-w-[1200px] px-4 pb-20 sm:px-6 lg:pb-28">
+      <h2 id="sc-title" className="sr-only">Le produit en images</h2>
+      <div className="grid gap-5 md:grid-cols-2">
+        {SHOWCASE.map((f, i) => { const wide = i === 0 || i === SHOWCASE.length - 1; return (
+          <article key={f.key} className={`group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-surface ${wide ? 'md:col-span-2 md:grid md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]' : ''}`}>
+            <div className={`flex flex-col p-6 sm:p-8 ${wide ? 'md:justify-center' : ''}`}>
+              <div className="text-[12px] font-medium text-accent">{f.kicker}</div>
+              <h3 className="mt-2 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-ink [text-wrap:balance] sm:text-[24px]">{f.title}</h3>
+              <p className="mt-2.5 max-w-[46ch] text-[14px] leading-relaxed text-ink-3 [text-wrap:pretty]">{f.text}</p>
+              <a href={f.cta[0]} className="mt-4 inline-flex w-fit items-center gap-1.5 text-[14px] font-medium text-ink transition-colors duration-150 hover:text-accent">{f.cta[1]} <UiIcon name="arrow-right" size={15} /></a>
+            </div>
+            <div className={`relative mt-auto min-w-0 overflow-hidden border-line bg-well ${wide ? 'border-t md:border-l md:border-t-0' : 'border-t'}`}>
+              <img src={`/landing/${f.key}-light.webp`} alt={`Capture de la fonction ${f.kicker} de Minilytics`} loading="lazy" decoding="async" width={1200} height={760} className="block h-auto w-full dark:hidden" />
+              <img src={`/landing/${f.key}-dark.webp`} alt={`Capture de la fonction ${f.kicker} de Minilytics`} loading="lazy" decoding="async" width={1200} height={760} className="hidden h-auto w-full dark:block" />
+            </div>
+          </article>
+        ); })}
+      </div>
+    </section>
+  );
+}
+
 export function Landing() {
   const [menu, setMenu] = useState(false);
   useEffect(() => {
@@ -245,10 +277,10 @@ export function Landing() {
                 <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden /> Démo publique en direct <UiIcon name="arrow-right" size={13} />
               </Link>
               <h1 className="mt-6 text-[40px] font-semibold leading-[1.05] tracking-[-0.035em] text-ink [text-wrap:balance] sm:text-6xl">
-                Comprenez votre trafic, sans le superflu.
+                Vos visiteurs, enfin lisibles.
               </h1>
               <p className="mx-auto mt-5 max-w-[580px] text-[16px] leading-relaxed text-ink-3 [text-wrap:pretty] sm:text-[18px]">
-                Visiteurs, sources, pages et conversions pour tout type de site : blog, landing page, boutique ou SaaS. Une balise à coller, un tableau de bord clair, en français.
+                Sources, pages, revenus, carte du monde et robots d’IA sur un seul tableau de bord, en français. Une balise à coller, les premières visites en quelques secondes.
               </p>
               <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link href="/signup" className="btn-dark !h-12 !px-6 !text-[15px]">Commencer gratuitement</Link>
@@ -261,6 +293,8 @@ export function Landing() {
             </div>
           </div>
         </section>
+
+        <Showcase />
 
         {/* Use cases */}
         <section aria-label="Pour quels sites" className="border-y border-line bg-surface">

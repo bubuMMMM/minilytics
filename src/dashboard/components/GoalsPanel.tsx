@@ -307,7 +307,7 @@ function matches(r: Record<string, any>, search: string) {
 function ShowAll({ total, shown, onClick }: { total: number; shown: number; onClick: () => void }) {
   if (total <= shown) return null;
   return (
-    <button className="mx-auto mt-3 block min-h-[44px] text-xs font-semibold uppercase tracking-wider text-ink-3 hover:text-ink" onClick={onClick}>
+    <button className="mx-auto mt-3 block min-h-[44px] text-[13px] font-medium text-ink-3 hover:text-ink" onClick={onClick}>
       Tout afficher ({total})
     </button>
   );

@@ -10,11 +10,40 @@ import { AlertsSettings, ApiAccess, ConnectorsSettings, CrossDomain, PlanUsage, 
 import { useMe } from '../lib/me';
 import { ShareSettings } from '../share/ShareSettings';
 import { WidgetBuilder } from '../share/WidgetBuilder';
+import { Link } from '../components/Link';
+import { UiIcon } from '../components/UiIcon';
+import { PageHeader } from '../components/ui';
+import { LEGACY_SETTINGS_HASH, SETTINGS_SECTIONS } from '../lib/nav';
+
+/** Left sub-navigation on desktop; horizontally scrolling chips on phones / tablets. */
+function SettingsNav({ siteId, sec }: { siteId: string; sec: string }) {
+  useEffect(() => {
+    if (window.matchMedia('(min-width: 1024px)').matches) return;
+    document.querySelector<HTMLElement>('.ml-subnav.is-active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }, [sec]);
+  return (
+    <nav aria-label="Sections des réglages" className="-mx-4 mb-5 sm:-mx-6 lg:sticky lg:top-20 lg:mx-0 lg:mb-0 lg:self-start">
+      <ul className="flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:px-6 lg:flex-col lg:gap-px lg:overflow-visible lg:px-0">
+        {SETTINGS_SECTIONS.map((x) => (
+          <li key={x.id} className="shrink-0">
+            <Link href={`/site/${siteId}/settings/${x.id}`} aria-current={x.id === sec ? 'page' : undefined}
+              className={`ml-subnav ${x.id === sec ? 'is-active' : ''}`}>
+              <UiIcon name={x.icon} size={15} /><span>{x.label}</span>
+            </Link>
+          </li>
+        ))}
+        <li className="shrink-0 lg:mt-3 lg:border-t lg:border-line lg:pt-3">
+          <Link href="/team" className="ml-subnav"><UiIcon name="users" size={15} /><span>Équipe et sécurité</span></Link>
+        </li>
+      </ul>
+    </nav>
+  );
+}
 
 function Section({ title, desc, children }: { title: string; desc?: ReactNode; children: ReactNode }) {
   return (
     <section className="card min-w-0 p-4 sm:p-6">
-      <h2 className="text-[15px] font-semibold">{title}</h2>
+      <h3 className="text-[15px] font-semibold tracking-[-0.01em]">{title}</h3>
       {desc && <p className="mt-1 text-sm text-ink-3">{desc}</p>}
       <div className="mt-4">{children}</div>
     </section>
@@ -40,7 +69,14 @@ function Code({ children }: { children: string }) {
   );
 }
 
-export function Settings({ siteId }: { siteId: string }) {
+export function Settings({ siteId, section }: { siteId: string; section?: string }) {
+  // Old one-page anchors (#partage, #widgets, #alertes) become sub-pages.
+  const legacy = LEGACY_SETTINGS_HASH[window.location.hash.slice(1)];
+  const sec = SETTINGS_SECTIONS.some((x) => x.id === section) ? section! : legacy ?? 'installation';
+  const current = SETTINGS_SECTIONS.find((x) => x.id === sec)!;
+  useEffect(() => {
+    if (section !== sec) window.history.replaceState(null, '', `/site/${siteId}/settings/${sec}${window.location.search}`);
+  }, [section, sec, siteId]);
   const [site, setSite] = useState<Site | null>(null);
   const [form, setForm] = useState<Partial<Site>>({});
   const [saved, setSaved] = useState('');
@@ -55,12 +91,7 @@ export function Settings({ siteId }: { siteId: string }) {
     });
   }, [siteId]);
 
-  // Deep links (#partage, #widgets) land on their section once the page has rendered.
-  useEffect(() => {
-    if (!site || !window.location.hash) return;
-    const t = setTimeout(() => document.querySelector(window.location.hash)?.scrollIntoView({ block: 'start' }), 60);
-    return () => clearTimeout(t);
-  }, [site]);
+  useEffect(() => { window.scrollTo({ top: 0 }); }, [sec]);
 
   async function save(patch: Partial<Site>, msg = 'Enregistré') {
     setError('');
@@ -90,17 +121,15 @@ export function Settings({ siteId }: { siteId: string }) {
   return (
     <div className="ml-site-bg ml-has-bottom-nav min-h-screen">
     <AppHeader siteId={site.id} active="settings" title={site.name} />
-    <main id="contenu" className="mx-auto max-w-3xl space-y-5 px-4 py-6 sm:px-6 lg:py-10">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><h1 className="text-2xl font-semibold tracking-tight sm:text-[26px]">Réglages</h1><p className="mt-1 text-[13px] text-ink-3">Installation du script, objectifs, paiements et préférences.</p></div>
-        <div className="flex min-w-0 items-center gap-2 text-[13px] text-ink-3">
-          <Favicon domain={site.domain} size={16} /> <span className="truncate font-mono text-[12px]" translate="no">{site.domain}</span>
-        </div>
-      </div>
-
+    <main id="contenu" className="mx-auto max-w-[1180px] px-4 py-6 sm:px-6 lg:py-10">
+      <PageHeader title="Réglages" description="Installation, intégrations, partage et données du site." meta={<span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-ink-4" translate="no"><Favicon domain={site.domain} size={14} />{site.domain}</span>} />
+      <div className="lg:grid lg:grid-cols-[208px_minmax(0,1fr)] lg:gap-10">
+        <SettingsNav siteId={site.id} sec={sec} />
+        <div className="min-w-0 max-w-3xl space-y-5">
+          <div className="hidden lg:block"><h2 className="text-[17px] font-semibold tracking-[-0.01em]">{current.label}</h2><p className="mt-1 text-[13px] text-ink-3">{current.desc}</p></div>
+      {sec === 'installation' && <>
       <AiSetup site={site} origin={origin} />
-
-      <Section title="1. Installer le script de suivi" desc={<>Collez-le dans le <code>&lt;head&gt;</code> de chaque page de {site.domain} (et de ses sous-domaines).</>}>
+      <Section title="Installer le script de suivi" desc={<>Collez-le dans le <code>&lt;head&gt;</code> de chaque page de {site.domain} (et de ses sous-domaines).</>}>
         <Code>{snippet}</Code>
         <details className="mt-4 text-sm">
           <summary className="flex min-h-[44px] cursor-pointer items-center font-medium">Exemple Next.js / React</summary>
@@ -134,8 +163,7 @@ async rewrites() {
           Excluez vos propres visites : ouvrez <code>https://{site.domain}/?ml_ignore=true</code> une fois dans chaque navigateur que vous utilisez.
         </p>
       </Section>
-
-      <Section title="2. Suivre les clics et les objectifs" desc="Les objectifs apparaissent dans l’onglet Objectifs et servent dans les entonnoirs et les filtres. Les vidéos et actions personnalisées alimentent les vues Vidéos et Interactions.">
+      <Section title="Suivre les clics et les objectifs" desc="Les objectifs apparaissent dans l’onglet Objectifs et servent dans les entonnoirs et les filtres. Les vidéos et actions personnalisées alimentent les vues Vidéos et Interactions.">
         <Code>{`<!-- N'importe quel élément : un clic envoie l'objectif -->
 <button data-ml-goal="signup_click">Commencer</button>
 
@@ -157,7 +185,6 @@ async rewrites() {
 </script>`}</Code>
         <p className="mt-3 text-sm text-ink-3">Les clics vers des liens externes sont suivis automatiquement (onglet Liens sortants).</p>
       </Section>
-
       <Section title="Sponsors et contenus (impressions et clics)" desc="Ajoutez des attributs aux éléments à mesurer. Une impression compte quand au moins la moitié de l’élément reste visible 1 seconde, une fois par page vue. Les clics (y compris molette et nouvel onglet) partent même si la page change.">
         <Code>{`<!-- Un emplacement sponsor : vue Sponsors -->
 <a href="https://sponsor.com" data-ml-block="trending-sponsor-2"
@@ -169,9 +196,8 @@ async rewrites() {
      data-ml-title="Titre de la vidéo">…</a>
 </section>`}</Code>
       </Section>
-
       <Section
-        title="Nouveau · Analyse du scroll et du comportement"
+        title="Scroll, temps actif et formulaires"
         desc="Aucune nouvelle installation n'est nécessaire. La version actuelle du script mesure automatiquement le scroll, le temps actif et les clics vers les pages internes."
       >
         <div className="grid gap-3 sm:grid-cols-3">
@@ -194,9 +220,59 @@ async rewrites() {
         </div>
         <p className="mt-3 text-xs leading-relaxed text-ink-3">Les nouveaux indicateurs démarrent à la mise à jour du script. Ils ne reconstituent pas l'historique. Les seuils de scroll correspondent à des sessions, pas à des enregistrements vidéo ni à un suivi de la souris.</p>
       </Section>
-
+      </>}
+      {sec === 'general' && <>
+      <Section title="Général">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="label">Nom</label>
+            <input className="input" value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Domaine</label>
+            <input className="input" value={form.domain ?? ''} onChange={(e) => setForm({ ...form, domain: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Fuseau horaire</label>
+            <input className="input" value={form.timezone ?? ''} onChange={(e) => setForm({ ...form, timezone: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Devise des revenus</label>
+            <input className="input" value={form.currency ?? ''} maxLength={3} onChange={(e) => setForm({ ...form, currency: e.target.value })} />
+          </div>
+        </div>
+        <button className="btn-dark mt-4" onClick={() => save({ name: form.name, domain: form.domain, timezone: form.timezone, currency: form.currency }, 'Modifications enregistrées')}>
+          Enregistrer les modifications
+        </button>
+      </Section>
+      <Section title="Page d'accueil publique">
+        <p className="text-sm text-muted">Affiche les statistiques agrégées de ce site (visiteurs, pages, sources, pays) sur la page d'accueil de Minilytics, sans connexion. Aucune donnée individuelle ni clé API n'est exposée.</p>
+        <label className="mt-4 flex items-center gap-3 text-sm font-medium">
+          <input type="checkbox" className="h-4 w-4" checked={Number(site.is_public ?? 0) === 1}
+            onChange={(e) => save({ is_public: e.target.checked ? 1 : 0 }, e.target.checked ? 'Site affiché sur la page publique' : 'Site retiré de la page publique')} />
+          Afficher ce site sur la page d'accueil publique
+        </label>
+      </Section>
+      {me?.role === 'owner' && <Section title="Zone de danger">
+        <button
+          className="btn border-danger/30 text-danger"
+          onClick={async () => {
+            if (prompt(`Tapez ${site.domain} pour supprimer ce site et toutes ses données`) !== site.domain) return;
+            await api(`/api/sites/${siteId}`, { method: 'DELETE' });
+            navigate('/sites');
+          }}
+        >
+          Supprimer le site et toutes ses données
+        </button>
+      </Section>}
+      </>}
+      {sec === 'script' && <>
+      <TrackerOptions site={site} origin={origin} Section={Section} Code={Code} />
+      <CrossDomain site={site} Section={Section} Code={Code} canEdit />
+      </>}
+      {sec === 'revenus' && <>
       <Section
-        title="3. Connecter Dodo Payments (attribution des revenus)"
+        title="Dodo Payments (attribution des revenus)"
         desc="Les paiements sont liés au visiteur qui a payé et attribués à la source qui l’a amené."
       >
         <ol className="list-decimal space-y-4 pl-5 text-sm">
@@ -254,25 +330,7 @@ const session = await dodo.checkoutSessions.create({
           </li>
         </ol>
       </Section>
-
       <RevenueIntegrations site={site} Section={Section} Code={Code} />
-
-      <AlertsSettings site={site} Section={Section} canEdit />
-
-      <ConnectorsSettings site={site} Section={Section} canEdit />
-
-      <TrackerOptions site={site} origin={origin} Section={Section} Code={Code} />
-
-      <CrossDomain site={site} Section={Section} Code={Code} canEdit />
-
-      <ApiAccess site={site} Section={Section} Code={Code} />
-
-      <PlanUsage Section={Section} />
-
-      <ExclusionsSettings site={site} Section={Section} />
-
-      <PlausibleImport site={site} Section={Section} canEdit />
-
       <Section title="Autres moyens de paiement / API serveur" desc="Envoyez des paiements ou des objectifs depuis votre backend avec la clé API de ce site.">
         <div className="mb-3 flex flex-col gap-2 sm:flex-row">
           <input className="input min-w-0 font-mono" readOnly value={site.api_key} aria-label="Clé API" />
@@ -297,63 +355,37 @@ curl -X POST ${origin}/api/v1/goals \\
   -H "Content-Type: application/json" \\
   -d '{"visitor_id":"<ml_vid cookie>","name":"signup"}'`}</Code>
       </Section>
-
-      <LinkBuilder domain={site.domain} />
-
+      </>}
+      {sec === 'partage' && <>
       <ShareSettings site={site} />
+      </>}
+      {sec === 'widgets' && <>
       <WidgetBuilder site={site} />
-
-      <Section title="Page d'accueil publique">
-        <p className="text-sm text-muted">Affiche les statistiques agrégées de ce site (visiteurs, pages, sources, pays) sur la page d'accueil de Minilytics, sans connexion. Aucune donnée individuelle ni clé API n'est exposée.</p>
-        <label className="mt-4 flex items-center gap-3 text-sm font-medium">
-          <input type="checkbox" className="h-4 w-4" checked={Number(site.is_public ?? 0) === 1}
-            onChange={(e) => save({ is_public: e.target.checked ? 1 : 0 }, e.target.checked ? 'Site affiché sur la page publique' : 'Site retiré de la page publique')} />
-          Afficher ce site sur la page d'accueil publique
-        </label>
-      </Section>
-
-      <Section title="Général">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="label">Nom</label>
-            <input className="input" value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </div>
-          <div>
-            <label className="label">Domaine</label>
-            <input className="input" value={form.domain ?? ''} onChange={(e) => setForm({ ...form, domain: e.target.value })} />
-          </div>
-          <div>
-            <label className="label">Fuseau horaire</label>
-            <input className="input" value={form.timezone ?? ''} onChange={(e) => setForm({ ...form, timezone: e.target.value })} />
-          </div>
-          <div>
-            <label className="label">Devise des revenus</label>
-            <input className="input" value={form.currency ?? ''} maxLength={3} onChange={(e) => setForm({ ...form, currency: e.target.value })} />
-          </div>
-        </div>
-        <button className="btn-dark mt-4" onClick={() => save({ name: form.name, domain: form.domain, timezone: form.timezone, currency: form.currency }, 'Modifications enregistrées')}>
-          Enregistrer les modifications
-        </button>
-      </Section>
-
+      </>}
+      {sec === 'alertes' && <>
+      <AlertsSettings site={site} Section={Section} canEdit />
+      </>}
+      {sec === 'integrations' && <>
+      <ConnectorsSettings site={site} Section={Section} canEdit />
+      <LinkBuilder domain={site.domain} />
+      </>}
+      {sec === 'api' && <>
+      <ApiAccess site={site} Section={Section} Code={Code} />
+      </>}
+      {sec === 'donnees' && <>
+      <ExclusionsSettings site={site} Section={Section} />
+      <PlausibleImport site={site} Section={Section} canEdit />
+      </>}
+      {sec === 'offre' && <>
+      <PlanUsage Section={Section} />
+      </>}
       {(saved || error) && (
         <div className={`fixed bottom-24 left-1/2 z-50 md:bottom-6 -translate-x-1/2 rounded-xl px-4 py-2 text-sm text-white shadow-lg ${error ? 'bg-danger' : 'bg-ink'}`}>
           {error || saved}
         </div>
       )}
-
-      {me?.role === 'owner' && <Section title="Zone de danger">
-        <button
-          className="btn border-danger/30 text-danger"
-          onClick={async () => {
-            if (prompt(`Tapez ${site.domain} pour supprimer ce site et toutes ses données`) !== site.domain) return;
-            await api(`/api/sites/${siteId}`, { method: 'DELETE' });
-            navigate('/sites');
-          }}
-        >
-          Supprimer le site et toutes ses données
-        </button>
-      </Section>}
+        </div>
+      </div>
     </main>
     <BottomNav siteId={site.id} active="settings" />
     </div>
@@ -390,7 +422,7 @@ function AiSetup({ site, origin }: { site: Site; origin: string }) {
       </button>
       {open && <pre className="code mt-3 max-h-96 whitespace-pre-wrap">{prompt}</pre>}
       <p className="mt-3 text-xs text-ink-3">
-        L’IA s’occupe du code. Le webhook Dodo reste à connecter vous-même (étape 3 ci-dessous), car cela se fait dans le tableau de bord Dodo.
+        L’IA s’occupe du code. Le webhook Dodo reste à connecter vous-même (Réglages › Revenus), car cela se fait dans le tableau de bord Dodo.
       </p>
     </section>
   );

@@ -1,5 +1,5 @@
+import { AccountHeader } from '../components/AppNav';
 import { useEffect, useState, type ReactNode } from 'react';
-import { navigate } from '../App';
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { UiIcon } from '../components/UiIcon';
@@ -29,15 +29,7 @@ const ago = (t: number | null) => (t ? `il y a ${fmtAgo(Date.now() - t)}` : 'jam
 function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-canvas">
-      <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="mx-auto flex h-14 max-w-[1000px] items-center justify-between gap-3 px-4 sm:px-6">
-          <button onClick={() => navigate('/sites')} aria-label="Mes sites" className="flex min-h-[44px] items-center rounded-md"><Logo small /></button>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <button className="btn-ghost !text-[13px]" onClick={() => navigate('/sites')}>Mes sites</button>
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      <AccountHeader current="team" width="max-w-[1000px]" />
       <main id="contenu" className="mx-auto max-w-[1000px] space-y-6 px-4 pb-24 pt-8 sm:px-6 sm:pt-12">{children}</main>
     </div>
   );
@@ -210,7 +202,7 @@ export function Team() {
   return (
     <Shell>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-[26px]">Équipe et sécurité</h1>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] sm:text-[26px]">Équipe et sécurité</h1>
         <p className="mt-1 text-[13px] text-ink-3">
           {me?.role ? <>Vous êtes connecté en tant que <strong className="font-semibold text-ink">{ROLE_LABEL[me.role]}</strong>{me.email ? ` (${me.email})` : ''}.</> : '\u00a0'}
         </p>

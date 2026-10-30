@@ -1,3 +1,4 @@
+import { PageHeader } from '../components/ui';
 import { useEffect, useState } from 'react';
 import { Avatar, DeviceIcon, Favicon, Flag, SourceIcon } from '../components/Icons';
 import { AppHeader, BottomNav } from '../components/AppNav';
@@ -22,7 +23,7 @@ function MinuteBars({ data }: { data: number[] }) {
         {data.map((v, i) => (
           <div key={i} className="group relative flex h-full flex-1 items-end">
             <div
-              className={`w-full rounded-t-[4px] transition-all duration-500 ${i === data.length - 1 ? 'bg-success' : 'bg-accent group-hover:bg-accent'}`}
+              className={`w-full rounded-t-[4px] transition-[width] duration-200 ${i === data.length - 1 ? 'bg-success' : 'bg-accent group-hover:bg-accent'}`}
               style={{ height: `${Math.max(v ? 6 : 2, (v / max) * 100)}%`, opacity: v ? 1 : 0.25 }}
             />
             <div className="pointer-events-none absolute -top-8 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-ink px-2 py-1 text-[11px] text-white group-hover:block">
@@ -49,7 +50,7 @@ function List({ title, rows, render }: { title: string; rows: { label: string | 
       <div className="space-y-1">
         {rows.map((r, i) => (
           <div key={i} className="relative flex h-9 items-center rounded-lg">
-            <div className="absolute inset-y-0 left-0 rounded-lg bg-visitorsSoft transition-all duration-500" style={{ width: `${(r.visitors / max) * 100}%` }} />
+            <div className="absolute inset-y-0 left-0 rounded-lg bg-visitorsSoft transition-[width] duration-200" style={{ width: `${(r.visitors / max) * 100}%` }} />
             <div className="relative flex min-w-0 flex-1 items-center gap-2 px-3 text-sm">{render(r.label)}</div>
             <div className="tnum relative pr-3 text-sm font-semibold">{r.visitors}</div>
           </div>
@@ -113,15 +114,9 @@ export function Realtime({ siteId }: { siteId: string }) {
     <div className="ml-site-bg ml-has-bottom-nav min-h-screen pb-12">
       <AppHeader siteId={siteId} active="realtime" online={!!rt?.online} title={site?.name} />
       <main id="contenu" className="mx-auto max-w-[1480px] animate-fadein px-4 py-6 sm:px-6 lg:py-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink sm:text-[26px]">En direct</h1>
-          <p className="mt-1 text-[13px] text-ink-3">Ce qui se passe sur votre site en ce moment · actualisé toutes les {POLL_MS / 1000} s</p>
-        </div>
-        {site && <span className="flex items-center gap-2 text-[13px] font-medium text-ink-2"><Favicon domain={site.domain} size={16} /> <span className="font-mono text-[12px] text-ink-3" translate="no">{site.domain}</span></span>}
-      </div>
-
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+      <PageHeader title="Temps réel" description={`Ce qui se passe sur votre site en ce moment · actualisé toutes les ${POLL_MS / 1000} s`}
+        meta={site ? <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-ink-4" translate="no"><Favicon domain={site.domain} size={14} />{site.domain}</span> : undefined} />
+      <div className="grid gap-4 lg:grid-cols-3">
         <div className="ml-bento relative overflow-hidden p-6 lg:col-span-1">
           <div className="flex items-center gap-2 text-sm font-medium text-ink-3">
             <LiveDot on={!!rt?.online} /> Visiteurs en ligne

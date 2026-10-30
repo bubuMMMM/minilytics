@@ -1,3 +1,4 @@
+import { EmptyState } from './ui';
 import { useEffect, useMemo, useState } from 'react';
 import { qs } from '../lib/api';
 import { blockName, downloadCsv, type BlockDetail, type BlockKind, type BlockRow, type BlocksReport, type BreakRow } from '../lib/blocks';
@@ -265,7 +266,7 @@ const BREAK_TABS: { key: keyof BlockDetail['breakdown']; label: string }[] = [
 
 function BreakList({ dim, rows }: { dim: string; rows: BreakRow[] }) {
   const max = Math.max(1, ...rows.map((r) => r.impressions));
-  if (!rows.length) return <p className="py-6 text-center text-[13px] text-ink-3">Aucune donnée</p>;
+  if (!rows.length) return <EmptyState compact title="Aucune donnée" />;
   return (
     <ul className="space-y-1">
       {rows.map((r, i) => (

@@ -17,6 +17,8 @@ import { BlocksView } from '../components/BlocksView';
 import { SocialView } from '../components/SocialView';
 import { BotsView } from '../components/BotsView';
 import { Link } from '../components/Link';
+import { PageHeader, SectionHeader } from '../components/ui';
+import { useHashScroll } from '../lib/hash';
 import { ImportedCard } from '../components/ImportedCard';
 import { qs, type Overview, type Site } from '../lib/api';
 import { DashContext, useDash, type Dash } from '../lib/context';
@@ -68,6 +70,8 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
     };
   }, [site, q, reloadKey, overview?.decimals, addFilter]);
 
+  useHashScroll(!!overview && view === 'overview');
+
   if (sites && !site) {
     return (
       <div className="p-10 text-center">
@@ -85,18 +89,19 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
       <div className="ml-site-bg ml-has-bottom-nav min-h-screen pb-10">
         <AppHeader siteId={site.id} active={view} online={!!overview?.online} title={site.name} />
         <main id="contenu" className="mx-auto max-w-[1480px] px-4 py-6 sm:px-6 lg:py-10">
-          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-tight text-ink sm:text-[26px]" translate={view === 'overview' ? 'no' : undefined}>{VIEW_META[view].title(site.name)}</h1>
-              <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[13px] text-ink-3">{VIEW_META[view].sub}<span aria-hidden className="text-ink-4">·</span><span className="font-mono text-[12px] text-ink-3" translate="no">{site.domain}</span>
-                <a href={'/site/' + site.id + '/realtime'} onClick={(e) => { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); navigate('/site/' + site.id + '/realtime'); }} className="inline-flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 text-[12px] font-medium text-ink-2 transition-colors hover:border-line-strong"><LiveDot on={!!overview?.online} />{overview ? overview.online + ' en ligne' : 'Temps réel'}</a>
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {me && me.role !== 'viewer' && <Link href={`/site/${site.id}/settings#partage`} className="btn" aria-label="Partager le tableau de bord"><UiIcon name="share" size={15} /><span className="hidden sm:inline">Partager</span></Link>}
+          <PageHeader
+            title={VIEW_META[view].title(site.name)}
+            translateTitle={view !== 'overview'}
+            description={VIEW_META[view].sub}
+            meta={<>
+              <span className="font-mono text-[12px] text-ink-4" translate="no">{site.domain}</span>
+              <Link href={'/site/' + site.id + '/realtime'} className="inline-flex h-6 items-center gap-1.5 rounded-full border border-line px-2 text-[12px] font-medium text-ink-2 transition-colors duration-150 hover:border-line-strong"><LiveDot on={!!overview?.online} />{overview ? overview.online + ' en ligne' : 'Temps réel'}</Link>
+            </>}
+            actions={<>
               <Toolbar site={site} sites={sites!} q={q} update={update} overview={overview} onRefresh={() => setReloadKey((k) => k + 1)} loading={loading} />
-            </div>
-          </div>
+              {me && me.role !== 'viewer' && <Link href={`/site/${site.id}/settings/partage`} className="btn hidden sm:inline-flex" aria-label="Partager le tableau de bord"><UiIcon name="share" size={15} />Partager</Link>}
+            </>}
+          />
 
         {view !== 'bots' && <FilterBar siteId={site.id} q={q} update={update} />}
 
@@ -126,19 +131,15 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
         <RevenueInsights />
         <VideosTeaser onOpen={() => navigate('/site/' + site.id + '/videos' + window.location.search)} />
 
-        <section className="mt-7 scroll-mt-[110px]" aria-label="Analyse comportementale">
-          <div className="mb-5">
-            <div className="ml-kicker">Engagement</div>
-            <h2 className="mt-1 text-lg font-semibold tracking-tight">Découvrez comment vos pages sont parcourues</h2>
-            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-3">Scroll, temps actif réel, liens cliqués et pages de fin de session — filtrés sur la même période et les mêmes segments que vos statistiques.</p>
-          </div>
+        <section id="engagement" className="mt-8 scroll-mt-20" aria-label="Analyse comportementale">
+          <SectionHeader kicker="Audience · Engagement" title="Comment vos pages sont parcourues" description="Scroll, temps actif, liens cliqués et pages de fin de session, sur la même période et les mêmes filtres." />
           <EngagementPanel siteId={siteId} query={q} reloadKey={reloadKey}/>
         </section>
         <LiveGlobe siteId={siteId} />
 
         <SourcesPanels />
 
-        <div className="mt-5">
+        <div id="objectifs" className="mt-5 scroll-mt-20">
           <GoalsPanel totalVisitors={overview?.current.visitors ?? 0} />
         </div>
 
@@ -162,14 +163,8 @@ function SourcesPanels({ full = false }: { full?: boolean }) {
   const { site } = useDash();
   return (
     <section className="mt-7" aria-labelledby="sources-title">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="ml-kicker">Acquisition</div>
-          <h2 id="sources-title" className="mt-1 text-lg font-semibold tracking-tight">D’où viennent vos visiteurs</h2>
-          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-3">Touchez une ligne pour filtrer tout le tableau de bord. Chaque bloc s’exporte en CSV.</p>
-        </div>
-        {!full && <Link href={`/site/${site.id}/sources${window.location.search}`} className="btn">Toutes les sources <UiIcon name="arrow-right" size={16} /></Link>}
-      </div>
+      <SectionHeader id="sources-title" kicker={full ? undefined : 'Acquisition'} title={full ? 'Toutes les dimensions' : 'D’où viennent vos visiteurs'} description="Touchez une ligne pour filtrer tout le tableau de bord. Chaque bloc s’exporte en CSV."
+        action={!full ? <Link href={`/site/${site.id}/sources${window.location.search}`} className="btn">Toutes les sources <UiIcon name="arrow-right" size={16} /></Link> : undefined} />
         <div className="grid gap-5 lg:grid-cols-2">
           <Panel
             title="Sources"

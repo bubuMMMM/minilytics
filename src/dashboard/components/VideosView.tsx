@@ -314,15 +314,15 @@ export function VideosTeaser({ onOpen }: { onOpen: () => void }) {
   if (!data || !data.videos.length) return null;
   const t = data.totals;
   return (
-    <section className="ml-bento mt-7 p-5" aria-label="Top vidéos">
+    <section className="ml-bento mt-5 p-5" aria-label="Top vidéos">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div><div className="ml-kicker">Visionnage</div><h2 className="mt-1 text-lg font-semibold tracking-tight">Ce que vos visiteurs regardent</h2>
+        <div><div className="mb-1 text-[12px] font-medium text-ink-3">Contenu · Vidéos</div><h2 className="text-[17px] font-semibold tracking-[-0.01em]">Ce que vos visiteurs regardent</h2>
           <p className="mt-1 text-[13px] text-ink-3">{fmtNumber(t.plays)} lecture{t.plays > 1 ? 's' : ''} · {fmtNumber(t.viewers)} spectateur{t.viewers > 1 ? 's' : ''} · {fmtWatch(t.watchSeconds)} de visionnage · {fmtPct(t.completionRate)} de complétion</p></div>
-        <button className="btn-dark" onClick={onOpen}>Toutes les vidéos <UiIcon name="arrow-right" size={16} /></button>
+        <button className="btn" onClick={onOpen}>Toutes les vidéos <UiIcon name="arrow-right" size={16} /></button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 xl:grid-cols-5">
         {data.videos.slice(0, 5).map((v) => (
-          <button key={v.id} onClick={onOpen} className="group rounded-xl border border-line p-2 text-left transition hover:border-accent/30 hover:bg-well">
+          <button key={v.id} onClick={onOpen} className="group w-[68vw] max-w-[260px] shrink-0 snap-start rounded-xl border border-line p-2 text-left transition-colors duration-150 hover:border-line-strong hover:bg-well sm:w-auto sm:max-w-none">
             <Thumb id={v.id} className="aspect-video w-full" />
             <div className="mt-2 line-clamp-2 text-[13px] font-medium leading-snug text-ink">{v.title ?? v.id}</div>
             <div className="mt-1 text-[11px] text-ink-3">{v.plays} lecture{v.plays > 1 ? 's' : ''} · {fmtWatch(v.watchSeconds)} · {fmtPct(v.completionRate)}</div>

@@ -12,6 +12,7 @@ import { Favicon } from './Icons';
 import { StatCard } from './StatCard';
 import { TrendChart } from './TrendChart';
 import { UiIcon } from './UiIcon';
+import { Badge, SectionHeader, type Tone } from './ui';
 
 interface BotsReport {
   range: { from: number; to: number; granularity: string };
@@ -31,7 +32,7 @@ interface BotsReport {
 interface Setup { endpoint: string; token: string; lastForwardAt: number | null; forwarded: number }
 
 const CAT_COLOR: Record<BotCategory, string> = { training: 'rgb(var(--warning))', search: 'rgb(var(--accent))', assistant: 'rgb(var(--success))' };
-const CAT_BADGE: Record<BotCategory, string> = { training: 'border-warning/40 text-warning', search: 'border-accent/40 text-accent', assistant: 'border-success/40 text-success' };
+const CAT_TONE: Record<BotCategory, Tone> = { training: 'warning', search: 'accent', assistant: 'success' };
 const AI_DOMAIN: Record<string, string> = { ChatGPT: 'chatgpt.com', Claude: 'claude.ai', Perplexity: 'perplexity.ai', Gemini: 'gemini.google.com', Copilot: 'copilot.microsoft.com' };
 
 function SetupPanel({ siteId, open: initial }: { siteId: string; open: boolean }) {
@@ -130,7 +131,7 @@ export function BotsView() {
           {data ? (
             <BarList empty="Aucun robot d’IA sur cette période." rows={data.bots.map((b) => ({
               key: b.bot,
-              label: <span className="flex min-w-0 items-center gap-2"><span className="truncate font-medium">{b.bot}</span><span className="hidden truncate text-[12px] text-ink-3 sm:inline">{b.operator}</span><span className={`shrink-0 rounded-full border px-1.5 text-[10px] font-semibold uppercase tracking-wide ${CAT_BADGE[b.category]}`}>{BOT_CATEGORY_LABEL[b.category].split(' ')[0]}</span></span>,
+              label: <span className="flex min-w-0 items-center gap-2"><span className="truncate font-medium">{b.bot}</span><span className="hidden truncate text-[12px] text-ink-3 sm:inline">{b.operator}</span><Badge tone={CAT_TONE[b.category]}>{BOT_CATEGORY_LABEL[b.category].split(' ')[0]}</Badge></span>,
               value: b.hits,
               extra: `${fmtNumber(b.pages)} p.`,
             }))} />
@@ -140,18 +141,12 @@ export function BotsView() {
 
       <section className="card min-w-0 p-4 sm:p-5">
         <h2 className="mb-3 text-[15px] font-semibold tracking-tight">Pages lues par les robots d’IA</h2>
-        {data ? <BarList empty="Aucune page explorée sur cette période." rows={data.pages.map((p) => ({ key: p.path ?? '—', label: <span className="font-mono text-[12px]">{p.path ?? '—'}</span>, value: p.hits, extra: <span className="max-w-[280px] truncate">{p.names}</span> }))} /> : <div className="ml-skeleton h-40 w-full" />}
+        {data ? <BarList empty="Aucune page explorée sur cette période." rows={data.pages.map((p) => ({ key: p.path ?? '—', label: <span className="font-mono text-[12px]">{p.path ?? '—'}</span>, value: p.hits, extra: <span className="block max-w-[280px] truncate">{p.names}</span> }))} /> : <div className="ml-skeleton h-40 w-full" />}
       </section>
 
-      <section aria-labelledby="ai-traffic" className="pt-2">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <div className="ml-kicker">Acquisition</div>
-            <h2 id="ai-traffic" className="mt-1 text-lg font-semibold tracking-tight">Trafic depuis l’IA</h2>
-            <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-ink-3">Vraies visites (avec le script) arrivées depuis ChatGPT, Perplexity, Claude, Gemini ou Copilot — à ne pas confondre avec les robots ci-dessus.</p>
-          </div>
-          <button className="btn" onClick={() => navigate(`/site/${site.id}?${qs({ ...q, filters: { ...q.filters, channel: 'AI' } })}`)}>Filtrer le tableau de bord <UiIcon name="arrow-right" size={15} /></button>
-        </div>
+      <section aria-labelledby="ai-traffic" className="pt-4">
+        <SectionHeader id="ai-traffic" kicker="Visites humaines" title="Trafic depuis l’IA" description="Vraies visites (avec le script) arrivées depuis ChatGPT, Perplexity, Claude, Gemini ou Copilot — à ne pas confondre avec les robots ci-dessus."
+          action={<button className="btn" onClick={() => navigate(`/site/${site.id}?${qs({ ...q, filters: { ...q.filters, channel: 'AI' } })}`)}>Filtrer le tableau de bord <UiIcon name="arrow-right" size={15} /></button>} />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard icon="users" label="Visiteurs venus de l’IA" loading={!ai} value={fmtNumber(ai?.visitors ?? 0)} />
           <StatCard icon="activity" label="Visites" loading={!ai} value={fmtNumber(ai?.sessions ?? 0)} hint={ai ? `${fmtNumber(ai.pageviews)} pages vues` : ''} />

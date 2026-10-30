@@ -97,11 +97,11 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
       <div className="mt-3 flex flex-wrap gap-4 text-[12px] text-ink-3">
         {series.map((s) => <span key={s.key} className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: s.color }} />{s.label}{s.axis === 'right' ? ' (échelle de droite)' : ''}</span>)}
       </div>
-      <table className="sr-only">
+      <div className="sr-only"><table>
         <caption>Données du graphique</caption>
         <thead><tr><th>Période</th>{series.map((s) => <th key={s.key}>{s.label}</th>)}</tr></thead>
         <tbody>{buckets.map((b, i) => <tr key={b}><td>{bucketLabel(b, granularity, true)}</td>{series.map((s) => <td key={s.key}>{s.values[i] ?? 0}</td>)}</tr>)}</tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

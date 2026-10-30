@@ -1,11 +1,10 @@
+import { AccountHeader } from '../components/AppNav';
 import { useEffect, useRef, useState } from 'react';
 import { navigate } from '../App';
 import { Favicon } from '../components/Icons';
-import { Logo } from '../components/Logo';
 import { Modal } from '../components/Modal';
 import { Sparkline, Trend } from '../components/Sparkline';
 import { UiIcon } from '../components/UiIcon';
-import { ThemeToggle } from '../components/ThemeToggle';
 import { api, type Site } from '../lib/api';
 import { fmtNumber } from '../lib/format';
 import { useMe } from '../lib/me';
@@ -31,11 +30,6 @@ export function Sites() {
   const visibleSites = sites?.filter((site) => (site.name + ' ' + site.domain).toLowerCase().includes(search.trim().toLowerCase()));
   const online = sites?.reduce((n, s) => n + (s.online ?? 0), 0) ?? 0;
 
-  async function logout() {
-    await api('/api/auth/logout', { method: 'POST' });
-    window.dispatchEvent(new Event('ml:logout'));
-    navigate('/');
-  }
 
   const totals = [
     { label: 'Sites', value: sites ? fmtNumber(sites.length) : null },
@@ -46,22 +40,12 @@ export function Sites() {
   return (
     <div className="min-h-screen bg-canvas">
       <a href="#contenu" className="ml-skip">Aller au contenu</a>
-      <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-3 px-4 sm:px-6">
-          <button onClick={() => navigate('/sites')} aria-label="Mes sites" className="flex min-h-[44px] items-center rounded-md"><Logo small /></button>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <button className="btn-ghost hidden !text-[13px] sm:inline-flex" onClick={() => navigate('/demo')}>Démo publique</button>
-            <a href="/team" onClick={(e) => { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); navigate('/team'); }} className="btn-ghost !text-[13px]" aria-label={isOwner ? 'Équipe et sécurité' : 'Mon compte et sessions'}><UiIcon name="users" size={15} /><span className="hidden sm:inline">{isOwner ? 'Équipe' : 'Mon compte'}</span></a>
-            <ThemeToggle />
-            <button className="btn-ghost !text-[13px]" onClick={logout} aria-label="Se déconnecter"><UiIcon name="logout" size={15} /><span className="hidden sm:inline">Déconnexion</span></button>
-          </div>
-        </div>
-      </header>
+      <AccountHeader current="sites" />
 
       <main id="contenu" className="mx-auto max-w-[1200px] px-4 pb-24 pt-8 sm:px-6 sm:pt-12">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-[26px]">Mes sites</h1>
+            <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] sm:text-[26px]">Mes sites</h1>
             <p className="mt-1 text-[13px] text-ink-3">Choisissez un site pour ouvrir ses statistiques.</p>
           </div>
           <div className="flex w-full items-center gap-2 sm:w-auto">

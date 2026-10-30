@@ -95,7 +95,7 @@ export function EngagementPanel({ siteId, publicSiteId, days = 7, query, reloadK
             const width = denominator ? Math.min(100, sessions / denominator * 100) : 0;
             return <div key={milestone}>
               <div className="mb-2 flex items-center justify-between text-[13px]"><span className="flex items-center gap-2.5 font-semibold text-ink-2"><span className="w-8 text-right font-mono text-ink-3">{milestone}%</span><span className="font-normal text-ink-3">{index === 0 ? 'Début de lecture' : index === 4 ? 'Bas de page' : index === 3 ? 'Presque au bout' : 'Page parcourue'}</span></span><span className="tabular-nums font-semibold text-accent">{denominator ? pct(sessions, denominator) : '—'}<span className="ml-2 text-[11px] font-normal text-ink-4">({nf(sessions)})</span></span></div>
-              <div className="h-3 overflow-hidden rounded-full bg-well"><div className="h-full rounded-full bg-gradient-to-r from-accent to-accent transition-[width] duration-500" style={{width: width + '%'}}/></div>
+              <div className="h-3 overflow-hidden rounded-full bg-well"><div className="h-full rounded-full bg-gradient-to-r from-accent to-accent transition-[width] duration-200" style={{width: width + '%'}}/></div>
             </div>;
           })}
         </div>

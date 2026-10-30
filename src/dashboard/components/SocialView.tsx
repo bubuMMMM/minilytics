@@ -4,6 +4,7 @@ import { useDash } from '../lib/context';
 import { fmtAgo, fmtNumber, fmtPct } from '../lib/format';
 import { useApi } from '../lib/useApi';
 import { InfoTip } from './InfoTip';
+import { BarList } from './BarList';
 import { StatCard } from './StatCard';
 import { UiIcon } from './UiIcon';
 
@@ -26,18 +27,7 @@ interface SocialReport {
 const slug = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 
 function Bars({ rows, empty }: { rows: { label: string; value: number }[]; empty: string }) {
-  const max = Math.max(1, ...rows.map((r) => r.value));
-  if (!rows.length) return <p className="py-6 text-center text-[13px] text-ink-3">{empty}</p>;
-  return (
-    <ul className="space-y-2.5">
-      {rows.map((r) => (
-        <li key={r.label}>
-          <div className="mb-1 flex justify-between gap-3 text-[13px]"><span className="min-w-0 truncate font-medium text-ink-2" title={r.label}>{r.label}</span><span className="tnum shrink-0 text-ink-3">{fmtNumber(r.value)}</span></div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-well"><div className="h-full rounded-full bg-accent" style={{ width: `${(r.value / max) * 100}%` }} /></div>
-        </li>
-      ))}
-    </ul>
-  );
+  return <BarList empty={empty} rows={rows.map((r) => ({ key: r.label, label: <span title={r.label}>{r.label}</span>, value: r.value }))} />;
 }
 
 function LinkBuilder({ domain }: { domain: string }) {
@@ -124,10 +114,7 @@ export function SocialView() {
 
   return (
     <section className="space-y-5" aria-labelledby="social-title">
-      <div>
-        <h2 id="social-title" className="text-lg font-semibold tracking-tight">Réseaux sociaux et 𝕏</h2>
-        <p className="mt-1 max-w-3xl text-[13px] leading-relaxed text-ink-3">Qui vous envoie du trafic depuis les réseaux, quels liens 𝕏 convertissent, et qui parle de <span translate="no">{site.domain}</span> sur 𝕏.</p>
-      </div>
+      <h2 id="social-title" className="sr-only">Réseaux sociaux et 𝕏</h2>
       {error && <div role="alert" className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger">Impossible de charger les données sociales : {error}. Réessayez dans un instant.</div>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -148,7 +135,7 @@ export function SocialView() {
         <div className="mt-5 overflow-x-auto">
           {linkRows.length ? (
             <table className="w-full text-[13px]">
-              <thead><tr className="text-left text-[11px] uppercase tracking-wide text-ink-3"><th className="py-2 font-semibold">Lien / campagne</th><th className="py-2 text-right font-semibold">Visiteurs</th><th className="hidden py-2 text-right font-semibold sm:table-cell">Visites</th><th className="hidden py-2 text-right font-semibold sm:table-cell">Pages vues</th></tr></thead>
+              <thead><tr className="border-b border-line text-left text-[12px] text-ink-3"><th className="py-2 font-medium">Lien / campagne</th><th className="py-2 text-right font-medium">Visiteurs</th><th className="hidden py-2 text-right font-semibold sm:table-cell">Visites</th><th className="hidden py-2 text-right font-semibold sm:table-cell">Pages vues</th></tr></thead>
               <tbody>{linkRows.map((l, i) => (
                 <tr key={i} className="border-t border-line"><td className="py-2.5 pr-3"><span className={l.tagged ? 'font-medium text-ink' : 'text-ink-3'} translate={l.tagged ? 'no' : undefined}>{l.label}</span>{l.tagged && l.campaign && l.content && <span className="ml-2 text-ink-3" translate="no">· {l.content}</span>}</td><td className="tnum py-2.5 text-right font-semibold">{fmtNumber(l.visitors)}</td><td className="tnum hidden py-2.5 text-right sm:table-cell">{fmtNumber(l.sessions)}</td><td className="tnum hidden py-2.5 text-right sm:table-cell">{fmtNumber(l.pageviews)}</td></tr>
               ))}</tbody>

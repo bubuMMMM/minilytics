@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../App';
 import { UiIcon } from './UiIcon';
+import { applyTheme } from './ThemeToggle';
+import { useMe } from '../lib/me';
+import { NAV, SETTINGS_SECTIONS, navHref } from '../lib/nav';
+
+/** Navigate, then land on an in-page anchor if the target has one. */
+function go(href: string) {
+  navigate(href);
+  window.dispatchEvent(new Event('ml:hash'));
+}
 
 type Cmd = { id: string; label: string; hint?: string; icon: Parameters<typeof UiIcon>[0]['name']; run: () => void; group: string };
 
@@ -16,36 +25,38 @@ export function CommandMenu({ siteId, open, onClose }: { siteId?: string; open: 
   const [i, setI] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const before = useRef<Element | null>(null);
+  const me = useMe();
 
   const cmds = useMemo<Cmd[]>(() => {
-    const keep = (p: string) => () => navigate(p + window.location.search);
     const list: Cmd[] = [];
+    const viewer = me?.role === 'viewer';
     if (siteId) {
       const base = `/site/${siteId}`;
-      list.push(
-        { id: 'o', group: 'Aller à', label: 'Vue d’ensemble', icon: 'bar-chart', run: keep(base) },
-        { id: 'v', group: 'Aller à', label: 'Vidéos', icon: 'play', run: keep(base + '/videos') },
-        { id: 's', group: 'Aller à', label: 'Sponsors', hint: 'Impressions, clics, CTR', icon: 'megaphone', run: keep(base + '/sponsors') },
-        { id: 'c', group: 'Aller à', label: 'Contenus', hint: 'Sections et vidéos vues', icon: 'grid', run: keep(base + '/contenus') },
-        { id: 'src', group: 'Aller à', label: 'Sources', hint: 'Canaux, référents, pays, appareils', icon: 'compass', run: keep(base + '/sources') },
-        { id: 'social', group: 'Aller à', label: 'Réseaux sociaux', hint: 'Visites des réseaux, liens et mentions 𝕏', icon: 'share', run: keep(base + '/social') },
-        { id: 'bots', group: 'Aller à', label: 'Bots IA', hint: 'Robots d’IA et trafic venu des assistants', icon: 'bot', run: keep(base + '/bots') },
-        { id: 'rt', group: 'Aller à', label: 'Temps réel', icon: 'activity', run: () => navigate(base + '/realtime') },
-        { id: 'set', group: 'Aller à', label: 'Réglages et installation', icon: 'settings', run: () => navigate(base + '/settings') },
-      );
+      for (const g of NAV) for (const it of g.items) {
+        if (viewer && it.admin) continue;
+        list.push({ id: 'n-' + it.key, group: g.label, label: it.label, hint: it.hint, icon: it.icon, run: () => go(navHref(siteId, it)) });
+      }
+      if (!viewer) for (const sec of SETTINGS_SECTIONS)
+        list.push({ id: 's-' + sec.id, group: 'Réglages', label: sec.label, hint: sec.desc, icon: sec.icon, run: () => go(`${base}/settings/${sec.id}`) });
       const period = (p: string, label: string) => ({
         id: 'p' + p, group: 'Période', label, icon: 'calendar' as const,
         run: () => { const u = new URL(window.location.href); u.searchParams.set('period', p); u.searchParams.delete('from'); u.searchParams.delete('to'); navigate(u.pathname + u.search); },
       });
       list.push(period('now', 'Maintenant (30 min)'), period('today', 'Aujourd’hui'), period('7d', '7 derniers jours'), period('30d', '30 derniers jours'), period('12m', '12 derniers mois'));
+      list.push(
+        { id: 'a-script', group: 'Actions', label: 'Copier le script de suivi', hint: 'Balise <script> de ce site', icon: 'copy', run: () => { navigator.clipboard?.writeText(`<script defer data-website-id="${siteId}" src="${window.location.origin}/js/script.js"></script>`).catch(() => {}); } },
+        ...(!viewer ? [{ id: 'a-share', group: 'Actions', label: 'Créer un lien de partage', hint: 'Tableau de bord public en lecture seule', icon: 'link' as const, run: () => go(`${base}/settings/partage`) }] : []),
+      );
     }
     list.push(
+      { id: 'a-theme', group: 'Actions', label: document.documentElement.classList.contains('dark') ? 'Passer en thème clair' : 'Passer en thème sombre', icon: 'sun', run: () => applyTheme(!document.documentElement.classList.contains('dark')) },
       { id: 'sites', group: 'Général', label: 'Mes sites', icon: 'layers', run: () => navigate('/sites') },
       { id: 'team', group: 'Général', label: 'Équipe et sécurité', hint: 'Membres, invitations, sessions', icon: 'users', run: () => navigate('/team') },
+      { id: 'api', group: 'Général', label: 'Documentation API', hint: 'REST v1, OpenAPI, MCP, CLI', icon: 'book', run: () => navigate('/api-docs') },
       { id: 'demo', group: 'Général', label: 'Démo publique', icon: 'eye', run: () => navigate('/demo') },
     );
     return list;
-  }, [siteId]);
+  }, [siteId, me?.role, open]);
 
   const shown = useMemo(() => {
     const n = q.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -60,6 +71,8 @@ export function CommandMenu({ siteId, open, onClose }: { siteId?: string; open: 
     const t = setTimeout(() => input.current?.focus(), 0);
     return () => { clearTimeout(t); (before.current as HTMLElement | null)?.focus?.(); };
   }, [open]);
+
+  useEffect(() => { if (open && shown[i]) document.getElementById('cmd-' + shown[i].id)?.scrollIntoView({ block: 'nearest' }); }, [i, open, shown]);
 
   if (!open) return null;
   const run = (c?: Cmd) => { if (!c) return; onClose(); c.run(); };
@@ -77,7 +90,7 @@ export function CommandMenu({ siteId, open, onClose }: { siteId?: string; open: 
             aria-activedescendant={shown[i] ? 'cmd-' + shown[i].id : undefined}
             aria-label="Rechercher une page ou une action"
             className="h-14 w-full bg-transparent text-[16px] outline-none placeholder:text-ink-4"
-            placeholder="Aller à, changer de période…"
+            placeholder="Aller à une vue, un réglage, une action…"
             autoComplete="off"
             spellCheck={false}
             value={q}
@@ -97,14 +110,14 @@ export function CommandMenu({ siteId, open, onClose }: { siteId?: string; open: 
             const head = c.group !== lastGroup ? (lastGroup = c.group) : null;
             return (
               <li key={c.id} role="presentation">
-                {head && <div className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[.08em] text-ink-4">{head}</div>}
+                {head && <div className="px-3 pb-1 pt-3 text-[11px] font-medium text-ink-4">{head}</div>}
                 <div
                   id={'cmd-' + c.id}
                   role="option"
                   aria-selected={k === i}
                   onMouseMove={() => setI(k)}
                   onClick={() => run(c)}
-                  className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl px-3 text-[14px] ${k === i ? 'bg-accent-soft text-accent' : 'text-ink-2'}`}
+                  className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-lg px-3 text-[14px] ${k === i ? 'bg-well text-ink' : 'text-ink-2'}`}
                 >
                   <UiIcon name={c.icon} size={17} />
                   <span className="font-medium">{c.label}</span>

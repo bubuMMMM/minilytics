@@ -249,7 +249,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
               <div className="flex items-center justify-between text-[12px] text-ink-3"><span>Pays débloqués</span><span className="rounded-full border border-line px-1.5 py-px text-[11px] font-medium text-ink-2">{lvl.name}</span></div>
               <div className="mt-1 flex items-baseline gap-1"><span className="tnum text-2xl font-semibold tracking-tight">{data ? reached : '—'}</span><span className="tnum text-[13px] text-ink-3">/ {SOVEREIGN_TOTAL}</span></div>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-well" role="progressbar" aria-valuemin={0} aria-valuemax={SOVEREIGN_TOTAL} aria-valuenow={reached} aria-label="Pays débloqués">
-                <div className="h-full rounded-full bg-accent transition-[width] duration-700" style={{ width: `${Math.max(reached ? 1.5 : 0, (reached / SOVEREIGN_TOTAL) * 100)}%` }} />
+                <div className="h-full rounded-full bg-accent transition-[width] duration-200" style={{ width: `${Math.max(reached ? 1.5 : 0, (reached / SOVEREIGN_TOTAL) * 100)}%` }} />
               </div>
               {lvl.next && <div className="mt-1.5 text-[11px] text-ink-4">{lvl.next.min - reached} pays avant « {lvl.next.name} »</div>}
             </div>
@@ -309,7 +309,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
           )}
 
           {/* Mobile bottom sheet */}
-          <div className={`absolute inset-x-0 bottom-0 z-30 flex flex-col rounded-t-2xl border-t border-line bg-surface shadow-[0_-12px_40px_rgb(0_0_0/.12)] transition-[height] duration-300 md:hidden ${sheet ? 'h-[72%]' : 'h-[140px]'}`}>
+          <div className={`absolute inset-x-0 bottom-0 z-30 flex flex-col rounded-t-2xl border-t border-line bg-surface shadow-[0_-12px_40px_rgb(0_0_0/.12)] transition-[height] duration-200 md:hidden ${sheet ? 'h-[72%]' : 'h-[140px]'}`}>
             <button type="button" className="flex w-full shrink-0 flex-col items-center pt-2" onClick={() => setSheet((s) => !s)} aria-expanded={sheet} aria-label={sheet ? 'Réduire le panneau' : 'Agrandir le panneau'}>
               <span className="h-1 w-10 rounded-full bg-line-strong" />
             </button>

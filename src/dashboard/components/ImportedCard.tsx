@@ -34,7 +34,7 @@ export function ImportedCard({ siteId }: { siteId: string }) {
         <div>
           <h2 id="imported-title" className="flex flex-wrap items-center gap-2 text-[15px] font-semibold tracking-tight">
             Historique importé
-            <span className="rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-warning">Importé · Plausible</span>
+            <span className="rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-[11px] font-medium text-warning">Importé · Plausible</span>
           </h2>
           <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-ink-3">
             Agrégats quotidiens importés du {fmtDay(data.from)} au {fmtDay(data.to)} ({data.days} j), séparés de vos données collectées. Les filtres et segments ne s’y appliquent pas ; « Visiteurs » additionne les visiteurs de chaque jour.
