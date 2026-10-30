@@ -28,3 +28,10 @@
 - Landing : nouveau hero + section de 4 captures réelles (carte, Bots IA, partage, widgets) clair/sombre dans public/landing/*.webp (≈30 Ko chacune ; carte en vue publique niveau pays).
 - Corrigé : débordement horizontal Bots IA à 390 px. Audit complet : /workspace/minilytics-team/DESIGN_AUDIT.md.
 - Vérif prod : 24 pages × 1440/390 × clair/sombre, 0 erreur console, 0 débordement ; share_links 0, widget_tokens 0 après vérif.
+
+## DEPLOYED 18afb7e — 31 oct. 2026 00:49 (Europe/Paris), frontend agent — Design v3 finitions
+- `CodeBlock` (components/ui.tsx) : barre d’outils avec langue + « Copier » au-dessus du code (plus de chevauchement sur mobile). Utilisé dans Réglages, Widgets et API docs (curl, MCP, CLI copiables).
+- /api-docs : bouton « Envoyer la requête » toujours actif ; sans jeton → champ en erreur + aide (Réglages › API) et focus. Liste des points d’accès collante sur grand écran, en-tête collant + thème + PageHeader.
+- Mes sites : carte « Connecter un site » en double supprimée (le bouton « Ajouter un site » reste, et l’état vide pour 0 site).
+- Graphique Bots IA : catégories en lignes pleines (option `peers` de TrendChart) ; pointillés réservés aux comparaisons. Kickers en accent, espacement 40 px entre grandes sections de l’aperçu.
+- Vérif prod : 23 pages × 1440/390 × clair/sombre, 0 erreur console, 0 débordement ; share_links 0, widget_tokens 0.
