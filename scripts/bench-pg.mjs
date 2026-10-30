@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 const dir = new URL('../migrations-pg', import.meta.url).pathname;
 const pg = new PGlite();
-for (const f of readdirSync(dir).filter((f) => f.endsWith('.sql') && !f.startsWith('0006')).sort()) await pg.exec(readFileSync(`${dir}/${f}`, 'utf8'));
+for (const f of readdirSync(dir).filter((f) => f.endsWith('.sql') && !f.startsWith('0007_perf')).sort()) await pg.exec(readFileSync(`${dir}/${f}`, 'utf8'));
 const now = Date.now(), DAY = 86400000;
 console.time('seed');
 await pg.exec(`
