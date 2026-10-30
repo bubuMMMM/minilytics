@@ -21,6 +21,7 @@ import { registerBots } from './bots.js';
 import { registerImports } from './imports.js';
 import { registerShare } from './share.js';
 import { registerWidgets } from './widgets.js';
+import { registerReplay } from './replay.js';
 
 const app = new Hono<AppEnv>();
 
@@ -436,6 +437,7 @@ registerBots(app);
 registerImports(app);
 registerShare(app);
 registerWidgets(app);
+registerReplay(app);
 
 app.all('/api/*', (c) => c.json({ error: 'not found' }, 404));
 

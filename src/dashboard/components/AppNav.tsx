@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { CommandMenu, SHORTCUT, useCommandShortcut } from './CommandMenu';
 import { Link } from './Link';
+import { NotificationBell } from './NotificationBell';
 import { Logo } from './Logo';
 import { LiveDot } from './Sparkline';
 import { UiIcon } from './UiIcon';
@@ -62,7 +63,7 @@ export function AppHeader({ siteId, active, online, title }: { siteId: string; a
       <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="mx-auto flex h-[56px] max-w-[1480px] items-center justify-between gap-3 px-4 sm:px-6 md:h-[56px]">
           <Link href="/sites" aria-label="Mes sites" className="flex min-h-[44px] min-w-0 items-center gap-2 rounded-lg">
-            <Logo small />
+            <Logo small compact={!!title} />
             {title && <><svg width="16" height="16" viewBox="0 0 24 24" className="shrink-0 text-line-strong" aria-hidden><path d="M16 3 8 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg><span className="min-w-0 truncate text-[14px] font-medium text-ink" translate="no">{title}</span></>}
           </Link>
           <div className="flex items-center gap-1.5 sm:gap-2">
@@ -73,6 +74,7 @@ export function AppHeader({ siteId, active, online, title }: { siteId: string; a
             </button>
             <Link href="/demo" className="btn-ghost hidden lg:inline-flex">Démo</Link>
             <Link href="/sites" className="btn hidden md:inline-flex">Mes sites</Link>
+            <NotificationBell siteId={siteId} />
             <ThemeToggle />
             {online !== undefined && (
               <Link href={`/site/${siteId}/realtime`} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-2 text-[12px] font-medium text-ink-2 md:hidden">

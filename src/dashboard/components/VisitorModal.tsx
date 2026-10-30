@@ -33,7 +33,7 @@ export function VisitorModal({ visitorId, onClose }: { visitorId: string | null;
       {p && (
         <div>
           <div className="flex items-center gap-3 sm:gap-4">
-            <Avatar id={visitorId!} size={64} />
+            <Avatar id={visitorId!} size={64} name={p.visitor?.name} email={p.visitor?.email} />
             <div className="min-w-0">
               <div className="truncate text-xl font-semibold">{p.visitor?.name || p.visitor?.email || `Visiteur ${shortId(visitorId!)}`}</div>
               {p.visitor?.email && p.visitor.name && <div className="text-sm text-ink-3">{p.visitor.email}</div>}

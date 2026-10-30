@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Feed, ReplayBar, useReplay, type ReplayData, type Visit } from './Replay';
 import { feature } from 'topojson-client';
 import type { Feature, MultiPolygon, Polygon } from 'geojson';
 import { AppHeader, BottomNav } from '../components/AppNav';
@@ -27,7 +28,7 @@ interface MapData {
   regions: { country: string; region: string; visitors: number }[];
 }
 interface LiveData { online: number; countries: { country: string; visitors: number }[]; places: { country: string; city: string; visitors: number; lat: number | null; lon: number | null }[] }
-type Tab = 'rank' | 'game' | 'timeline';
+type Tab = 'rank' | 'feed' | 'game' | 'timeline';
 
 const nf = fmtNumber;
 const fmtDate = (ts: number, tz: string) => new Date(ts).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: tz });
@@ -88,6 +89,20 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
   const [toast, setToast] = useState<{ country: string; at: number } | null>(null);
   const [sheet, setSheet] = useState(false);
   const mapRef = useRef<GeoMapHandle>(null);
+  const canReplay = !isPublic && !isShare && !!siteId;
+  const replay = useReplay(canReplay ? siteId! : null);
+  const replaying = replay.open && !!replay.data;
+  // Live feed (last 30 min) for the « Direct » tab, refreshed every 15 s while visible and not replaying.
+  const [feed, setFeed] = useState<Visit[] | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!canReplay || replaying) return;
+    let alive = true;
+    const tick = () => { if (document.visibilityState !== 'visible') return; api<ReplayData>(`/api/sites/${siteId}/replay?window=30m`).then((d) => { if (alive) { setFeed([...d.visits].reverse()); setNow(Date.now()); } }).catch(() => {}); };
+    tick();
+    const t = setInterval(tick, 15_000);
+    return () => { alive = false; clearInterval(t); };
+  }, [canReplay, replaying, siteId]);
   const world = useWorld(zoom >= 2.4);
   const tz = data?.timezone ?? site?.timezone ?? 'UTC';
   const title = isShare ? share.title : isPublic ? 'Démo' : site?.name;
@@ -144,6 +159,16 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
     return ll ? [{ key: `${p.country}|${p.region}|${p.city}`, lon: ll[0], lat: ll[1], value: p.visitors, label: p.city, country: p.country }] : [];
   }), [data, locate]);
   const livePoints: LivePoint[] = useMemo(() => {
+    if (replaying) {
+      // Replay: each visit pulses for a moment when the playhead passes it.
+      const out: LivePoint[] = [];
+      for (const v of replay.active) {
+        const c = v.country ? COUNTRIES.get(v.country) : undefined;
+        const ll = v.country ? locate(v.country, v.city ?? '', v.lat, v.lon) ?? (c ? [c.lng, c.lat] as [number, number] : null) : null;
+        if (ll) out.push({ key: v.id, lon: ll[0], lat: ll[1], value: 1 });
+      }
+      return out;
+    }
     if (!live) return [];
     const out: LivePoint[] = [];
     const placed = new Set<string>();
@@ -156,7 +181,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
       if (!placed.has(c.country) && info) out.push({ key: c.country, lon: info.lng, lat: info.lat, value: c.visitors });
     }
     return out;
-  }, [live, locate]);
+  }, [live, locate, replaying, replay.active]);
 
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
   const todayStart = useMemo(() => {
@@ -177,6 +202,14 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
     if (iso2) setSheet(true);
   }, []);
   const flyToPlace = (lon: number, lat: number) => mapRef.current?.flyTo(lon, lat, 14);
+  const pickVisit = (v: Visit) => {
+    if (!v.country) return;
+    const ll = locate(v.country, v.city ?? '', v.lat, v.lon);
+    setSelected(v.country); setSheet(true);
+    if (ll) flyToPlace(ll[0], ll[1]); else mapRef.current?.flyToCountry(v.country);
+  };
+  useEffect(() => { if (replay.open) { setSelected(null); setTab('feed'); } }, [replay.open]);
+  const feedVisits = replaying ? [...replay.shown].reverse() : feed;
 
   const header = isShare ? share.header : isPublic ? (
     <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
@@ -192,6 +225,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
       data={data} error={error} tab={tab} setTab={setTab} selected={selected} select={select} tz={tz} live={live}
       discovered={discovered} discovery={discovery} badges={badges} conts={conts} line={line} streak={st} reached={reached} lvl={lvl}
       regionNames={regionNames} locate={locate} flyToPlace={flyToPlace} isPublic={countryOnly}
+      canFeed={canReplay} feed={feedVisits} replaying={replaying} now={now} pickVisit={pickVisit}
     />
   );
 
@@ -233,14 +267,21 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
           </div>
 
           {/* Zoom */}
-          <div className="absolute bottom-[152px] right-3 flex flex-col overflow-hidden rounded-lg border border-line bg-surface/90 shadow-card backdrop-blur sm:right-5 md:bottom-5">
+          <div className={`absolute right-3 flex flex-col overflow-hidden rounded-lg border border-line bg-surface/90 shadow-card backdrop-blur sm:right-5 md:bottom-5 ${replay.open ? 'bottom-[272px]' : 'bottom-[152px]'}`}>
             <MapButton label="Zoomer" onClick={() => mapRef.current?.zoomBy(1.6)}><path d="M12 5v14M5 12h14" /></MapButton>
             <MapButton label="Dézoomer" onClick={() => mapRef.current?.zoomBy(1 / 1.6)}><path d="M5 12h14" /></MapButton>
             <MapButton label="Vue d’ensemble" onClick={() => { setSelected(null); mapRef.current?.reset(); }}><circle cx="12" cy="12" r="8" /><path d="M4 12h16M12 4c2.5 2.6 2.5 13.4 0 16M12 4c-2.5 2.6-2.5 13.4 0 16" /></MapButton>
           </div>
 
+          {/* Replay */}
+          {canReplay && (
+            <div className={replay.open ? 'absolute inset-x-3 bottom-[152px] flex justify-center md:inset-x-auto md:bottom-5 md:left-5' : 'absolute bottom-[152px] left-3 md:bottom-5 md:left-auto md:right-[72px]'}>
+              <ReplayBar r={replay} tz={tz} />
+            </div>
+          )}
+
           {/* Legend */}
-          <div className="absolute bottom-5 left-5 hidden items-center gap-4 rounded-lg border border-line bg-surface/90 px-3 py-2 text-[12px] text-ink-3 shadow-xs backdrop-blur md:flex">
+          <div className={`absolute bottom-5 left-5 hidden items-center gap-4 rounded-lg border border-line bg-surface/90 px-3 py-2 text-[12px] text-ink-3 shadow-xs backdrop-blur ${replay.open ? '' : 'md:flex'}`}>
             <span className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm" style={{ background: 'linear-gradient(90deg, rgb(var(--accent) / .3), rgb(var(--accent) / .9))' }} />Visiteurs sur la période</span>
             <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-accent/15" />Déjà découvert</span>
             <span className="flex items-center gap-1.5"><span className="ml-fog h-2.5 w-2.5 rounded-sm" />Inexploré</span>
@@ -308,7 +349,11 @@ interface PanelProps {
   line: ReturnType<typeof timeline>; streak: { current: number; best: number }; reached: number; lvl: ReturnType<typeof level>;
   regionNames: Record<string, string> | null; locate: (cc: string, city: string, lat: number | null, lon: number | null) => [number, number] | null;
   flyToPlace: (lon: number, lat: number) => void; isPublic: boolean;
+  canFeed: boolean; feed: Visit[] | null; replaying: boolean; now: number; pickVisit: (v: Visit) => void;
 }
+
+const TABS = [['rank', 'Classement'], ['game', 'Succès'], ['timeline', 'Conquête']] as const;
+const TABS_ADMIN = [['rank', 'Classement'], ['feed', 'Direct'], ['game', 'Succès'], ['timeline', 'Conquête']] as const;
 
 function Panel(props: PanelProps) {
   const { data, error, tab, setTab, selected } = props;
@@ -317,14 +362,16 @@ function Panel(props: PanelProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 px-4 pt-3 md:pt-4">
-        <div className="grid grid-cols-3 gap-0.5 rounded-lg border border-line bg-well p-0.5" role="tablist" aria-label="Panneau">
-          {([['rank', 'Classement'], ['game', 'Succès'], ['timeline', 'Conquête']] as const).map(([k, l]) => (
+        <div className={`grid ${props.canFeed ? 'grid-cols-4' : 'grid-cols-3'} gap-0.5 rounded-lg border border-line bg-well p-0.5`} role="tablist" aria-label="Panneau">
+          {(props.canFeed ? TABS_ADMIN : TABS).map(([k, l]) => (
             <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`min-h-[36px] rounded-md text-[13px] font-medium transition-colors md:min-h-[30px] ${tab === k ? 'bg-surface text-ink shadow-xs' : 'text-ink-3 hover:text-ink'}`}>{l}</button>
           ))}
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-6 pt-3">
-        {!data ? <div className="space-y-2">{[0, 1, 2, 3, 4].map((i) => <div key={i} className="ml-skeleton h-9 w-full" />)}</div>
+        {tab === 'feed' && props.canFeed ? (props.feed ? <Feed visits={props.feed} tz={props.tz} now={props.now} onPick={props.pickVisit} replaying={props.replaying}
+            emptyText={props.replaying ? 'Les visites apparaîtront ici au fil du replay.' : 'Aucune visite ces 30 dernières minutes.'} /> : <div className="space-y-2">{[0, 1, 2, 3, 4].map((i) => <div key={i} className="ml-skeleton h-11 w-full" />)}</div>)
+          : !data ? <div className="space-y-2">{[0, 1, 2, 3, 4].map((i) => <div key={i} className="ml-skeleton h-9 w-full" />)}</div>
           : tab === 'rank' ? <Ranking {...props} data={data} />
           : tab === 'game' ? <Game {...props} data={data} />
           : <Timeline {...props} />}

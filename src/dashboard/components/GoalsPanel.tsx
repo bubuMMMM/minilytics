@@ -270,7 +270,7 @@ function FunnelForm({ onDone, canCancel }: { onDone: (id?: string) => void; canC
 function VisitorCell({ id, name, email, country, city, device, os, browser, badge }: Record<string, any>) {
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <Avatar id={id} size={44} />
+      <Avatar id={id} size={44} name={name} email={email} />
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <span className="truncate font-medium">{name || email || `Visiteur ${shortId(id)}`}</span>

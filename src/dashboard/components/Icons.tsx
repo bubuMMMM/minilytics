@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { domainForSource } from '../../shared/sources';
 import { flag } from '../lib/format';
+import { IdentityAvatar } from './Avatar';
 
 export function Favicon({ domain, size = 18, fallback }: { domain?: string | null; size?: number; fallback?: string }) {
   const [broken, setBroken] = useState(false);
@@ -113,11 +114,12 @@ function hash(s: string) {
 }
 
 /** A friendly, stable avatar per visitor. */
-export function Avatar({ id, size = 40 }: { id: string; size?: number }) {
+export function Avatar({ id, size = 40, name, email }: { id: string; size?: number; name?: string | null; email?: string | null }) {
+  if (name || email) return <IdentityAvatar seed={id} name={name} email={email} size={size} ring />;
   const h = hash(id);
   return (
     <span
-      className="inline-flex shrink-0 items-center justify-center rounded-full ring-2 ring-white"
+      className="inline-flex shrink-0 items-center justify-center rounded-full ring-2 ring-surface"
       style={{ width: size, height: size, background: BGS[h % BGS.length], fontSize: size * 0.55 }}
     >
       {FACES[(h >> 4) % FACES.length]}

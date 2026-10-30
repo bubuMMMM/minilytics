@@ -1,8 +1,8 @@
 import { InfoTip } from './InfoTip';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Area, Bar, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { TrendChart } from './TrendChart';
-import { NotesBar, bucketOfTs, useNotes } from './ChartNotes';
+import { AnnotationIcon, NotesBar, bucketOfTs, useAnnotations, useNotes } from './ChartNotes';
 import type { Kpis, Overview } from '../lib/api';
 import { useDash } from '../lib/context';
 import { bucketLabel, fmtDuration, fmtNumber, fmtPct } from '../lib/format';
@@ -61,6 +61,13 @@ export function OverviewCard({ data }: { data: Overview | null }) {
   const { money, site, share } = useDash();
   const [metric, setMetric] = useState<Metric>('visitors');
   const notes = useNotes();
+  const annotations = useAnnotations();
+  // One marker per bucket: commits (ink) and mentions (accent); listed in the tooltip.
+  const annByBucket = useMemo(() => {
+    const m = new Map<string, typeof annotations>();
+    for (const a of annotations) { const b = bucketOfTs(a.ts, data?.range.granularity ?? 'day', site.timezone); m.set(b, [...(m.get(b) ?? []), a]); }
+    return m;
+  }, [annotations, data?.range.granularity, site.timezone]);
   const col = COLORS;
   const [hidden, setHidden] = useState<Record<Series, boolean>>({ visitors: false, revenue: false, prev: false });
   const c = data?.current;
@@ -168,6 +175,10 @@ export function OverviewCard({ data }: { data: Overview | null }) {
                         <Row color="bg-brand" label="Pages vues" value={fmtNumber(d.pageviews)} />
                         {hasRevenue && <Row color="bg-revenue" label="Revenus" value={money(d.revenue)} />}
                         {d.payments > 0 && <Row color="bg-revenueSoft" label="Paiements" value={String(d.payments)} />}
+                        {(annByBucket.get(d.bucket) ?? []).slice(0, 3).map((a, i) => (
+                          <div key={i} className="mt-1.5 flex max-w-[260px] items-center gap-1.5 border-t border-line pt-1.5 text-ink-2"><AnnotationIcon a={a} /><span className="truncate">{a.title.split('\n')[0]}</span></div>
+                        ))}
+                        {(annByBucket.get(d.bucket)?.length ?? 0) > 3 && <div className="mt-1 text-ink-4">+{annByBucket.get(d.bucket)!.length - 3} autres</div>}
                       </div>
                     );
                   }}
@@ -178,6 +189,10 @@ export function OverviewCard({ data }: { data: Overview | null }) {
                     <ReferenceLine key={n.id} yAxisId="v" x={b} stroke="rgb(var(--warning))" strokeDasharray="2 3" label={{ value: '●', position: 'top', fill: 'rgb(var(--warning))', fontSize: 10 }} />
                   ) : null;
                 })}
+                {[...annByBucket.entries()].map(([b, list]) => (data.series.some((x) => x.bucket === b) ? (
+                  <ReferenceLine key={'a' + b} yAxisId="v" x={b} stroke={list.some((a) => a.kind === 'commit') ? 'rgb(var(--ink-3))' : 'rgb(var(--accent))'} strokeOpacity={0.55} strokeDasharray="1 3"
+                    label={{ value: list.some((a) => a.kind === 'commit') ? '◆' : '◉', position: 'insideTop', fill: list.some((a) => a.kind === 'commit') ? 'rgb(var(--ink-3))' : 'rgb(var(--accent))', fontSize: 9 }} />
+                ) : null))}
                 {hasRevenue && !hidden.revenue && <Bar yAxisId="r" dataKey="revenue" fill={col.revenue} radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive={false} />}
                 {!hidden.prev && (
                   <Line yAxisId="v" type="monotone" dataKey="prevVisitors" stroke={col.prev} strokeWidth={1.5} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} />
@@ -199,7 +214,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
             </ResponsiveContainer>
           )}
         </div>
-        {!share && <NotesBar notes={notes} />}
+        {!share && <NotesBar notes={notes} annotations={annotations} />}
       </div>
     </div>
   );

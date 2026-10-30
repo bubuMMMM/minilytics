@@ -46,8 +46,66 @@ export function useNotes() {
   };
 }
 
+export interface Annotation {
+  id?: string;
+  ts: number;
+  kind: 'note' | 'commit' | 'mention';
+  title: string;
+  url?: string;
+  author?: string;
+  source?: string;
+}
+
+/**
+ * GitHub commits and 𝕏 / Reddit mentions for the period (backend `/api/sites/:id/annotations`).
+ * Notes come from useNotes (editable), so they are dropped here. Missing endpoint or error → nothing.
+ */
+export function useAnnotations(): Annotation[] {
+  const { site, q, reloadKey, share } = useDash();
+  const { data } = useApi<{ items: Annotation[] }>(share ? null : `/api/sites/${site.id}/annotations?${qs({ ...q, filters: {} })}`, reloadKey);
+  return (data?.items ?? []).filter((a) => a.kind !== 'note' && Number.isFinite(a.ts));
+}
+
+const safeUrl = (u?: string) => (u && /^https:\/\//.test(u) ? u : undefined);
+
+export function AnnotationIcon({ a, size = 12 }: { a: Pick<Annotation, 'kind' | 'source'>; size?: number }) {
+  if (a.kind === 'commit')
+    return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-ink-2" aria-hidden><circle cx="12" cy="12" r="3.5" /><path d="M3 12h5.5M15.5 12H21" /></svg>;
+  if (a.source === 'x') return <span className="shrink-0 text-[11px] font-semibold leading-none text-ink" aria-hidden>𝕏</span>;
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-accent" aria-hidden><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z" /></svg>;
+}
+
+/** Commits / mentions strip under the chart (most recent first, collapsible). */
+function AnnotationChips({ items, tz }: { items: Annotation[]; tz: string }) {
+  const [all, setAll] = useState(false);
+  if (!items.length) return null;
+  const sorted = [...items].sort((a, b) => b.ts - a.ts);
+  const shown = all ? sorted : sorted.slice(0, 4);
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <span className="text-[12px] font-medium text-ink-3">{items.some((a) => a.kind === 'commit') ? (items.some((a) => a.kind === 'mention') ? 'Commits et mentions' : 'Commits') : 'Mentions'}</span>
+      {shown.map((a, i) => {
+        const href = safeUrl(a.url);
+        const body = (
+          <>
+            <AnnotationIcon a={a} />
+            <span className="shrink-0 text-ink-3">{new Date(a.ts).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: tz })}</span>
+            <span className="truncate text-ink">{a.title.split('\n')[0]}</span>
+            {a.author && a.kind === 'commit' && <span className="hidden shrink-0 text-ink-4 sm:inline">· {a.author}</span>}
+          </>
+        );
+        const cls = 'flex max-w-full items-center gap-1.5 rounded-full border border-line bg-surface px-2 py-0.5 text-[12px] sm:max-w-[360px]';
+        return href
+          ? <a key={a.id ?? i} href={href} target="_blank" rel="noopener noreferrer" className={`${cls} hover:border-line-strong hover:bg-well`} title={a.title}>{body}</a>
+          : <span key={a.id ?? i} className={cls} title={a.title}>{body}</span>;
+      })}
+      {sorted.length > 4 && <button type="button" className="btn-ghost" onClick={() => setAll((v) => !v)} aria-expanded={all}>{all ? 'Réduire' : `+${sorted.length - 4}`}</button>}
+    </div>
+  );
+}
+
 /** Notes pinned on the chart (« Lancement sur 𝕏 », « Nouvelle landing »…), like DataFast's chart notes. */
-export function NotesBar({ notes }: { notes: ReturnType<typeof useNotes> }) {
+export function NotesBar({ notes, annotations = [] }: { notes: ReturnType<typeof useNotes>; annotations?: Annotation[] }) {
   const { site } = useDash();
   const readOnly = useMe()?.role === 'viewer';
   const [open, setOpen] = useState(false);
@@ -70,6 +128,7 @@ export function NotesBar({ notes }: { notes: ReturnType<typeof useNotes> }) {
         {!open && !readOnly && <button className="btn-ghost" onClick={() => setOpen(true)}>+ Note</button>}
         {readOnly && notes.list.length === 0 && <span className="text-[12px] text-ink-4">Aucune note.</span>}
       </div>
+      <AnnotationChips items={annotations} tz={site.timezone} />
       {open && (
         <form
           className="mt-2 flex flex-col gap-2 sm:flex-row"
