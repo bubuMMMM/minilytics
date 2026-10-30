@@ -41,7 +41,7 @@ export function ImportedCard({ siteId }: { siteId: string }) {
           </p>
         </div>
       </div>
-      <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-5">
+      <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-5 [&>*:last-child]:col-span-2 sm:[&>*:last-child]:col-span-1">
         {[
           ['Visiteurs', fmtNumber(t.visitors)],
           ['Visites', fmtNumber(t.visits)],

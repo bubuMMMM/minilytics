@@ -70,19 +70,19 @@ function SetupPanel({ siteId, open: initial }: { siteId: string; open: boolean }
                   </div>
                 </div>
               </div>
-              <p className="flex items-center gap-2 text-[12px] text-ink-3">
-                <span className={`h-2 w-2 rounded-full ${data.lastForwardAt ? 'bg-success' : 'bg-line-strong'}`} aria-hidden />
+              <p className="flex items-start gap-2 text-[12px] leading-relaxed text-ink-3">
+                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${data.lastForwardAt ? 'bg-success' : 'bg-line-strong'}`} aria-hidden />
                 {data.lastForwardAt ? `Transfert actif : dernier envoi il y a ${fmtAgo(Date.now() - data.lastForwardAt)} (${fmtNumber(data.forwarded)} requêtes reçues).` : 'Aucun envoi reçu pour l’instant : installez l’un des extraits ci-dessous.'}
                 {' '}Le jeton change si vous régénérez la clé API du site.
               </p>
               <div>
-                <div className="tabs mb-2">
-                  {SNIPPET_TABS.map(([k, l]) => <button key={k} className={`tab ${tab === k ? 'tab-active' : ''}`} onClick={() => setTab(k)}>{l}</button>)}
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="tabs min-w-0 flex-1">
+                    {SNIPPET_TABS.map(([k, l]) => <button key={k} className={`tab ${tab === k ? 'tab-active' : ''}`} onClick={() => setTab(k)}>{l}</button>)}
+                  </div>
+                  <button className="btn shrink-0 px-2.5" onClick={() => copy('code', code)}><UiIcon name={copied === 'code' ? 'check' : 'copy'} size={14} />{copied === 'code' ? 'Copié' : 'Copier'}</button>
                 </div>
-                <div className="relative">
-                  <pre className="max-h-[420px] overflow-auto rounded-lg border border-line bg-well p-3 font-mono text-[12px] leading-relaxed"><code>{code}</code></pre>
-                  <button className="btn absolute right-2 top-2 px-2.5" onClick={() => copy('code', code)}><UiIcon name={copied === 'code' ? 'check' : 'copy'} size={14} />{copied === 'code' ? 'Copié' : 'Copier'}</button>
-                </div>
+                <pre className="max-h-[420px] overflow-auto rounded-lg border border-line bg-well p-3 font-mono text-[12px] leading-relaxed"><code>{code}</code></pre>
                 {(tab === 'next' || tab === 'express' || tab === 'cloudflare') && <p className="mt-2 text-[12px] text-ink-3">Le jeton se met dans une variable d’environnement <code className="font-mono">MINILYTICS_BOT_TOKEN</code> (jamais dans le code).</p>}
               </div>
             </>
@@ -165,7 +165,7 @@ export function BotsView() {
           </section>
           <section className="card min-w-0 p-4 sm:p-5">
             <h3 className="mb-3 text-[14px] font-semibold">Pages d’arrivée</h3>
-            {ai ? <BarList empty="—" rows={ai.pages.map((p) => ({ key: p.label ?? '—', label: <span className="font-mono text-[12px]">{p.label ?? '—'}</span>, value: p.visitors }))} /> : <div className="ml-skeleton h-32 w-full" />}
+            {ai ? <BarList empty="Aucune page sur cette période." rows={ai.pages.map((p) => ({ key: p.label ?? '—', label: <span className="font-mono text-[12px]">{p.label ?? '—'}</span>, value: p.visitors }))} /> : <div className="ml-skeleton h-32 w-full" />}
           </section>
           <section className="card min-w-0 p-4 sm:p-5">
             <h3 className="mb-3 text-[14px] font-semibold">Visiteurs dans le temps</h3>

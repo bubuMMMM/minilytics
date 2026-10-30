@@ -3,6 +3,7 @@ import { api, qs } from '../lib/api';
 import { useDash } from '../lib/context';
 import { dayInTz } from '../lib/format';
 import { useApi } from '../lib/useApi';
+import { useMe } from '../lib/me';
 
 export interface Note {
   id: string;
@@ -47,6 +48,7 @@ export function useNotes() {
 /** Notes pinned on the chart (« Lancement sur 𝕏 », « Nouvelle landing »…), like DataFast's chart notes. */
 export function NotesBar({ notes }: { notes: ReturnType<typeof useNotes> }) {
   const { site } = useDash();
+  const readOnly = useMe()?.role === 'viewer';
   const [open, setOpen] = useState(false);
   const [day, setDay] = useState(() => dayInTz(Date.now(), site.timezone));
   const [text, setText] = useState('');
@@ -55,16 +57,17 @@ export function NotesBar({ notes }: { notes: ReturnType<typeof useNotes> }) {
     <div className="border-t border-line px-4 py-2.5 sm:px-5">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[12px] font-medium text-ink-3">Notes</span>
-        {notes.list.length === 0 && !open && <span className="text-[12px] text-ink-4">Annotez un lancement, une campagne ou un changement pour l’expliquer sur la courbe.</span>}
+        {notes.list.length === 0 && !open && !readOnly && <span className="text-[12px] text-ink-4">Annotez un lancement, une campagne ou un changement pour l’expliquer sur la courbe.</span>}
         {notes.list.map((n) => (
           <span key={n.id} className="group flex max-w-full items-center gap-1.5 rounded-full border border-line bg-well py-0.5 pl-2 pr-1 text-[12px]">
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning" />
             <span className="shrink-0 text-ink-3">{new Date(n.ts).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: site.timezone })}</span>
             <span className="truncate text-ink">{n.text}</span>
-            <button className="rounded px-1 text-ink-4 hover:text-danger" aria-label={`Supprimer la note ${n.text}`} onClick={() => notes.remove(n.id)}>✕</button>
+            {!readOnly && <button className="rounded px-1 text-ink-4 hover:text-danger" aria-label={`Supprimer la note ${n.text}`} onClick={() => notes.remove(n.id)}>✕</button>}
           </span>
         ))}
-        {!open && <button className="btn-ghost" onClick={() => setOpen(true)}>+ Note</button>}
+        {!open && !readOnly && <button className="btn-ghost" onClick={() => setOpen(true)}>+ Note</button>}
+        {readOnly && notes.list.length === 0 && <span className="text-[12px] text-ink-4">Aucune note.</span>}
       </div>
       {open && (
         <form

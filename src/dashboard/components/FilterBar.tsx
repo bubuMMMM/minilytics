@@ -4,6 +4,7 @@ import { useApi } from '../lib/useApi';
 import { renderLabel } from './Panel';
 import { Dropdown } from './Toolbar';
 import { UiIcon } from './UiIcon';
+import { useMe } from '../lib/me';
 
 /** Every filterable dimension: the URL key, its label, and the breakdown used for value suggestions. */
 export const FILTER_LABELS: Record<string, { label: string; dim: string }> = {
@@ -162,6 +163,7 @@ function SegmentMenu({ siteId, segments, current, onApply, onChange }: { siteId:
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const hasFilters = Object.keys(current).length > 0;
+  const readOnly = useMe()?.role === 'viewer';
   return (
     <div className="w-[min(320px,calc(100vw-2rem))] p-1">
       <div className="px-2 pb-1 pt-1.5 text-[12px] font-medium text-ink-3">Segments enregistrés</div>
@@ -172,7 +174,7 @@ function SegmentMenu({ siteId, segments, current, onApply, onChange }: { siteId:
             <span className="truncate text-[13px] font-medium text-ink">{s.name}</span>
             <span className="truncate text-[11px] text-ink-4">{Object.entries(s.filters).map(([k, v]) => `${FILTER_LABELS[k]?.label ?? k} ${opLabel(filterParts(v).op)} ${filterParts(v).v}`).join(' · ')}</span>
           </button>
-          <button
+          {!readOnly && <button
             className="mr-1 rounded-md px-2 py-1 text-ink-4 hover:bg-surface hover:text-danger"
             aria-label={`Supprimer le segment ${s.name}`}
             onClick={async () => {
@@ -181,10 +183,10 @@ function SegmentMenu({ siteId, segments, current, onApply, onChange }: { siteId:
             }}
           >
             ✕
-          </button>
+          </button>}
         </div>
       ))}
-      <form
+      {!readOnly && <form
         className="mt-1 border-t border-line p-2"
         onSubmit={async (e) => {
           e.preventDefault();
@@ -204,7 +206,7 @@ function SegmentMenu({ siteId, segments, current, onApply, onChange }: { siteId:
           <button className="btn-dark shrink-0" disabled={!hasFilters || !name.trim()}>Enregistrer</button>
         </div>
         {error && <p className="mt-1 text-[12px] text-danger">{error}</p>}
-      </form>
+      </form>}
     </div>
   );
 }
