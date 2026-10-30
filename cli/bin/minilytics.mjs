@@ -91,6 +91,7 @@ switch (cmd) {
     const r = await api(`/sites/${needSite()}/overview${q()}`);
     if (json) { out(r); break; }
     const c = r.current ?? r;
+    if (typeof c.bounceRate === 'number' && c.bounceRate <= 1) c.bounceRate = Math.round(c.bounceRate * 1000) / 10;
     for (const [k, l] of [['visitors', 'Visiteurs'], ['sessions', 'Visites'], ['pageviews', 'Pages vues'], ['bounceRate', 'Rebond %'], ['avgDuration', 'Durée moy. (ms)'], ['revenue', 'Revenus (centimes)']]) if (c[k] !== undefined) console.log(l.padEnd(20) + nf(c[k]));
     break;
   }
