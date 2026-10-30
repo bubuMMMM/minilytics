@@ -6,6 +6,7 @@ import { handleEvent } from './collect.js';
 import { publicDemoStats, listPublicSites, resolvePublicSite } from './demo.js';
 import { resolveRange, tzOffset } from './lib/time.js';
 import { liveGlobeStats } from './live-globe.js';
+import { liveMap, mapReport } from './map.js';
 import { forgetSite, type AppEnv, type Site } from './env.js';
 import { passwordsMatch, randomId, signToken, verifyToken } from './lib/crypto.js';
 import { PUBLIC_CACHE, cookieSecure, csrfGuard, requestIp, sessionKey } from './lib/security.js';
@@ -69,6 +70,30 @@ app.get('/api/public/live-globe', async (c) => {
   } catch (error) {
     console.error('Live globe failed', error);
     return c.json({ error: 'Live activity temporarily unavailable' }, 503);
+  }
+});
+// Public country-level map aggregates (no cities) for the demo's Carte.
+app.get('/api/public/map', async (c) => {
+  try {
+    const site = await resolvePublicSite(c.env.DB, c.req.query('site'));
+    if (!site) return c.json({ error: 'Site not public' }, 404);
+    const range = resolveRange({ period: c.req.query('days') === '30' ? '30d' : c.req.query('days') === 'all' ? 'all' : '7d' }, site.timezone, site.created_at);
+    c.header('Cache-Control', PUBLIC_CACHE);
+    return c.json(await mapReport({ db: c.env.DB, site, range, filters: {}, offset: tzOffset(site.timezone, range.to) }, { cities: false }));
+  } catch (error) {
+    console.error('Public map failed', error);
+    return c.json({ error: 'Map temporarily unavailable' }, 503);
+  }
+});
+app.get('/api/public/map/live', async (c) => {
+  try {
+    const site = await resolvePublicSite(c.env.DB, c.req.query('site'));
+    if (!site) return c.json({ error: 'Site not public' }, 404);
+    c.header('Cache-Control', PUBLIC_CACHE);
+    return c.json(await liveMap(c.env.DB, site.id, { cities: false }));
+  } catch (error) {
+    console.error('Public live map failed', error);
+    return c.json({ error: 'Live map temporarily unavailable' }, 503);
   }
 });
 // Public engagement aggregates; no visitor identifiers.
@@ -320,6 +345,14 @@ app.delete('/api/sites/:id', async (c) => {
 app.get('/api/sites/:id/live-globe', async (c) => {
   c.header('Cache-Control', 'no-store, max-age=0');
   return c.json(await liveGlobeStats(c.env.DB, c.get('site').id));
+});
+app.get('/api/sites/:id/map', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  return c.json(await mapReport(makeCtx(c)));
+});
+app.get('/api/sites/:id/map/live', async (c) => {
+  c.header('Cache-Control', 'no-store, max-age=0');
+  return c.json(await liveMap(c.env.DB, c.get('site').id));
 });
 app.get('/api/sites/:id/engagement', async (c) => {
   try {

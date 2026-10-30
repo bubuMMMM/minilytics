@@ -14,7 +14,7 @@ export default defineConfig({
         // Long-lived vendor chunks: a dashboard deploy doesn't invalidate React/recharts in visitors' caches.
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
-          if (/[\\/]node_modules[\\/](recharts|d3-[^\\/]+|victory-vendor|internmap|decimal\.js-light|lodash|react-smooth|recharts-scale|eventemitter3|tiny-invariant|clsx|fast-equals|react-transition-group|dom-helpers)[\\/]/.test(id)) return 'charts';
+          if (/[\\/]node_modules[\\/](recharts|d3-(?!geo)[^\\/]+|victory-vendor|internmap|decimal\.js-light|lodash|react-smooth|recharts-scale|eventemitter3|tiny-invariant|clsx|fast-equals|react-transition-group|dom-helpers)[\\/]/.test(id)) return 'charts';
           if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'react';
         },
       },

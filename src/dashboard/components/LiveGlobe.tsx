@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { Link } from './Link';
 
 type Point = [number, number];
 type Geometry = { type: 'Polygon' | 'MultiPolygon'; coordinates: Point[][] | Point[][][] };
@@ -267,6 +268,7 @@ export function LiveGlobe({ siteId, publicSiteId }: { siteId?: string; publicSit
           <div className="ml-kicker">Carte en direct</div>
           <h2 className="mt-1 text-lg font-semibold tracking-tight">Vos visiteurs dans le monde</h2>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-3">D’où viennent vos visiteurs. Chaque point est un pays, jamais une position précise.</p>
+          <Link href={siteId ? `/site/${siteId}/map${typeof window !== 'undefined' ? window.location.search : ''}` : `/demo/map?site=${encodeURIComponent(publicSiteId ?? '')}`} className="btn mt-3">Voir la carte <span aria-hidden>→</span></Link>
         </div>
         <div className="text-right">
           <div className="text-[12px] text-ink-3">Actifs · 5 min</div>

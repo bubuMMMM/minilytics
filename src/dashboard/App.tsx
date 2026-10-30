@@ -8,6 +8,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard').then((m) => ({ default:
 const Realtime = lazy(() => import('./pages/Realtime').then((m) => ({ default: m.Realtime })));
 const PublicDemo = lazy(() => import('./pages/PublicDemo').then((m) => ({ default: m.PublicDemo })));
 const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
+const MapPage = lazy(() => import('./map/MapPage').then((m) => ({ default: m.MapPage })));
 const Sites = lazy(() => import('./pages/Sites').then((m) => ({ default: m.Sites })));
 
 export function navigate(to: string) {
@@ -51,6 +52,7 @@ export function App() {
   if (path === '/') return <Landing />;
   if (path === '/signup') return <Signup />;
   // A genuine, read-only public demonstration; private customer data stays behind authentication.
+  if (path === '/demo/map') return <Suspense fallback={<Loading />}><MapPage publicSiteId={new URLSearchParams(window.location.search).get('site') || '2z1f1t02626v5c5w'} /></Suspense>;
   if (path === '/demo') return <Suspense fallback={<Loading />}><PublicDemo /></Suspense>;
   if (auth === null) return <Loading />;
   if (!auth) return <Login onLogin={() => { setAuth(true); navigate(path === '/login' ? '/sites' : path + window.location.search); }} />;
@@ -65,6 +67,7 @@ function route(path: string) {
   if (!sub) return <Dashboard key={'o' + id} siteId={id} />;
   if (sub === 'settings') return <Settings siteId={id} />;
   if (sub === 'realtime') return <Realtime siteId={id} />;
+  if (sub === 'map') return <MapPage key={'m' + id} siteId={id} />;
   const view = SITE_VIEWS[sub];
   return view ? <Dashboard key={view + id} siteId={id} view={view} /> : <Sites />;
 }

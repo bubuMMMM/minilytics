@@ -226,7 +226,7 @@ export function PublicDemo() {
       </section>
 
       <section id="globe" className="scroll-mt-[104px] pt-20">
-        <SectionHeading eyebrow="Carte en direct" title="Une audience sans frontières" description="La carte mondiale des connexions réelles, actualisée toutes les 15 secondes." action={<StatusPill active>Globe en direct</StatusPill>}/>
+        <SectionHeading eyebrow="Carte en direct" title="Une audience sans frontières" description="La carte mondiale des connexions réelles, actualisée toutes les 15 secondes." action={<a href={`/demo/map?site=${encodeURIComponent(siteId || '')}`} className="btn">Explorer la carte <span aria-hidden>→</span></a>}/>
         <div className="ml-live-globe"><WhenVisible><Suspense fallback={<div className="ml-loading h-full min-h-[280px] rounded-xl"/>}><LiveGlobe key={siteId} publicSiteId={siteId||undefined}/></Suspense></WhenVisible></div>
       </section>
 

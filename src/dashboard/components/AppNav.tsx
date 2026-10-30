@@ -6,12 +6,13 @@ import { LiveDot } from './Sparkline';
 import { UiIcon } from './UiIcon';
 import { ThemeToggle } from './ThemeToggle';
 
-export type NavKey = 'overview' | 'social' | 'videos' | 'sponsors' | 'content' | 'sources' | 'realtime' | 'settings' | 'sites';
+export type NavKey = 'overview' | 'map' | 'social' | 'videos' | 'sponsors' | 'content' | 'sources' | 'realtime' | 'settings' | 'sites';
 type Icon = Parameters<typeof UiIcon>[0]['name'];
 
 const ITEMS: { key: NavKey; label: string; short: string; icon: Icon; path: string; keep: boolean }[] = [
   { key: 'overview', label: 'Vue d’ensemble', short: 'Aperçu', icon: 'bar-chart', path: '', keep: true },
   { key: 'sources', label: 'Sources', short: 'Sources', icon: 'compass', path: '/sources', keep: true },
+  { key: 'map', label: 'Carte', short: 'Carte', icon: 'globe', path: '/map', keep: true },
   { key: 'social', label: 'Réseaux sociaux', short: 'Réseaux', icon: 'share', path: '/social', keep: true },
   { key: 'videos', label: 'Vidéos', short: 'Vidéos', icon: 'play', path: '/videos', keep: true },
   { key: 'sponsors', label: 'Sponsors', short: 'Sponsors', icon: 'megaphone', path: '/sponsors', keep: true },
@@ -22,7 +23,7 @@ const ITEMS: { key: NavKey; label: string; short: string; icon: Icon; path: stri
 const MOBILE_MAIN: NavKey[] = ['overview', 'sources', 'social', 'realtime'];
 
 const TITLES: Record<NavKey, string> = {
-  overview: 'Vue d’ensemble', social: 'Réseaux sociaux', videos: 'Vidéos', sponsors: 'Sponsors', content: 'Contenus', sources: 'Sources', realtime: 'Temps réel', settings: 'Réglages', sites: 'Mes sites',
+  overview: 'Vue d’ensemble', map: 'Carte', social: 'Réseaux sociaux', videos: 'Vidéos', sponsors: 'Sponsors', content: 'Contenus', sources: 'Sources', realtime: 'Temps réel', settings: 'Réglages', sites: 'Mes sites',
 };
 
 /** Period and filters follow you between analysis views (they live in the URL). */
