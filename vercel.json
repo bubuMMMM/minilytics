@@ -78,5 +78,11 @@
         }
       ]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/x-sync",
+      "schedule": "0 6 * * *"
+    }
   ]
 }

@@ -14,11 +14,13 @@ interface Preview {
   series: { date: string; visitors: number; pageviews: number }[];
   sources: Group[];
   pages: Group[];
+  devices?: Group[];
 }
 
+const DEVICE: Record<string, string> = { Mobile: 'Mobile', Desktop: 'Ordinateur', Tablet: 'Tablette' };
 const nf = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
 
-/** Real, aggregated n0.pub numbers from the public endpoint. Never invented: if it fails, we say so. */
+/** Real, aggregated numbers of the public demo site. Never invented: if it fails, we say so. The landing stays neutral: no domain shown. */
 function useLivePreview() {
   const [data, setData] = useState<Preview | null>(null);
   const [failed, setFailed] = useState(false);
@@ -42,15 +44,42 @@ function useLivePreview() {
   return { data, failed, siteId };
 }
 
-const FEATURES: { icon: Parameters<typeof UiIcon>[0]['name']; title: string; text: string }[] = [
-  { icon: 'play', title: 'Vidéos', text: 'Lectures, temps réellement regardé, rétention à 10, 25, 50, 75 et 90 %, pauses et retours en arrière, vidéo par vidéo.' },
-  { icon: 'megaphone', title: 'Sponsors', text: 'Impressions vraiment vues, clics (même en nouvel onglet) et taux de clic pour chaque emplacement et chaque sponsor. Export CSV.' },
-  { icon: 'compass', title: 'Sources', text: 'Canaux, référents, campagnes UTM, liens 𝕏 (t.co), applis Android et navigateurs intégrés d’Instagram, TikTok ou Facebook.' },
-  { icon: 'activity', title: 'Temps réel', text: 'Les visiteurs en ligne, les pages ouvertes et les événements à la seconde, avec un globe des connexions.' },
-  { icon: 'smartphone', title: 'Pensé pour le mobile', text: 'Navigation au pouce, tableaux en cartes, cibles tactiles de 44 px : votre tableau de bord reste lisible sur téléphone.' },
-  { icon: 'lock', title: 'Respect de la vie privée', text: 'Cookies first-party uniquement, aucune donnée revendue, paramètres sensibles retirés des URL, robots et navigateurs automatisés ignorés.' },
+type IconName = Parameters<typeof UiIcon>[0]['name'];
+const FEATURES: { icon: IconName; title: string; text: string }[] = [
+  { icon: 'users', title: 'Visiteurs et pages vues', text: 'Visiteurs uniques, visites, pages vues, rebond et durée, page par page. Navigation des applis React, Next.js ou Vue suivie automatiquement.' },
+  { icon: 'compass', title: 'Sources et référents', text: 'Moteurs de recherche, réseaux sociaux, assistants IA, sites référents, e-mail : chaque visite est rangée dans le bon canal.' },
+  { icon: 'filter', title: 'Campagnes UTM', text: 'utm_source, utm_medium, utm_campaign, utm_content et ?ref= pour comparer vos newsletters, pubs et partenariats.' },
+  { icon: 'globe', title: 'Pays, villes, appareils', text: 'Pays, régions et villes, navigateurs et systèmes avec leur version, mobile, tablette ou ordinateur, fuseau horaire.' },
+  { icon: 'activity', title: 'Temps réel', text: 'Les visiteurs en ligne, les pages ouvertes et chaque événement à la seconde, avec un globe des connexions.' },
+  { icon: 'target', title: 'Objectifs et entonnoirs', text: 'Inscriptions, achats, clics sur un bouton : un attribut data-ml-goal suffit. Entonnoirs étape par étape pour voir où l’on décroche.' },
+  { icon: 'arrow-up-right', title: 'Clics sortants', text: 'Chaque lien externe cliqué est compté automatiquement, même ouvert dans un nouvel onglet.' },
+  { icon: 'file-text', title: 'Scroll et temps de lecture', text: 'Profondeur de lecture (25, 50, 75, 90, 100 %) et temps réellement actif sur la page : idéal pour les articles et les pages longues.' },
+  { icon: 'bar-chart', title: 'Revenus et paiements', text: 'Reliez Dodo Payments ou l’API de paiements : revenus par source, par campagne et par page, et qui a payé après quelle visite.' },
+  { icon: 'share', title: 'Réseaux sociaux et 𝕏', text: 'Visites par réseau, liens 𝕏 traçables attribués au post près, et mentions de votre domaine sur 𝕏 (avec votre clé API X).' },
+  { icon: 'download', title: 'Export et API', text: 'Export CSV de chaque tableau, API HTTP pour envoyer objectifs et paiements depuis votre serveur.' },
+  { icon: 'lock', title: 'Léger et respectueux', text: 'Script d’environ 5 Ko compressé. Cookies first-party uniquement, aucune donnée revendue, robots et navigateurs automatisés ignorés.' },
 ];
 
+const ADVANCED: { icon: IconName; title: string; when: string; text: string }[] = [
+  { icon: 'play', title: 'Vidéos', when: 'Si votre site a des vidéos', text: 'Lectures, temps réellement regardé, rétention à 10, 25, 50, 75 et 90 %, pauses, vitesse et plein écran, vidéo par vidéo.' },
+  { icon: 'megaphone', title: 'Emplacements sponsorisés', when: 'Si vous vendez des emplacements', text: 'Impressions vraiment vues (50 % visibles pendant 1 s), clics et taux de clic par emplacement et par sponsor, export CSV pour vos partenaires.' },
+  { icon: 'grid', title: 'Sections et contenus', when: 'Si vous voulez savoir ce qui est vu', text: 'Quelles sections, cartes ou articles mis en avant sont réellement affichés à l’écran, et lesquels sont cliqués.' },
+];
+
+const USE_CASES: { icon: IconName; title: string; text: string }[] = [
+  { icon: 'file-text', title: 'Blogs et médias', text: 'Articles les plus lus, temps de lecture, scroll, sources de trafic.' },
+  { icon: 'zap', title: 'Landing pages', text: 'Campagnes, clics sur vos boutons, taux de conversion.' },
+  { icon: 'target', title: 'E-commerce', text: 'Ventes et revenus par source, entonnoir jusqu’au paiement.' },
+  { icon: 'code', title: 'SaaS et applis', text: 'Inscriptions, parcours dans l’appli, utilisateurs identifiés.' },
+  { icon: 'eye', title: 'Portfolios', text: 'Qui vous découvre, d’où, et quels projets sont regardés.' },
+];
+
+/** Pricing lines are kept word for word; a short tag says when a line needs setup or is not available yet. */
+const FEATURE_TAG: Record<string, string> = {
+  '100K requêtes de bots IA': 'Bientôt',
+  'API, CLI & MCP': 'CLI & MCP bientôt',
+  'Mentions sur les réseaux sociaux': 'Clé API X requise',
+};
 const PLANS: { name: string; price: string; features: string[]; note?: string; highlight?: boolean }[] = [
   {
     name: 'Starter',
@@ -67,10 +96,12 @@ const PLANS: { name: string; price: string; features: string[]; note?: string; h
 ];
 
 const FAQ: { q: string; a: string }[] = [
-  { q: 'Comment installer Minilytics ?', a: 'Ajoutez une seule balise <script> dans le <head> de votre site. Les pages vues, la navigation des applications React ou Next.js, le scroll et le temps actif sont mesurés automatiquement.' },
+  { q: 'Minilytics convient-il à mon site ?', a: 'Oui, quel que soit son type : blog, landing page, boutique, SaaS, portfolio ou site vitrine. Visiteurs, sources, campagnes, objectifs et temps réel fonctionnent partout. Les vues Vidéos et Sponsors sont des options : elles restent vides si vous ne vous en servez pas.' },
+  { q: 'Comment installer Minilytics ?', a: 'Ajoutez une seule balise <script> dans le <head> de votre site (HTML, WordPress, Webflow, Next.js…). Pages vues, navigation des applis monopage, scroll, temps actif et clics sortants sont mesurés automatiquement.' },
+  { q: 'Comment mesurer une inscription ou un achat ?', a: 'Ajoutez data-ml-goal="inscription" sur le bouton, ou appelez minilytics(\'goal\', \'achat\') dans votre code. Les paiements peuvent aussi arriver depuis Dodo Payments ou l’API de paiements.' },
   { q: 'Minilytics utilise-t-il des cookies ?', a: 'Oui, deux cookies first-party : un identifiant de visiteur (1 an) et un identifiant de visite (30 minutes, renouvelé à chaque action). Aucun cookie tiers, aucune donnée revendue.' },
   { q: 'Les robots sont-ils comptés ?', a: 'Non. Les robots connus, les aperçus de liens et les navigateurs automatisés (headless, WebDriver) sont filtrés côté navigateur et côté serveur.' },
-  { q: 'Comment mesurer un emplacement sponsor ?', a: 'Ajoutez data-ml-block="nom-de-l-emplacement" et data-ml-sponsor="Nom du sponsor" sur l’élément. Les impressions (au moins 50 % visibles pendant 1 seconde) et les clics remontent tout seuls dans la vue Sponsors.' },
+  { q: 'Comment savoir quel post 𝕏 m’amène des visiteurs ?', a: 'X ne transmet que « t.co » comme référent. Créez un lien traçable dans la vue Réseaux sociaux : chaque visite est attribuée à son post. Avec votre clé de l’API X, les posts qui citent votre domaine s’affichent aussi.' },
   { q: 'Puis-je m’exclure de mes propres statistiques ?', a: 'Oui : ouvrez votre site une fois avec ?ml_ignore=true dans l’adresse. Revenez avec ?ml_ignore=false pour annuler.' },
   { q: 'Dois-je payer pour commencer ?', a: 'Non : 0,00 € à payer aujourd’hui et aucune carte requise pour démarrer avec Starter.' },
 ];
@@ -85,8 +116,8 @@ function LiveCard() {
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#4f62ef]" aria-hidden><UiIcon name="activity" size={18} /></span>
           <div className="min-w-0">
-            <div className="text-[13px] font-semibold">Données réelles, en direct</div>
-            <div className="truncate text-[12px] text-[#8b97aa]" translate="no">{data?.site.domain ?? 'n0.pub'} · 7 derniers jours</div>
+            <div className="text-[13px] font-semibold">Démo en direct</div>
+            <div className="truncate text-[12px] text-[#8b97aa]">Un vrai site, 7 derniers jours</div>
           </div>
         </div>
         <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#ecfbf4] px-2.5 py-1 text-[11px] font-semibold text-[#14895f]">
@@ -112,13 +143,13 @@ function LiveCard() {
           {change !== null && <div className="mt-1 text-[12px] text-[#6f7d94]"><span className={change >= 0 ? 'font-semibold text-[#14895f]' : 'font-semibold text-[#c3525f]'}>{change >= 0 ? '+' : ''}{change} %</span> de visiteurs vs. les 7 jours précédents</div>}
           <div className="mt-4 h-[96px] text-[#4f62ef]">{data ? <Sparkline data={data.series.map((s) => s.visitors)} height={96} width={400} className="text-[#4f62ef]" /> : <div className="ml-skeleton h-full" />}</div>
           <div className="mt-4 grid gap-4 border-t border-[#edf0f7] pt-4 sm:grid-cols-2">
-            {([['Top pages', data?.pages], ['Top sources', data?.sources]] as const).map(([title, rows]) => (
+            {([['Top sources', data?.sources], ['Appareils', data?.devices]] as const).map(([title, rows]) => (
               <div key={title} className="min-w-0">
                 <div className="mb-2 text-[12px] font-semibold text-[#56657e]">{title}</div>
                 <ul className="space-y-1.5">
                   {(rows ?? [null, null, null]).slice(0, 3).map((r, i) => (
                     <li key={i} className="flex items-center justify-between gap-2 text-[13px]">
-                      {r ? <><span className="min-w-0 truncate" translate="no">{title === 'Top sources' ? channelName(r.label) : r.label}</span><span className="tnum shrink-0 text-[#6f7d94]">{nf(r.value)}</span></> : <span className="ml-skeleton h-4 w-full" />}
+                      {r ? <><span className="min-w-0 truncate" translate="no">{title === 'Top sources' ? channelName(r.label) : DEVICE[r.label] ?? r.label}</span><span className="tnum shrink-0 text-[#6f7d94]">{nf(r.value)}</span></> : <span className="ml-skeleton h-4 w-full" />}
                     </li>
                   ))}
                   {rows && rows.length === 0 && <li className="text-[12px] text-[#9aa7ba]">Pas encore de données</li>}
@@ -135,19 +166,19 @@ function LiveCard() {
 
 /** Illustration of the dashboard's navigation (no numbers: nothing to fake). */
 function AppFrame() {
-  const rows: [Parameters<typeof UiIcon>[0]['name'], string, string][] = [
+  const rows: [IconName, string, string][] = [
     ['bar-chart', 'Vue d’ensemble', 'Visiteurs, pages vues, rebond, durée'],
-    ['play', 'Vidéos', 'Lectures, temps regardé, rétention'],
-    ['megaphone', 'Sponsors', 'Impressions, clics, CTR par emplacement'],
-    ['grid', 'Contenus', 'Sections et vidéos vraiment vues'],
     ['compass', 'Sources', 'Canaux, référents, UTM, pays, appareils'],
+    ['share', 'Réseaux sociaux', 'Visites des réseaux, liens et mentions 𝕏'],
+    ['target', 'Objectifs et entonnoirs', 'Inscriptions, achats, étapes'],
+    ['file-text', 'Pages', 'Les plus lues, scroll, temps actif'],
     ['activity', 'Temps réel', 'Qui est en ligne, maintenant'],
   ];
   return (
     <div className="ml-bento overflow-hidden p-0" aria-label="Aperçu des vues du tableau de bord">
       <div className="flex items-center gap-1.5 border-b border-[#eef1f6] px-4 py-3" aria-hidden>
         <span className="h-2.5 w-2.5 rounded-full bg-[#ffb4a8]" /><span className="h-2.5 w-2.5 rounded-full bg-[#ffd98a]" /><span className="h-2.5 w-2.5 rounded-full bg-[#a7e3c4]" />
-        <span className="ml-3 truncate text-[12px] text-[#9aa7ba]" translate="no">minilytics / n0.pub</span>
+        <span className="ml-3 truncate text-[12px] text-[#9aa7ba]" translate="no">minilytics / votre-site.fr</span>
       </div>
       <ul className="divide-y divide-[#f1f4f9]">
         {rows.map(([icon, title, text]) => (
@@ -197,12 +228,12 @@ export function Landing() {
         {/* Hero */}
         <section className="mx-auto grid max-w-[1240px] items-center gap-10 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-[1.05fr_.95fr] lg:gap-14 lg:pb-24 lg:pt-20">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#e3e8ff] bg-[#f6f7ff] px-3 py-1.5 text-[12px] font-semibold text-[#4f62ef]"><UiIcon name="sparkles" size={14} /> Vidéos, sponsors et sources, au même endroit</span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#e3e8ff] bg-[#f6f7ff] px-3 py-1.5 text-[12px] font-semibold text-[#4f62ef]"><UiIcon name="sparkles" size={14} /> Pour blogs, landing pages, boutiques et SaaS</span>
             <h1 className="mt-6 text-[clamp(2.4rem,6.4vw,4.6rem)] font-semibold leading-[1.03] tracking-[-.06em] text-[#101a32] [text-wrap:balance]">
               Des analytics simples, <span className="text-[#4f62ef]">enfin précis.</span>
             </h1>
             <p className="mt-5 max-w-[540px] text-[16px] leading-[1.75] text-[#5f6d84] sm:text-[17px] [text-wrap:pretty]">
-              Sachez quelles vidéos sont vraiment regardées, combien de fois chaque sponsor est vu et cliqué, et d’où viennent vos visiteurs. Une balise à coller, un tableau de bord clair, en français.
+              Qui vient sur votre site, d’où, sur quelles pages, et ce qui les fait s’inscrire ou acheter. Une balise à coller, un tableau de bord clair, en français.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/signup" className="btn-dark !min-h-[50px] !px-6 text-[15px]">Commencer gratuitement <UiIcon name="arrow-right" size={17} /></Link>
@@ -219,7 +250,7 @@ export function Landing() {
             <div className="max-w-2xl">
               <div className="ml-kicker">FONCTIONNALITÉS</div>
               <h2 id="f-title" className="mt-3 text-[clamp(1.8rem,4vw,2.8rem)] font-semibold leading-tight tracking-[-.05em] [text-wrap:balance]">Tout ce qui compte, sans le superflu.</h2>
-              <p className="mt-3 text-[15px] leading-relaxed text-[#6f7d94]">Chaque chiffre est mesuré, jamais extrapolé. Chaque vue répond à une question précise.</p>
+              <p className="mt-3 text-[15px] leading-relaxed text-[#6f7d94]">Tout ce dont un site a besoin, dès l’installation. Chaque chiffre est mesuré, jamais extrapolé.</p>
             </div>
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map((f) => (
@@ -233,13 +264,51 @@ export function Landing() {
           </div>
         </section>
 
+        {/* Use cases */}
+        <section aria-labelledby="u-title" className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6 lg:py-20">
+          <div className="max-w-2xl">
+            <div className="ml-kicker">POUR TOUS LES SITES</div>
+            <h2 id="u-title" className="mt-3 text-[clamp(1.8rem,4vw,2.8rem)] font-semibold leading-tight tracking-[-.05em] [text-wrap:balance]">Un article, une page de vente ou une appli.</h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-[#6f7d94]">Les mêmes réponses claires, quel que soit votre site.</p>
+          </div>
+          <ul className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {USE_CASES.map((u) => (
+              <li key={u.title} className="ml-bento p-5">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef1ff] text-[#4f62ef]" aria-hidden><UiIcon name={u.icon} size={19} /></span>
+                <h3 className="mt-3 text-[15px] font-semibold">{u.title}</h3>
+                <p className="mt-1.5 text-[13.5px] leading-relaxed text-[#5f6d84]">{u.text}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* Advanced, optional */}
+        <section id="avance" aria-labelledby="a-title" className="border-t border-[#f0f2f7] bg-[#fbfcff]">
+          <div className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6 lg:py-20">
+            <div className="max-w-2xl">
+              <div className="ml-kicker">EN OPTION</div>
+              <h2 id="a-title" className="mt-3 text-[clamp(1.6rem,3.4vw,2.4rem)] font-semibold leading-tight tracking-[-.05em] [text-wrap:balance]">Des mesures avancées, seulement si vous en avez besoin.</h2>
+              <p className="mt-3 text-[15px] leading-relaxed text-[#6f7d94]">Rien à activer pour un site classique. Ajoutez un attribut sur un élément et la vue correspondante se remplit.</p>
+            </div>
+            <div className="mt-10 grid gap-4 md:grid-cols-3">
+              {ADVANCED.map((f) => (
+                <article key={f.title} className="ml-bento p-6">
+                  <div className="flex items-center justify-between gap-2"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f4f5f8] text-[#56657e]" aria-hidden><UiIcon name={f.icon} size={21} /></span><span className="rounded-full bg-[#f1f3f8] px-2.5 py-1 text-[11px] font-semibold text-[#6f7d94]">{f.when}</span></div>
+                  <h3 className="mt-4 text-[17px] font-semibold tracking-[-.02em]">{f.title}</h3>
+                  <p className="mt-2 text-[14px] leading-relaxed text-[#5f6d84]">{f.text}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Demo */}
         <section id="demo" aria-labelledby="d-title" className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6 lg:py-24">
           <div className="grid items-center gap-10 lg:grid-cols-2">
             <div>
               <div className="ml-kicker">DÉMO EN DIRECT</div>
-              <h2 id="d-title" className="mt-3 text-[clamp(1.8rem,4vw,2.8rem)] font-semibold leading-tight tracking-[-.05em] [text-wrap:balance]">Le vrai trafic de n0.pub, sous vos yeux.</h2>
-              <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[#6f7d94]">La démo publique affiche des statistiques agrégées et réelles : visiteurs, pages, sources, appareils, vidéos les plus regardées et globe des connexions. Aucune donnée personnelle, aucun trafic fictif.</p>
+              <h2 id="d-title" className="mt-3 text-[clamp(1.8rem,4vw,2.8rem)] font-semibold leading-tight tracking-[-.05em] [text-wrap:balance]">Un vrai tableau de bord, en accès libre.</h2>
+              <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[#6f7d94]">La démo publique affiche les statistiques agrégées et réelles d’un site en production : visiteurs, pages, sources, appareils et globe des connexions. Aucune donnée personnelle, aucun trafic fictif.</p>
               <ul className="mt-6 space-y-3 text-[14px] text-[#33415c]">
                 {['Actualisée automatiquement', 'Choix de la période : 7 ou 30 jours', 'Fonctionne aussi bien sur téléphone'].map((x) => (
                   <li key={x} className="flex items-center gap-2.5"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#ecfbf4] text-[#14895f]" aria-hidden><UiIcon name="check" size={14} /></span>{x}</li>
@@ -258,6 +327,7 @@ export function Landing() {
               <div className="ml-kicker justify-center">TARIFS</div>
               <h2 id="p-title" className="mt-3 text-[clamp(1.8rem,4vw,2.8rem)] font-semibold leading-tight tracking-[-.05em]">Des prix simples, en euros.</h2>
               <p className="mt-3 text-[15px] text-[#6f7d94]">Prix mensuels, en euros. Sans engagement de carte pour démarrer.</p>
+              <p className="mt-2 text-[13px] text-[#8b97aa]">« Bientôt » : pas encore disponible. Les mentions 𝕏 demandent votre propre clé de l’API X ; l’attribution des liens 𝕏 fonctionne sans clé.</p>
             </div>
             <div className="mx-auto mt-10 grid max-w-[880px] gap-5 md:grid-cols-2">
               {PLANS.map((p) => (
@@ -272,7 +342,7 @@ export function Landing() {
                   </div>
                   <ul className="mt-6 flex-1 space-y-3 text-[14px] text-[#33415c]">
                     {p.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5"><span className="mt-0.5 text-[#4f62ef]" aria-hidden><UiIcon name="check" size={16} /></span>{f}</li>
+                      <li key={f} className="flex items-start gap-2.5"><span className="mt-0.5 text-[#4f62ef]" aria-hidden><UiIcon name="check" size={16} /></span><span>{f}{FEATURE_TAG[f] && <span className="ml-2 inline-block rounded-full bg-[#f1f3f8] px-2 py-0.5 align-middle text-[11px] font-semibold text-[#6f7d94]">{FEATURE_TAG[f]}</span>}</span></li>
                     ))}
                   </ul>
                   <Link href="/signup" className={`${p.highlight ? 'btn-dark' : 'btn'} mt-8 w-full !min-h-[48px]`}>Choisir {p.name}</Link>

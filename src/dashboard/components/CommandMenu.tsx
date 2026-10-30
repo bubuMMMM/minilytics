@@ -28,6 +28,7 @@ export function CommandMenu({ siteId, open, onClose }: { siteId?: string; open: 
         { id: 's', group: 'Aller à', label: 'Sponsors', hint: 'Impressions, clics, CTR', icon: 'megaphone', run: keep(base + '/sponsors') },
         { id: 'c', group: 'Aller à', label: 'Contenus', hint: 'Sections et vidéos vues', icon: 'grid', run: keep(base + '/contenus') },
         { id: 'src', group: 'Aller à', label: 'Sources', hint: 'Canaux, référents, pays, appareils', icon: 'compass', run: keep(base + '/sources') },
+        { id: 'social', group: 'Aller à', label: 'Réseaux sociaux', hint: 'Visites des réseaux, liens et mentions 𝕏', icon: 'share', run: keep(base + '/social') },
         { id: 'rt', group: 'Aller à', label: 'Temps réel', icon: 'activity', run: () => navigate(base + '/realtime') },
         { id: 'set', group: 'Aller à', label: 'Réglages et installation', icon: 'settings', run: () => navigate(base + '/settings') },
       );

@@ -5,6 +5,10 @@ export interface Env {
   ADMIN_PASSWORD: string;
   /** Random string used to sign the login cookie (`wrangler secret put SESSION_SECRET`). */
   SESSION_SECRET: string;
+  /** X API v2 app Bearer token (recent search). Optional: enables « Mentions sur 𝕏 ». */
+  X_BEARER_TOKEN?: string;
+  /** Secret Vercel Cron sends as `Authorization: Bearer …` to /api/cron/*. */
+  CRON_SECRET?: string;
 }
 
 export interface Site {

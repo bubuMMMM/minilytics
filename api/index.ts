@@ -8,6 +8,8 @@ const handler = (req: Request) =>
     DB: getDb() as unknown as D1Database,
     ADMIN_PASSWORD: process.env.ADMIN_PASSWORD ?? '',
     SESSION_SECRET: process.env.SESSION_SECRET ?? '',
+    X_BEARER_TOKEN: process.env.X_BEARER_TOKEN || undefined,
+    CRON_SECRET: process.env.CRON_SECRET || undefined,
   } as any);
 
 export const GET = handler;

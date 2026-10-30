@@ -12,6 +12,7 @@ import { Toolbar } from '../components/Toolbar';
 import { VisitorModal } from '../components/VisitorModal';
 import { VideosTeaser, VideosView } from '../components/VideosView';
 import { BlocksView } from '../components/BlocksView';
+import { SocialView } from '../components/SocialView';
 import { Link } from '../components/Link';
 import { qs, type Overview, type Site } from '../lib/api';
 import { DashContext, useDash, type Dash } from '../lib/context';
@@ -41,12 +42,13 @@ const FILTER_LABELS: Record<string, { label: string; dim: string }> = {
   goal: { label: 'Objectif atteint', dim: 'goal' },
 };
 
-export type DashView = 'overview' | 'videos' | 'sponsors' | 'content' | 'sources';
+export type DashView = 'overview' | 'videos' | 'sponsors' | 'content' | 'sources' | 'social';
 const VIEW_META: Record<DashView, { kicker: string; title: (name: string) => string; sub: string }> = {
   overview: { kicker: 'ANALYSE / VUE D’ENSEMBLE', title: (n) => n, sub: 'L’essentiel de votre trafic' },
   videos: { kicker: 'ANALYSE / VIDÉOS', title: () => 'Vidéos', sub: 'Lectures, temps de visionnage et rétention' },
   sponsors: { kicker: 'ANALYSE / SPONSORS', title: () => 'Sponsors', sub: 'Impressions, clics et CTR par emplacement' },
   content: { kicker: 'ANALYSE / CONTENUS', title: () => 'Contenus', sub: 'Sections et vidéos réellement vues' },
+  social: { kicker: 'ANALYSE / RÉSEAUX SOCIAUX', title: () => 'Réseaux sociaux', sub: 'Visites des réseaux, liens 𝕏 et mentions' },
   sources: { kicker: 'ANALYSE / SOURCES', title: () => 'Sources', sub: 'D’où viennent vos visiteurs et avec quoi' },
 };
 
@@ -123,6 +125,7 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
         {view === 'videos' ? <div className="mt-5"><VideosView /></div>
           : view === 'sponsors' ? <div className="mt-5"><BlocksView kind="sponsor" /></div>
           : view === 'content' ? <div className="mt-5"><BlocksView kind="content" /></div>
+          : view === 'social' ? <div className="mt-5"><SocialView /></div>
           : view === 'sources' ? <SourcesPanels full />
           : <>
         {overview && overview.current.visitors === 0 && overview.previous.visitors === 0 && !Object.keys(q.filters).length && (

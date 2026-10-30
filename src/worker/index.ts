@@ -13,6 +13,7 @@ import { handleDodoWebhook, handleGoalApi, handlePaymentApi, rematchPayments } f
 import { realtime, sparklines, toCsv } from './insights.js';
 import { publicTopVideos, videoDetail, videoReport } from './videos.js';
 import { BLOCK_ID_RE, blockDetail, blocksCsv, blocksReport, parseKind, publicBlocks } from './blocks.js';
+import { socialReport, syncState, syncX, X_AUTO_SYNC_MS, X_SYNC_MIN_MS } from './social.js';
 import { breakdown, customers, engagementReport, funnel, makeCtx, overview, visitorProfile, visitors, type FunnelStep } from './stats.js';
 
 const app = new Hono<AppEnv>();
@@ -110,6 +111,18 @@ app.get('/api/public/blocks', async (c) => {
   }
 });
 app.post('/api/webhooks/dodo/:siteId', handleDodoWebhook);
+// Vercel Cron (vercel.json) — refreshes X mentions for every site once a day. Requires CRON_SECRET and X_BEARER_TOKEN.
+app.get('/api/cron/x-sync', async (c) => {
+  const secret = c.env.CRON_SECRET;
+  if (!secret || c.req.header('Authorization') !== `Bearer ${secret}`) return c.json({ error: 'unauthorized' }, 401);
+  const token = c.env.X_BEARER_TOKEN;
+  if (!token) return c.json({ skipped: 'X_BEARER_TOKEN missing' });
+  const sites = (await c.env.DB.prepare('SELECT * FROM sites').all<Site>()).results;
+  const out: Record<string, unknown> = {};
+  for (const s of sites) out[s.domain] = await syncX(c.env.DB, s, token);
+  return c.json(out);
+});
+
 app.post('/api/v1/payments', handlePaymentApi);
 app.post('/api/v1/goals', handleGoalApi);
 
@@ -368,6 +381,24 @@ app.get('/api/sites/:id/blocks/:blockId', async (c) => {
   if (!BLOCK_ID_RE.test(id)) return c.json({ error: 'Invalid block id' }, 400);
   const sponsor = c.req.query('sponsor');
   return c.json(await blockDetail(makeCtx(c), id, parseKind(c.req.query('kind')), sponsor === undefined ? undefined : sponsor.slice(0, 120)));
+});
+
+app.get('/api/sites/:id/social', async (c) => {
+  const site = c.get('site');
+  const token = c.env.X_BEARER_TOKEN;
+  if (token) {
+    const s = await syncState(c.env.DB, site.id);
+    if (!s || Date.now() - s.at > X_AUTO_SYNC_MS) await syncX(c.env.DB, site, token);
+  }
+  return c.json(await socialReport(makeCtx(c), !!token));
+});
+app.post('/api/sites/:id/social/sync', async (c) => {
+  const site = c.get('site');
+  const token = c.env.X_BEARER_TOKEN;
+  if (!token) return c.json({ error: 'X_BEARER_TOKEN n’est pas configuré sur ce déploiement.' }, 409);
+  const s = await syncState(c.env.DB, site.id);
+  if (s && Date.now() - s.at < X_SYNC_MIN_MS) return c.json({ error: 'Actualisation déjà faite il y a moins de 10 minutes.', retryAt: s.at + X_SYNC_MIN_MS }, 429);
+  return c.json(await syncX(c.env.DB, site, token));
 });
 
 app.get('/api/sites/:id/breakdown', async (c) => {
