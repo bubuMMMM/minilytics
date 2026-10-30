@@ -1,4 +1,6 @@
 import { isExcluded } from './growth.js';
+import { recordBotHits } from './bots.js';
+import { detectAiBot } from '../shared/aibots.js';
 import type { Context } from 'hono';
 import { androidAppDomain, classify } from '../shared/sources.js';
 import { getSite, type AppEnv, type Site } from './env.js';
@@ -104,6 +106,20 @@ export async function handleEvent(c: Context<AppEnv>) {
   if (!body || !isId(body.w) || !TYPES.has(body.t) || !isId(body.vid) || !isId(body.sid)) return c.body(null, 400);
 
   const ua = c.req.header('user-agent') ?? '';
+  // AI agents that do run the script (ChatGPT agent, headless assistants) are logged as bot hits, not visits.
+  const aiBot = detectAiBot(ua, c.req.header('signature-agent'));
+  if (aiBot) {
+    const botSite = await getSite(c.env.DB, body.w);
+    let path: string | null = null;
+    try {
+      const u = new URL(body.u);
+      if (botSite && belongsTo(u.hostname, botSite.domain)) path = u.pathname;
+    } catch {}
+    if (botSite && path !== null && body.t === 'pageview') {
+      await recordBotHits(c.env.DB, botSite, [{ ua, path, sig: c.req.header('signature-agent') ?? null, country: geoOf(c).country }], 'script');
+    }
+    return c.body(null, 202);
+  }
   if (isBot(ua)) return c.body(null, 202);
 
   // The public demo provisions itself once, so first-time visits are real, not seeded data.
@@ -150,7 +166,7 @@ export function coord(v: string | null | undefined, max: number): number | null 
  * Visitor location. When the script is proxied through your own domain (to dodge ad blockers),
  * Cloudflare sees the proxy's location, so trust the proxy's geo headers when present (Vercel sets these).
  */
-function geoOf(c: Context<AppEnv>): Geo {
+export function geoOf(c: Context<AppEnv>): Geo {
   const h = (n: string) => {
     const v = c.req.header(n);
     try {

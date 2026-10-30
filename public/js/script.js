@@ -41,6 +41,16 @@
     } catch (e) {}
     return false;
   }
+  // AI agents that run JavaScript are logged once as a bot hit (no cookies) and never counted as visitors.
+  if (siteId && !ignored && /GPTBot|ChatGPT-User|OAI-SearchBot|Claude(Bot|-User|-SearchBot|-Web)|Perplexity(Bot|-User)|Bytespider|CCBot|meta-external(agent|fetcher)|Amazonbot|DuckAssistBot|MistralAI-User|Applebot|cohere-ai|YouBot|Diffbot|AI2Bot|Google-CloudVertexBot/i.test(nav.userAgent || '')) {
+    try {
+      var bid = 'aibot' + Math.random().toString(36).slice(2, 12);
+      fetch(endpoint, { method: 'POST', body: JSON.stringify({ w: siteId, t: 'pageview', u: loc.href.split('#')[0], vid: bid, sid: bid }), keepalive: true, credentials: 'omit', headers: { 'Content-Type': 'text/plain' } });
+    } catch (e) {}
+    w.minilytics = noop;
+    w.minilytics.attribution = function () { return {}; };
+    return;
+  }
   var local = /^(localhost|127\.|0\.0\.0\.0|\[::1\]|.*\.local$)/.test(loc.hostname) || loc.protocol === 'file:';
   if (!siteId || ignored || automated() || (local && !allowLocal) || (onlyHost && loc.hostname !== onlyHost)) {
     w.minilytics = noop;

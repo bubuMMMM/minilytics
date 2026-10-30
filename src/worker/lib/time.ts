@@ -1,5 +1,8 @@
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
+const MINUTE = 60_000;
+/** « Maintenant »: the last 30 minutes, per minute. */
+export const NOW_WINDOW = 30 * MINUTE;
 
 /** Offset of `tz` from UTC in ms at `at` (positive east of UTC). */
 export function tzOffset(tz: string, at: number = Date.now()): number {
@@ -36,7 +39,7 @@ function parseDay(s: string, tz: string): number | null {
   return utc - tzOffset(tz, utc);
 }
 
-export type Granularity = 'hour' | 'day' | 'week' | 'month';
+export type Granularity = 'minute' | 'hour' | 'day' | 'week' | 'month';
 
 export interface Range {
   from: number;
@@ -44,7 +47,7 @@ export interface Range {
   granularity: Granularity;
 }
 
-export const PERIODS = ['today', 'yesterday', '24h', '48h', '7d', '30d', '90d', '12m', 'all', 'custom'] as const;
+export const PERIODS = ['now', 'today', 'yesterday', '24h', '48h', '7d', '30d', '90d', '12m', 'all', 'custom'] as const;
 export type Period = (typeof PERIODS)[number];
 
 export function resolveRange(
@@ -57,6 +60,9 @@ export function resolveRange(
   let from: number;
   let to = now;
   switch (q.period as Period) {
+    case 'now':
+      from = now - NOW_WINDOW;
+      break;
     case 'today':
       from = today;
       break;
@@ -96,12 +102,12 @@ export function resolveRange(
       from = startOfDay(today - 29 * DAY + HOUR, tz);
   }
   const span = to - from;
-  const auto: Granularity = span <= 2 * DAY + HOUR ? 'hour' : span <= 120 * DAY ? 'day' : span <= 400 * DAY ? 'week' : 'month';
-  const g = (['hour', 'day', 'week', 'month'] as const).includes(q.granularity as Granularity)
+  const auto: Granularity = span <= 2 * HOUR ? 'minute' : span <= 2 * DAY + HOUR ? 'hour' : span <= 120 * DAY ? 'day' : span <= 400 * DAY ? 'week' : 'month';
+  const g = (['minute', 'hour', 'day', 'week', 'month'] as const).includes(q.granularity as Granularity)
     ? (q.granularity as Granularity)
     : auto;
   // Hourly buckets over months would be thousands of points; fall back to the automatic choice.
-  const granularity = g === 'hour' && span > 7 * DAY ? auto : g;
+  const granularity = (g === 'hour' && span > 7 * DAY) || (g === 'minute' && span > 6 * HOUR) ? auto : g;
   return { from, to, granularity };
 }
 
@@ -109,6 +115,8 @@ export function resolveRange(
 export function bucketSql(col: string, g: Granularity, offsetMs: number): string {
   const t = `((${col} + ${Math.trunc(offsetMs)}) / 1000)`;
   switch (g) {
+    case 'minute':
+      return `to_char(to_timestamp(${t}) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI')`;
     case 'hour':
       return `to_char(to_timestamp(${t}) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:00')`;
     case 'day':
@@ -126,14 +134,15 @@ export function bucketLabels(range: Range, offsetMs: number): string[] {
   const seen = new Set<string>();
   // Walk calendar steps between the local start and the local end (inclusive) so the last bucket
   // (today) is never dropped and a DST change inside the range can't shift labels by a day.
-  const step = range.granularity === 'hour' ? HOUR : DAY;
-  const start = range.granularity === 'hour' ? range.from + offsetMs : Math.floor((range.from + offsetMs + 3 * HOUR) / DAY) * DAY; // +3h: tolerate a DST offset change since range.from
+  const step = range.granularity === 'minute' ? MINUTE : range.granularity === 'hour' ? HOUR : DAY;
+  const start = range.granularity === 'minute' ? Math.floor((range.from + offsetMs) / MINUTE) * MINUTE : range.granularity === 'hour' ? range.from + offsetMs : Math.floor((range.from + offsetMs + 3 * HOUR) / DAY) * DAY; // +3h: tolerate a DST offset change since range.from
   const end = Math.max(range.from, range.to - 1) + offsetMs;
   for (let t = start; t <= end; t += step) {
     const d = new Date(t);
     let label: string;
     const iso = d.toISOString();
-    if (range.granularity === 'hour') label = iso.slice(0, 13) + ':00';
+    if (range.granularity === 'minute') label = iso.slice(0, 16);
+    else if (range.granularity === 'hour') label = iso.slice(0, 13) + ':00';
     else if (range.granularity === 'day') label = iso.slice(0, 10);
     else if (range.granularity === 'month') label = iso.slice(0, 7);
     else {

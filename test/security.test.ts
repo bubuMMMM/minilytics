@@ -85,7 +85,7 @@ describe('login and session (PGlite)', () => {
     expect(sc).toMatch(/Secure/);
     expect(sc).toMatch(/SameSite=Strict/);
     const me = await call('/api/auth/me', { headers: { cookie: cookieOf(r) } });
-    expect(await me.json()).toEqual({ loggedIn: true });
+    expect(await me.json()).toMatchObject({ loggedIn: true, role: 'owner' });
     const sites = await call('/api/sites', { headers: { cookie: cookieOf(r) } });
     expect(sites.status).toBe(200);
     expect(sites.headers.get('cache-control')).toBe('private, no-store');

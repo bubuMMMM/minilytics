@@ -1,5 +1,4 @@
 import { Hono, type Context, type Next } from 'hono';
-import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
 import { handleEvent } from './collect.js';
@@ -7,9 +6,9 @@ import { publicDemoStats, listPublicSites, resolvePublicSite } from './demo.js';
 import { resolveRange, tzOffset } from './lib/time.js';
 import { liveGlobeStats } from './live-globe.js';
 import { liveMap, mapReport } from './map.js';
-import { forgetSite, type AppEnv, type Site } from './env.js';
-import { passwordsMatch, randomId, signToken, verifyToken } from './lib/crypto.js';
-import { PUBLIC_CACHE, cookieSecure, csrfGuard, requestIp, sessionKey } from './lib/security.js';
+import { forgetSite, type AppEnv, type Principal, type Site } from './env.js';
+import { randomId } from './lib/crypto.js';
+import { PUBLIC_CACHE, csrfGuard } from './lib/security.js';
 import { handleDodoWebhook, handleGoalApi, handlePaymentApi, rematchPayments } from './payments.js';
 import { realtime, sparklines, toCsv } from './insights.js';
 import { publicTopVideos, videoDetail, videoReport } from './videos.js';
@@ -17,15 +16,11 @@ import { BLOCK_ID_RE, blockDetail, blocksCsv, blocksReport, parseKind, publicBlo
 import { socialReport, syncState, syncX, X_AUTO_SYNC_MS, X_SYNC_MIN_MS } from './social.js';
 import { breakdown, customers, engagementReport, funnel, makeCtx, overview, visitorProfile, visitors, type FunnelStep } from './stats.js';
 import { registerGrowth } from './growth.js';
+import { canAccess, registerAuth, requireAuth } from './auth.js';
+import { registerBots } from './bots.js';
+import { registerImports } from './imports.js';
 
 const app = new Hono<AppEnv>();
-const AUTH_COOKIE = 'ml_auth';
-const AUTH_DAYS = 30;
-const MAX_FAILURES = 10;
-const LOCKOUT_MS = 15 * 60_000;
-/** Across all IPs: caps distributed brute force (botnets, IPv6 rotation) at ~10k guesses/day. */
-const MAX_GLOBAL_FAILURES = 100;
-const MAX_PASSWORD_LENGTH = 1024;
 
 // Security headers on every API response (nosniff, frame-ancestors via X-Frame-Options, referrer policy…).
 app.use('/api/*', secureHeaders({ crossOriginResourcePolicy: false, crossOriginOpenerPolicy: false }));
@@ -33,6 +28,9 @@ app.use('/api/*', secureHeaders({ crossOriginResourcePolicy: false, crossOriginO
 app.use('/api/auth/*', csrfGuard);
 app.use('/api/sites', csrfGuard);
 app.use('/api/sites/*', csrfGuard);
+app.use('/api/team', csrfGuard);
+app.use('/api/team/*', csrfGuard);
+app.use('/api/invites/*', csrfGuard);
 
 // ---------- public: tracking, webhooks, server-side API
 
@@ -152,77 +150,17 @@ app.get('/api/cron/x-sync', async (c) => {
 app.post('/api/v1/payments', handlePaymentApi);
 app.post('/api/v1/goals', handleGoalApi);
 
-// ---------- login
+// ---------- login, sessions, team (src/worker/auth.ts)
 
-async function isLoggedIn(c: Context<AppEnv>) {
-  if (!c.env.SESSION_SECRET || !c.env.ADMIN_PASSWORD) return false;
-  const key = await sessionKey(c.env.SESSION_SECRET, c.env.ADMIN_PASSWORD);
-  const value = await verifyToken(key, getCookie(c, AUTH_COOKIE));
-  if (!value) return false;
-  const [who, exp] = value.split('.');
-  const expires = Number(exp);
-  // Reject tampered or absurd expiries even if signed (max one session lifetime ahead).
-  return who === 'admin' && expires > Date.now() && expires <= Date.now() + AUTH_DAYS * 86_400_000 + 60_000;
-}
-
-app.post('/api/auth/login', async (c) => {
-  if (!c.env.ADMIN_PASSWORD || !c.env.SESSION_SECRET) {
-    return c.json({ error: 'Set ADMIN_PASSWORD and SESSION_SECRET (see README).' }, 500);
-  }
-  // Lock an IP out after too many wrong passwords, so a public dashboard can't be brute-forced.
-  // Only platform-set headers are trusted (see clientIp): a spoofed cf-connecting-ip no longer resets the counter.
-  const ip = requestIp(c);
-  const now = Date.now();
-  const recent = await c.env.DB.prepare(
-    'SELECT COUNT(CASE WHEN ip = ? THEN 1 END) AS n, COUNT(*) AS total FROM login_failures WHERE ts > ?',
-  )
-    .bind(ip, now - LOCKOUT_MS)
-    .first<{ n: number; total: number }>();
-  if ((recent?.n ?? 0) >= MAX_FAILURES || (recent?.total ?? 0) >= MAX_GLOBAL_FAILURES) {
-    return c.json({ error: 'Too many wrong attempts. Try again in 15 minutes.' }, 429);
-  }
-  const { password } = await c.req.json<{ password?: unknown }>().catch(() => ({ password: undefined }));
-  if (typeof password !== 'string' || password.length > MAX_PASSWORD_LENGTH || !(await passwordsMatch(password, c.env.ADMIN_PASSWORD))) {
-    await c.env.DB.batch([
-      c.env.DB.prepare('INSERT INTO login_failures (ip, ts) VALUES (?, ?)').bind(ip, now),
-      c.env.DB.prepare('DELETE FROM login_failures WHERE ts < ?').bind(now - LOCKOUT_MS),
-    ]);
-    await new Promise((r) => setTimeout(r, 500));
-    return c.json({ error: 'Wrong password' }, 401);
-  }
-  await c.env.DB.prepare('DELETE FROM login_failures WHERE ip = ?').bind(ip).run();
-  const expires = Date.now() + AUTH_DAYS * 86_400_000;
-  setCookie(c, AUTH_COOKIE, await signToken(await sessionKey(c.env.SESSION_SECRET, c.env.ADMIN_PASSWORD), `admin.${expires}`), {
-    httpOnly: true,
-    secure: cookieSecure(c.req.url),
-    // The cookie is only ever sent by the dashboard's own same-origin fetches.
-    sameSite: 'Strict',
-    path: '/',
-    maxAge: AUTH_DAYS * 86_400,
-  });
-  return c.json({ ok: true });
-});
-
-app.post('/api/auth/logout', (c) => {
-  deleteCookie(c, AUTH_COOKIE, { path: '/', secure: cookieSecure(c.req.url), sameSite: 'Strict' });
-  return c.json({ ok: true });
-});
-
-app.get('/api/auth/me', async (c) => c.json({ loggedIn: await isLoggedIn(c) }));
-
-// ---------- dashboard API (login required)
-
-const requireAuth = async (c: Context<AppEnv>, next: Next) => {
-  if (!(await isLoggedIn(c))) return c.json({ error: 'unauthorized' }, 401);
-  await next();
-  // Visitor-level data: never let a shared cache keep it.
-  if (!c.res.headers.get('Cache-Control')) c.res.headers.set('Cache-Control', 'private, no-store');
-};
+registerAuth(app);
 app.use('/api/sites', requireAuth);
 app.use('/api/sites/*', requireAuth);
 
 const loadSite = async (c: Context<AppEnv>, next: Next) => {
-  const site = await c.env.DB.prepare('SELECT * FROM sites WHERE id = ?').bind(c.req.param('id')).first<Site>();
+  const id = c.req.param('id') ?? '';
+  // Members only see the sites they were given; others look like they don't exist.
+  if (!canAccess(c.get('principal'), id)) return c.json({ error: 'site not found' }, 404);
+  const site = await c.env.DB.prepare('SELECT * FROM sites WHERE id = ?').bind(id).first<Site>();
   if (!site) return c.json({ error: 'site not found' }, 404);
   c.set('site', site);
   await next();
@@ -248,9 +186,10 @@ function validTimezone(tz: string) {
   }
 }
 
-const publicSite = (s: Site) => {
+const publicSite = (s: Site, p?: Principal) => {
   const { integrations: _i, ...rest } = s;
-  return { ...rest, dodo_webhook_secret: s.dodo_webhook_secret ? '••••••••' : null };
+  // Read-only members never get the API key (it can write payments and goals).
+  return { ...rest, api_key: p?.role === 'viewer' ? '' : s.api_key, dodo_webhook_secret: s.dodo_webhook_secret ? '••••••••' : null };
 };
 
 app.get('/api/sites', async (c) => {
@@ -265,9 +204,10 @@ app.get('/api/sites', async (c) => {
   ]);
   const by = new Map((stats.results as any[]).map((r) => [r.site_id, r]));
   const spark = await sparklines(c.env.DB, now);
+  const p = c.get('principal');
   return c.json(
-    (sites.results as unknown as Site[]).map((s) => ({
-      ...publicSite(s),
+    (sites.results as unknown as Site[]).filter((s) => canAccess(p, s.id)).map((s) => ({
+      ...publicSite(s, p),
       visitors24h: by.get(s.id)?.visitors ?? 0,
       online: by.get(s.id)?.online ?? 0,
       spark: spark.get(s.id) ?? new Array(14).fill(0),
@@ -276,6 +216,7 @@ app.get('/api/sites', async (c) => {
 });
 
 app.post('/api/sites', async (c) => {
+  if (c.get('principal').role !== 'owner') return c.json({ error: 'Réservé au propriétaire' }, 403);
   const b = await c.req.json<Partial<Site>>().catch(() => ({}) as Partial<Site>);
   const domain = cleanDomain(b.domain ?? '');
   if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) return c.json({ error: 'Enter a domain like example.com' }, 400);
@@ -298,7 +239,7 @@ app.post('/api/sites', async (c) => {
   return c.json(publicSite(site));
 });
 
-app.get('/api/sites/:id', (c) => c.json(publicSite(c.get('site'))));
+app.get('/api/sites/:id', (c) => c.json(publicSite(c.get('site'), c.get('principal'))));
 
 app.patch('/api/sites/:id', async (c) => {
   const site = c.get('site');
@@ -333,9 +274,10 @@ app.post('/api/sites/:id/rotate-key', async (c) => {
 });
 
 app.delete('/api/sites/:id', async (c) => {
+  if (c.get('principal').role !== 'owner') return c.json({ error: 'Réservé au propriétaire' }, 403);
   const id = c.get('site').id;
   await c.env.DB.batch(
-    ['events', 'sessions', 'visitors', 'payments', 'funnels', 'segments', 'notes'].map((t) =>
+    ['events', 'sessions', 'visitors', 'payments', 'funnels', 'segments', 'notes', 'bot_hits', 'imports', 'imported_stats'].map((t) =>
       c.env.DB.prepare(`DELETE FROM ${t} WHERE site_id = ?`).bind(id),
     ).concat(c.env.DB.prepare('DELETE FROM sites WHERE id = ?').bind(id)),
   );
@@ -486,6 +428,8 @@ app.get('/api/sites/:id/funnels/:fid/stats', async (c) => {
 });
 
 registerGrowth(app);
+registerBots(app);
+registerImports(app);
 
 app.all('/api/*', (c) => c.json({ error: 'not found' }, 404));
 

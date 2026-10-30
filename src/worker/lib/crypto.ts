@@ -104,3 +104,46 @@ export async function verifyStripeSignature(secret: string, header: string | nul
   const expected = await hmacHex(secret, `${t}.${body}`);
   return sigs.some((s) => safeEqual(s, expected));
 }
+
+/** PBKDF2-SHA256 (OWASP 2023+: 600 000 iterations), random 16-byte salt. Stored as pbkdf2$sha256$<iter>$<salt>$<hash>. */
+export const PBKDF2_ITERATIONS = 600_000;
+async function pbkdf2(password: string, salt: Uint8Array<ArrayBuffer>, iterations: number): Promise<ArrayBuffer> {
+  const encoded = enc.encode(password.normalize('NFKC'));
+  const pw = new Uint8Array(encoded.byteLength);
+  pw.set(encoded);
+  const key = await crypto.subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveBits']);
+  return crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, key, 256);
+}
+
+export async function hashPassword(password: string, iterations = PBKDF2_ITERATIONS): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  return `pbkdf2$sha256$${iterations}$${bytesToB64(salt.buffer)}$${bytesToB64(await pbkdf2(password, salt, iterations))}`;
+}
+
+export async function verifyPassword(password: string, stored: string | null | undefined): Promise<boolean> {
+  const parts = (stored ?? '').split('$');
+  if (parts.length !== 5 || parts[0] !== 'pbkdf2' || parts[1] !== 'sha256') {
+    // Same cost when the account doesn't exist, so response time doesn't reveal which emails are registered.
+    await pbkdf2(password, new Uint8Array(16), PBKDF2_ITERATIONS);
+    return false;
+  }
+  const iterations = Number(parts[2]);
+  if (!Number.isInteger(iterations) || iterations < 10_000 || iterations > 5_000_000) return false;
+  let salt: Uint8Array<ArrayBuffer>;
+  try {
+    salt = b64ToBytes(parts[3]);
+  } catch {
+    return false;
+  }
+  return safeEqual(bytesToB64(await pbkdf2(password, salt, iterations)), parts[4]);
+}
+
+export async function sha256Hex(s: string): Promise<string> {
+  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(s))), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** URL-safe random token (base64url, `bytes` of entropy). */
+export function randomToken(bytes = 32): string {
+  const a = crypto.getRandomValues(new Uint8Array(bytes));
+  return bytesToB64(a.buffer).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}

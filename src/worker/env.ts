@@ -27,7 +27,19 @@ export interface Site {
   integrations?: string | null;
 }
 
-export type AppEnv = { Bindings: Env; Variables: { site: Site } };
+export type Role = 'owner' | 'admin' | 'viewer';
+/** Who is calling the dashboard API: the owner (admin password) or a team member account. */
+export interface Principal {
+  userId: string; // 'owner' or users.id
+  role: Role;
+  /** '*' = every site, else the site ids this member may open. */
+  sites: '*' | string[];
+  sessionId: string;
+  email: string | null;
+  name: string | null;
+}
+
+export type AppEnv = { Bindings: Env; Variables: { site: Site; principal: Principal } };
 
 const siteCache = new Map<string, { site: Site | null; at: number }>();
 
