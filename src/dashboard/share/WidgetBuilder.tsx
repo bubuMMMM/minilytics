@@ -19,7 +19,9 @@ const PERIODS = [
   { value: '30d', label: '30 jours' }, { value: '90d', label: '90 jours' }, { value: '12m', label: '12 mois' }, { value: 'all', label: 'Depuis le début' },
 ];
 const ACCENTS = ['2563eb', '16a34a', '7c3aed', 'db2777', 'ea580c', '0a0a0a'];
-const HEIGHT: Record<Exclude<WType, 'badge'>, number> = { live: 40, counter: 130, chart: 190, pages: 260, map: 270 };
+// Heights at size M (content + 4 px); the script embed resizes itself, the iframe snippet scales these.
+const HEIGHT: Record<Exclude<WType, 'badge'>, number> = { live: 40, counter: 156, chart: 214, pages: 258, map: 240 };
+const SCALE = { sm: 0.86, md: 1, lg: 1.18 } as const;
 
 function params(o: Opts, wid?: string) {
   const p = new URLSearchParams();
@@ -63,7 +65,7 @@ export function WidgetBuilder({ site }: { site: Site }) {
     }
     if (tab === 'iframe') {
       const w = o.type === 'live' ? ' width="260"' : ' width="100%"';
-      return `<iframe src="${origin}/api/widget/${token}/embed?${params(o)}"${w} height="${HEIGHT[o.type]}" style="border:0;max-width:100%;background:transparent" loading="lazy" title="Statistiques ${site.domain}"></iframe>`;
+      return `<iframe src="${origin}/api/widget/${token}/embed?${params(o)}"${w} height="${Math.ceil(HEIGHT[o.type] * SCALE[o.size])}" style="border:0;max-width:100%;background:transparent" loading="lazy" title="Statistiques ${site.domain}"></iframe>`;
     }
     const attrs = [`data-minilytics-widget="${o.type}"`, `data-token="${token}"`];
     if (o.theme !== 'auto') attrs.push(`data-theme="${o.theme}"`);

@@ -8,7 +8,7 @@
   var s = document.currentScript;
   var origin = s ? new URL(s.src, location.href).origin : 'https://minilytics-six.vercel.app';
   var KEYS = ['theme', 'accent', 'size', 'period', 'transparent', 'locale', 'logo'];
-  var H = { live: 40, counter: 130, chart: 190, pages: 260, map: 270 };
+  var H = { live: 40, counter: 156, chart: 214, pages: 258, map: 240 };
   var frames = {};
   addEventListener('message', function (e) {
     var d = e.data;
