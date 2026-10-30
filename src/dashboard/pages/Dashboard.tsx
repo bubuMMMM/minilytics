@@ -11,8 +11,10 @@ import { Panel, renderLabel } from '../components/Panel';
 import { Toolbar } from '../components/Toolbar';
 import { VisitorModal } from '../components/VisitorModal';
 import { VideosTeaser, VideosView } from '../components/VideosView';
+import { BlocksView } from '../components/BlocksView';
+import { Link } from '../components/Link';
 import { qs, type Overview, type Site } from '../lib/api';
-import { DashContext, type Dash } from '../lib/context';
+import { DashContext, useDash, type Dash } from '../lib/context';
 import { fmtMoney } from '../lib/format';
 import { useApi } from '../lib/useApi';
 import { useQueryState } from '../lib/useQueryState';
@@ -39,7 +41,16 @@ const FILTER_LABELS: Record<string, { label: string; dim: string }> = {
   goal: { label: 'Objectif atteint', dim: 'goal' },
 };
 
-export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?: 'overview' | 'videos' }) {
+export type DashView = 'overview' | 'videos' | 'sponsors' | 'content' | 'sources';
+const VIEW_META: Record<DashView, { kicker: string; title: (name: string) => string; sub: string }> = {
+  overview: { kicker: 'ANALYSE / VUE D’ENSEMBLE', title: (n) => n, sub: 'L’essentiel de votre trafic' },
+  videos: { kicker: 'ANALYSE / VIDÉOS', title: () => 'Vidéos', sub: 'Lectures, temps de visionnage et rétention' },
+  sponsors: { kicker: 'ANALYSE / SPONSORS', title: () => 'Sponsors', sub: 'Impressions, clics et CTR par emplacement' },
+  content: { kicker: 'ANALYSE / CONTENUS', title: () => 'Contenus', sub: 'Sections et vidéos réellement vues' },
+  sources: { kicker: 'ANALYSE / SOURCES', title: () => 'Sources', sub: 'D’où viennent vos visiteurs et avec quoi' },
+};
+
+export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?: DashView }) {
   const [q, update] = useQueryState();
   const [reloadKey, setReloadKey] = useState(0);
   const [visitor, setVisitor] = useState<string | null>(null);
@@ -70,9 +81,9 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
   if (sites && !site) {
     return (
       <div className="p-10 text-center">
-        Site not found.{' '}
+        Site introuvable.{' '}
         <button className="underline" onClick={() => navigate('/sites')}>
-          Back to websites
+          Retour à mes sites
         </button>
       </div>
     );
@@ -82,13 +93,13 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
   return (
     <DashContext.Provider value={dash}>
       <div className="ml-site-bg ml-has-bottom-nav min-h-screen pb-10">
-        <AppHeader siteId={site.id} active={view === 'videos' ? 'videos' : 'overview'} online={!!overview?.online} title={site.name} />
-        <div className="mx-auto max-w-[1480px] px-4 py-9 sm:px-6 lg:py-12">
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div><div className="ml-kicker"><span className="ml-dot" /> {view === 'videos' ? 'ANALYSE / VIDÉOS' : 'ANALYSE / VOTRE SITE'}</div><h1 className="ml-heading mt-3 text-[clamp(2.3rem,4.4vw,3.7rem)]">{view === 'videos' ? 'Vidéos · ' + site.name : site.name}<span className="text-[#4f62ef]">.</span></h1><p className="mt-3 text-[13px] text-[#8290a3]">Les performances et connexions de <span className="font-medium text-[#56657e]">{site.domain}</span></p></div>
-            <button onClick={() => navigate('/site/' + site.id + '/realtime')} title="Ouvrir la vue temps réel" className="inline-flex items-center gap-2 rounded-full border border-[#d8f2e7] bg-[#f1fbf6] px-4 py-2 text-[12px] font-semibold text-[#179569] transition hover:border-[#bfe9d6] hover:bg-[#e8f8f0]"><LiveDot on={!!overview?.online} />{overview ? overview.online + ' en ligne maintenant' : 'Données en temps réel'} <span aria-hidden>→</span></button>
+        <AppHeader siteId={site.id} active={view} online={!!overview?.online} title={site.name} />
+        <main id="contenu" className="mx-auto max-w-[1480px] px-4 py-6 sm:px-6 lg:py-10">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-4 sm:mb-6">
+            <div className="min-w-0"><div className="ml-kicker"><span className="ml-dot" /> {VIEW_META[view].kicker}</div><h1 className="ml-heading mt-2 text-[clamp(1.9rem,4vw,3.2rem)]" translate={view === 'overview' ? 'no' : undefined}>{VIEW_META[view].title(site.name)}<span className="text-[#4f62ef]">.</span></h1><p className="mt-2 text-[13px] text-[#8290a3]">{VIEW_META[view].sub} · <span className="font-medium text-[#56657e]" translate="no">{site.domain}</span></p></div>
+            <a href={'/site/' + site.id + '/realtime'} onClick={(e) => { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); navigate('/site/' + site.id + '/realtime'); }} className="hidden items-center gap-2 rounded-full border border-[#d8f2e7] bg-[#f1fbf6] px-4 py-2 text-[12px] font-semibold text-[#179569] transition-colors hover:border-[#bfe9d6] hover:bg-[#e8f8f0] sm:inline-flex"><LiveDot on={!!overview?.online} />{overview ? overview.online + ' en ligne maintenant' : 'Données en temps réel'} <span aria-hidden>→</span></a>
           </div>
-          <div className="ml-panel mb-5 flex flex-wrap items-center gap-2 p-3 sm:p-4">
+          <div className="ml-panel z-30 mb-5 flex flex-wrap items-center gap-2 p-2.5 sm:p-3 md:sticky md:top-[112px]">
             <Toolbar site={site} sites={sites!} q={q} update={update} overview={overview} onRefresh={() => setReloadKey((k) => k + 1)} loading={loading} />
           </div>
 
@@ -109,7 +120,11 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
           </div>
         )}
 
-        {view === 'videos' ? <div className="mt-5"><VideosView /></div> : <>
+        {view === 'videos' ? <div className="mt-5"><VideosView /></div>
+          : view === 'sponsors' ? <div className="mt-5"><BlocksView kind="sponsor" /></div>
+          : view === 'content' ? <div className="mt-5"><BlocksView kind="content" /></div>
+          : view === 'sources' ? <SourcesPanels full />
+          : <>
         {overview && overview.current.visitors === 0 && overview.previous.visitors === 0 && !Object.keys(q.filters).length && (
           <div className="ml-bento mt-5 flex flex-col items-start gap-4 border-dashed bg-[#f8faff] p-5 sm:flex-row sm:items-center">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#4f62ef]"><UiIcon name="sparkles" size={20} /></span>
@@ -136,12 +151,40 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
         </section>
         <LiveGlobe siteId={siteId} />
 
-        <section className="mt-9" aria-label="Audience">
-          <div className="mb-5">
-            <div className="ml-kicker">AUDIENCE / ACQUISITION</div>
-            <h2 className="mt-2 text-[clamp(1.6rem,3vw,2.25rem)] font-semibold tracking-[-.045em]">D’où viennent vos visiteurs<span className="text-[#4f62ef]">.</span></h2>
-            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-[#8290a3]">Cliquez sur une ligne pour filtrer tout le tableau de bord. Chaque bloc s’exporte en CSV.</p>
-          </div>
+        <SourcesPanels />
+
+        <div className="mt-5">
+          <GoalsPanel totalVisitors={overview?.current.visitors ?? 0} />
+        </div>
+
+        </>}
+        <p className="mt-8 text-center text-xs text-stone-500">
+          Heures en {site.timezone} · Revenus en {site.currency} ·{' '}
+          <button className="underline-offset-2 hover:underline" onClick={() => navigate(`/site/${site.id}/settings`)}>
+            Réglages & installation
+          </button>
+        </p>
+        </main>
+      </div>
+      <BottomNav siteId={site.id} active={view} />
+      <VisitorModal key={visitor ?? 'none'} visitorId={visitor} onClose={() => setVisitor(null)} />
+    </DashContext.Provider>
+  );
+}
+
+/** Acquisition & audience breakdowns. The overview shows the two key panels; the Sources view shows everything. */
+function SourcesPanels({ full = false }: { full?: boolean }) {
+  const { site } = useDash();
+  return (
+    <section className="mt-7" aria-labelledby="sources-title">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="ml-kicker">AUDIENCE / ACQUISITION</div>
+          <h2 id="sources-title" className="mt-2 text-[clamp(1.5rem,3vw,2.1rem)] font-semibold tracking-[-.045em]">D’où viennent vos visiteurs<span className="text-[#4f62ef]">.</span></h2>
+          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-[#6f7d94]">Touchez une ligne pour filtrer tout le tableau de bord. Chaque bloc s’exporte en CSV.</p>
+        </div>
+        {!full && <Link href={`/site/${site.id}/sources${window.location.search}`} className="btn">Toutes les sources <UiIcon name="arrow-right" size={16} /></Link>}
+      </div>
         <div className="grid gap-5 lg:grid-cols-2">
           <Panel
             title="Sources"
@@ -166,6 +209,7 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
               { label: 'Domaine', dim: 'hostname', filter: 'hostname' },
             ]}
           />
+          {full && <>
           <Panel
             title="Localisation"
             tabs={[
@@ -194,24 +238,9 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
               { label: 'Objectifs', dim: 'goal', filter: 'goal' },
             ]}
           />
+          </>}
         </div>
-        </section>
-
-        <div className="mt-5">
-          <GoalsPanel totalVisitors={overview?.current.visitors ?? 0} />
-        </div>
-
-        </>}
-        <p className="mt-8 text-center text-xs text-stone-400">
-          Heures en {site.timezone} · Revenus en {site.currency} ·{' '}
-          <button className="underline-offset-2 hover:underline" onClick={() => navigate(`/site/${site.id}/settings`)}>
-            Réglages & installation
-          </button>
-        </p>
-        </div>
-      </div>
-      <BottomNav siteId={site.id} active={view === 'videos' ? 'videos' : 'overview'} />
-      <VisitorModal key={visitor ?? 'none'} visitorId={visitor} onClose={() => setVisitor(null)} />
-    </DashContext.Provider>
+      {full && <LiveGlobe siteId={site.id} />}
+    </section>
   );
 }

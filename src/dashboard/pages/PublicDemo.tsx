@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Thumb, fmtWatch } from '../components/VideosView';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { navigate } from '../App';
+import { Link } from '../components/Link';
+import { channelName } from '../lib/format';
 import { Logo } from '../components/Logo';
 import { LiveGlobe } from '../components/LiveGlobe';
 import { EngagementPanel } from '../components/EngagementPanel';
@@ -44,7 +45,7 @@ function InsightPanel({ title, subtitle, icon, rows, empty }: { title: string; s
       </div>
       <div className="mt-6 flex-1 space-y-5">
         {rows.length ? rows.slice(0, 6).map((row, index) => <div key={row.label + index}>
-          <div className="mb-2 flex min-w-0 items-center justify-between gap-3 text-xs"><span className="min-w-0 truncate font-medium text-[#46546c]" title={row.label}>{row.label}</span><span className="shrink-0 tabular-nums text-[#7c8aa2]">{nf(row.value)} <span className="ml-1 text-[#b1bdcf]">/ {total ? Math.round(row.value / total * 100) : 0}%</span></span></div>
+          <div className="mb-2 flex min-w-0 items-center justify-between gap-3 text-xs"><span className="min-w-0 truncate font-medium text-[#46546c]" title={row.label}>{channelName(row.label)}</span><span className="shrink-0 tabular-nums text-[#7c8aa2]">{nf(row.value)} <span className="ml-1 text-[#b1bdcf]">/ {total ? Math.round(row.value / total * 100) : 0}%</span></span></div>
           <div className="ml-progress"><div style={{width: Math.max(2, row.value / highest * 100) + '%'}} /></div>
         </div>) : <div className="flex min-h-[130px] flex-col items-center justify-center rounded-xl border border-dashed border-[#e4eaf5] bg-[#fafbff] p-5 text-center"><UiIcon name={icon} size={22} className="mb-3 text-[#b1c0e1]"/><p className="max-w-[230px] text-xs leading-relaxed text-[#95a2b7]">{empty}</p></div>}
       </div>
@@ -75,7 +76,7 @@ export function PublicDemo() {
   useEffect(() => {
     fetch('/api/public/sites', { cache: 'no-store' }).then(r => (r.ok ? r.json() : []) as Promise<{id:string;name:string;domain:string}[]>).then(list => {
       setSites(list);
-      setSiteId(current => current && list.some(s => s.id === current) ? current : (list[0]?.id || ''));
+      setSiteId(current => current && list.some(s => s.id === current) ? current : (list.find(s => s.domain.replace(/^www\./, '') === 'n0.pub')?.id || list[0]?.id || ''));
     }).catch(() => {});
   }, []);
   const pickSite = (id: string) => {
@@ -106,22 +107,23 @@ export function PublicDemo() {
   const view = data?.days===days && (!data?.site?.id || data.site.id===siteId) ? data : null;
   const visitorSeries = view?.series.map(d=>d.visitors) || [];
   const pageSeries = view?.series.map(d=>d.pageviews) || [];
+  useEffect(() => { document.title = `Démo en direct · ${view?.site.domain ?? 'n0.pub'} — Minilytics`; }, [view?.site.domain]);
   const change = view?.previous.visitors ? Math.round((view.current.visitors-view.previous.visitors)/view.previous.visitors*100) : null;
 
   return <div className="min-h-screen bg-white text-[#111827]">
     <header className="sticky top-0 z-50 border-b border-[#ecf0f6] bg-white/95 backdrop-blur-xl">
       <div className="mx-auto flex h-[76px] max-w-[1370px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
-        <a href="/" aria-label="Minilytics — accueil"><Logo /></a>
+        <Link href="/" aria-label="Minilytics, accueil" className="rounded-lg"><Logo /></Link>
         <nav className="hidden items-center gap-8 text-[13px] font-medium text-[#7a889e] lg:flex" aria-label="Navigation principale">
-          <a href="#analytics" className="hover:text-[#4f62ef]">Dashboard</a>
-          <a href="#globe" className="hover:text-[#4f62ef]">Live Globe</a>
-          <a href="#insights" className="hover:text-[#4f62ef]">Insights</a>
+          <a href="#analytics" className="hover:text-[#4f62ef]">Tableau de bord</a>
+          <a href="#globe" className="hover:text-[#4f62ef]">Globe</a>
+          <a href="#insights" className="hover:text-[#4f62ef]">Audience</a>
           <a href="#engagement" className="hover:text-[#4f62ef]">Comportement</a>
           {vids && vids.videos.length > 0 && <a href="#videos" className="hover:text-[#4f62ef]">Vidéos</a>}
         </nav>
         <div className="flex items-center gap-2.5">
           <span className="hidden md:inline-flex"><StatusPill active>Démo en direct</StatusPill></span>
-          <button onClick={()=>navigate('/admin')} className="btn-dark h-[42px] px-4">Ouvrir mon espace <UiIcon name="arrow-up-right" size={16}/></button>
+          <Link href="/login" className="btn h-[42px] px-4">Se connecter</Link>
         </div>
       </div>
     </header>
@@ -129,9 +131,9 @@ export function PublicDemo() {
     <main className="mx-auto max-w-[1370px] px-5 pb-14 sm:px-8 lg:px-10">
       <section className="grid items-center gap-10 border-b border-[#ecf0f6] pb-14 pt-14 lg:grid-cols-[1.08fr_.92fr] lg:gap-14 lg:pb-20 lg:pt-20">
         <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#e8edff] bg-[#f7f8ff] px-3 py-2 text-[11px] font-semibold text-[#586ae8]"><UiIcon name="sparkles" size={15}/> Analytics nouvelle génération <span className="ml-1 text-[#bac4e6]">/ 2026</span></span>
-          <h1 className="mt-7 max-w-[730px] text-[clamp(3rem,6.8vw,5.95rem)] font-semibold leading-[1.025] tracking-[-.073em] text-[#101a32]">Vos données.<br/><span className="text-[#4f62ef]">Enfin claires.</span></h1>
-          <p className="mt-6 max-w-[530px] text-[15px] leading-[1.85] text-[#748197] sm:text-[17px]">Comprenez qui visite votre site, d'où vient votre trafic et ce qui fonctionne. Un tableau de bord précis, épuré et vivant.</p>
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#e8edff] bg-[#f7f8ff] px-3 py-2 text-[11px] font-semibold text-[#586ae8]"><UiIcon name="sparkles" size={15}/> Démo publique · données réelles</span>
+          <h1 className="mt-7 max-w-[730px] text-[clamp(3rem,6.8vw,5.95rem)] font-semibold leading-[1.025] tracking-[-.073em] text-[#101a32]">La démo en direct<br/><span className="text-[#4f62ef]" translate="no">{view?.site.domain ?? sites.find(s=>s.id===siteId)?.domain ?? 'n0.pub'}</span></h1>
+          <p className="mt-6 max-w-[530px] text-[15px] leading-[1.85] text-[#748197] sm:text-[17px]">Les vraies statistiques agrégées du site, actualisées automatiquement : visiteurs, pages, sources, appareils et vidéos. Aucune donnée personnelle, aucun trafic fictif.</p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <a href="#analytics" className="btn-dark !h-[49px] !px-5">Explorer les statistiques <UiIcon name="arrow-right" size={17}/></a>
             <a href="#globe" className="btn !h-[49px] !px-5"><UiIcon name="globe" size={17}/> Voir le globe live</a>
@@ -169,9 +171,9 @@ export function PublicDemo() {
       </section>
 
       <section id="analytics" className="scroll-mt-[104px] pt-16 sm:pt-20">
-        <SectionHeading eyebrow="01 / OVERVIEW" title="Votre tableau de bord" description="Toutes les métriques importantes, en un coup d'œil." action={<StatusPill active>Statistiques réelles</StatusPill>}/>
+        <SectionHeading eyebrow="01 / VUE D’ENSEMBLE" title="Votre tableau de bord" description="Toutes les métriques importantes, en un coup d'œil." action={<StatusPill active>Statistiques réelles</StatusPill>}/>
         <div className="ml-bento flex flex-wrap items-center justify-between gap-4 px-4 py-3.5 sm:px-5">
-          <div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef2ff] text-[#5165e7]"><UiIcon name="globe" size={20}/></span><div className="min-w-0">{sites.length>1 ? <select aria-label="Site affiché" className="max-w-[260px] truncate rounded-lg border border-[#e3e8f3] bg-white px-2 py-1 text-[13px] font-semibold text-[#1d2b45]" value={siteId} onChange={e=>pickSite(e.target.value)}>{sites.map(s=><option key={s.id} value={s.id}>{s.domain}{s.name!==s.domain?' · '+s.name:''}</option>)}</select> : <div className="truncate text-[13px] font-semibold">{view?.site.domain ?? '—'}</div>}<div className="mt-0.5 text-[11px] text-[#9ba8bb]">Dernière actualisation {view?timeLabel(view.updatedAt):'en cours...'}</div></div></div>
+          <div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef2ff] text-[#5165e7]"><UiIcon name="globe" size={20}/></span><div className="min-w-0">{sites.length>1 ? <select aria-label="Site affiché" className="max-w-[260px] truncate rounded-lg border border-[#e3e8f3] bg-white px-2 py-1 text-[13px] font-semibold text-[#1d2b45]" value={siteId} onChange={e=>pickSite(e.target.value)}>{sites.map(s=><option key={s.id} value={s.id}>{s.domain}{s.name!==s.domain?' · '+s.name:''}</option>)}</select> : <div className="truncate text-[13px] font-semibold">{view?.site.domain ?? '—'}</div>}<div className="mt-0.5 text-[11px] text-[#9ba8bb]">Dernière actualisation {view?timeLabel(view.updatedAt):'en cours…'}</div></div></div>
           <div className="flex items-center gap-2"><SegmentedTabs value={days} options={[{value:7,label:'7 jours'},{value:30,label:'30 jours'}]} onChange={setDays} label="Période analysée"/><button className="btn !h-[40px] !w-[40px] !p-0" aria-label="Rafraîchir les données" onClick={refresh} disabled={busy}><UiIcon name="refresh" size={17} className={busy?'animate-spin':''}/></button></div>
         </div>
         {error && <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert"><span>{error}</span><button className="btn" onClick={refresh}>Réessayer</button></div>}
@@ -230,12 +232,12 @@ export function PublicDemo() {
       </section>}
 
       <section id="engagement" className="scroll-mt-[104px] pt-20">
-        <SectionHeading eyebrow="04 / BEHAVIOR" title="Ce que font vraiment vos visiteurs." description="Profondeur de scroll, temps actif, pages consultées, clics internes et formulaires. Des mesures enregistrées, jamais inventées."/>
+        <SectionHeading eyebrow="04 / COMPORTEMENT" title="Ce que font vraiment vos visiteurs." description="Profondeur de scroll, temps actif, pages consultées, clics internes et formulaires. Des mesures enregistrées, jamais inventées."/>
         <EngagementPanel key={siteId} days={days} publicSiteId={siteId||undefined}/>
       </section>
 
       <section id="globe" className="scroll-mt-[104px] pt-20">
-        <SectionHeading eyebrow="02 / LIVE MAP" title="Une audience sans frontières." description="La carte mondiale des connexions réelles, actualisée toutes les 15 secondes." action={<StatusPill active>Live globe</StatusPill>}/>
+        <SectionHeading eyebrow="02 / CARTE EN DIRECT" title="Une audience sans frontières." description="La carte mondiale des connexions réelles, actualisée toutes les 15 secondes." action={<StatusPill active>Globe en direct</StatusPill>}/>
         <div className="ml-live-globe"><LiveGlobe key={siteId} publicSiteId={siteId||undefined}/></div>
       </section>
 
@@ -251,7 +253,7 @@ export function PublicDemo() {
       <section className="relative mt-20 overflow-hidden rounded-[24px] border border-[#e7ebf7] bg-[#fafbff] p-7 sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-10 lg:p-12">
         <div className="pointer-events-none absolute -right-20 -top-28 h-[330px] w-[330px] rounded-full border-[65px] border-[#eef1ff] opacity-90"/>
         <div className="relative z-10 max-w-[680px]"><span className="ml-mini-label text-[#6273e9]">PRENEZ LE CONTRÔLE</span><h2 className="ml-section-head mt-3 max-w-[590px]">Les bonnes décisions commencent avec les bonnes données.</h2><p className="mt-4 max-w-[580px] text-[14px] leading-relaxed text-[#78879c]">Branchez votre site et suivez en direct vos visites, sources de trafic et conversions.</p></div>
-        <button onClick={()=>navigate('/admin')} className="btn-dark relative z-10 mt-6 h-[50px] shrink-0 px-6 lg:mt-0">Connecter mon site <UiIcon name="arrow-up-right" size={17}/></button>
+        <Link href="/signup" className="btn-dark relative z-10 mt-6 h-[50px] shrink-0 px-6 lg:mt-0">Connecter mon site <UiIcon name="arrow-up-right" size={17}/></Link>
       </section>
       <footer className="mt-11 flex flex-wrap items-center justify-between gap-4 border-t border-[#edf0f6] pt-7 text-xs text-[#9aa6b8]"><Logo small/><span>Minilytics · Analytics sans distraction.</span><span>{view?'Mis à jour à '+timeLabel(view.updatedAt):'Données en cours de chargement'}</span></footer>
     </main>

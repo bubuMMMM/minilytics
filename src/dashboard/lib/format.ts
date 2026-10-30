@@ -100,3 +100,13 @@ export function countryName(cc: string | null | undefined): string {
 export function shortId(id: string) {
   return id.replace(/-/g, '').slice(0, 6);
 }
+
+const CHANNELS: Record<string, string> = {
+  Direct: 'Direct', 'Direct/None': 'Direct', 'Organic Search': 'Moteurs de recherche', 'Organic Social': 'Réseaux sociaux',
+  AI: 'Assistants IA', Referral: 'Sites référents', Email: 'E-mail', Paid: 'Publicité',
+};
+/** Channel ids stay in English in the database; show them in French. */
+export function channelName(c: string | null | undefined): string {
+  if (!c) return 'Direct';
+  return CHANNELS[c] ?? c;
+}

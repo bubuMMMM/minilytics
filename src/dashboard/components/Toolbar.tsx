@@ -132,7 +132,7 @@ export function Toolbar({
         )}
       </Dropdown>
 
-      <div className="col-span-2 row-start-2 flex h-11 min-w-0 items-stretch rounded-xl border border-stone-200 bg-white shadow-card sm:col-auto sm:row-auto">
+      <div className="col-start-1 row-start-2 flex h-11 min-w-0 items-stretch rounded-xl border border-stone-200 bg-white shadow-card sm:col-auto sm:row-auto">
         <button className="w-11 shrink-0 rounded-l-xl text-xl text-stone-500 hover:bg-stone-50" onClick={() => shift(-1)} aria-label="Période précédente">
           ‹
         </button>

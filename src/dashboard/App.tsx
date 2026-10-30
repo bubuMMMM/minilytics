@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { api } from './lib/api';
-import { Dashboard } from './pages/Dashboard';
+import { Landing, Signup } from './pages/Landing';
 import { Login } from './pages/Login';
-import { Realtime } from './pages/Realtime';
-import { PublicDemo } from './pages/PublicDemo';
-import { Settings } from './pages/Settings';
-import { Sites } from './pages/Sites';
+
+// Route-level code splitting: the landing page never downloads the charts, globe or dashboard.
+const Dashboard = lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })));
+const Realtime = lazy(() => import('./pages/Realtime').then((m) => ({ default: m.Realtime })));
+const PublicDemo = lazy(() => import('./pages/PublicDemo').then((m) => ({ default: m.PublicDemo })));
+const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
+const Sites = lazy(() => import('./pages/Sites').then((m) => ({ default: m.Sites })));
 
 export function navigate(to: string) {
   window.history.pushState(null, '', to);
@@ -22,8 +25,20 @@ function usePath() {
   return path;
 }
 
+/** Shown only if loading takes > 200 ms, so fast navigations never flash a spinner. */
+function Loading() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setShow(true), 200);
+    return () => clearTimeout(t);
+  }, []);
+  return <div className="flex min-h-screen items-center justify-center text-sm text-stone-500" aria-busy="true">{show ? 'Chargement…' : ''}</div>;
+}
+
+const SITE_VIEWS: Record<string, 'videos' | 'sponsors' | 'content' | 'sources'> = { videos: 'videos', sponsors: 'sponsors', contenus: 'content', sources: 'sources' };
+
 export function App() {
-  const path = usePath();
+  const path = usePath().replace(/\/+$/, '') || '/';
   const [auth, setAuth] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -33,19 +48,23 @@ export function App() {
     return () => window.removeEventListener('ml:logout', out);
   }, []);
 
+  if (path === '/') return <Landing />;
+  if (path === '/signup') return <Signup />;
   // A genuine, read-only public demonstration; private customer data stays behind authentication.
-  if (path === '/' || path === '/demo') return <PublicDemo />;
-  if (auth === null) return <div className="flex min-h-screen items-center justify-center text-sm text-stone-500">Chargement…</div>;
-  if (!auth) return <Login onLogin={() => { setAuth(true); navigate('/sites'); }} />;
+  if (path === '/demo') return <Suspense fallback={<Loading />}><PublicDemo /></Suspense>;
+  if (auth === null) return <Loading />;
+  if (!auth) return <Login onLogin={() => { setAuth(true); navigate(path === '/login' ? '/sites' : path + window.location.search); }} />;
+  return <Suspense fallback={<Loading />}>{route(path)}</Suspense>;
+}
 
-  if (path === '/admin' || path === '/sites') return <Sites />;
-  const settings = /^\/site\/([\w-]+)\/settings\/?$/.exec(path);
-  if (settings) return <Settings siteId={settings[1]} />;
-  const realtime = /^\/site\/([\w-]+)\/realtime\/?$/.exec(path);
-  if (realtime) return <Realtime siteId={realtime[1]} />;
-  const videos = /^\/site\/([\w-]+)\/videos\/?$/.exec(path);
-  if (videos) return <Dashboard key={'v' + videos[1]} siteId={videos[1]} view="videos" />;
-  const site = /^\/site\/([\w-]+)\/?$/.exec(path);
-  if (site) return <Dashboard siteId={site[1]} />;
-  return <Sites />;
+function route(path: string) {
+  if (path === '/admin' || path === '/sites' || path === '/login') return <Sites />;
+  const m = /^\/site\/([\w-]+)(?:\/([\w-]+))?$/.exec(path);
+  if (!m) return <Sites />;
+  const [, id, sub] = m;
+  if (!sub) return <Dashboard key={'o' + id} siteId={id} />;
+  if (sub === 'settings') return <Settings siteId={id} />;
+  if (sub === 'realtime') return <Realtime siteId={id} />;
+  const view = SITE_VIEWS[sub];
+  return view ? <Dashboard key={view + id} siteId={id} view={view} /> : <Sites />;
 }

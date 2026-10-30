@@ -1,10 +1,21 @@
 import type { ReactNode } from 'react';
 
-type IconName = 'arrow-up-right' | 'arrow-right' | 'activity' | 'eye' | 'users' | 'clock' | 'refresh' | 'globe' | 'mouse' | 'target' | 'layers' | 'check' | 'plus' | 'logout' | 'search' | 'shield' | 'bar-chart' | 'sparkles' | 'external' | 'calendar' | 'menu' | 'chevron-down' | 'link' | 'play';
+type IconName = 'arrow-up-right' | 'arrow-right' | 'activity' | 'eye' | 'users' | 'clock' | 'refresh' | 'globe' | 'mouse' | 'target' | 'layers' | 'check' | 'plus' | 'logout' | 'search' | 'shield' | 'bar-chart' | 'sparkles' | 'external' | 'calendar' | 'menu' | 'chevron-down' | 'link' | 'play' | 'megaphone' | 'grid' | 'compass' | 'settings' | 'command' | 'download' | 'info' | 'x' | 'lock' | 'smartphone' | 'zap';
 
 export function UiIcon({ name, size = 20, className = '' }: { name: IconName; size?: number; className?: string }) {
   const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   const paths: Record<IconName, ReactNode> = {
+    megaphone: <><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z"/><path d="M15 9a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/></>,
+    grid: <><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></>,
+    compass: <><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/></>,
+    settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></>,
+    command: <><path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6Z"/></>,
+    download: <><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></>,
+    info: <><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></>,
+    x: <><path d="M6 6l12 12M18 6 6 18"/></>,
+    lock: <><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></>,
+    smartphone: <><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></>,
+    zap: <><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></>,
     'arrow-up-right': <><path d="M7 17 17 7M8 7h9v9"/></>,
     'arrow-right': <><path d="M4 12h16m-7-7 7 7-7 7"/></>,
     activity: <><path d="M3 12h4l3-7 4 14 3-7h4"/></>,

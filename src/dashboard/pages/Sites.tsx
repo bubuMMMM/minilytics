@@ -39,7 +39,7 @@ export function Sites() {
         <div className="mx-auto flex h-[76px] max-w-[1380px] items-center justify-between gap-3 px-5 sm:px-8 lg:px-12">
           <button onClick={() => navigate('/sites')} aria-label="Mes sites"><Logo /></button>
           <div className="flex items-center gap-2">
-            <button className="btn hidden sm:inline-flex" onClick={() => navigate('/')}>Voir la démo <UiIcon name="arrow-up-right" size={16}/></button>
+            <button className="btn hidden sm:inline-flex" onClick={() => navigate('/demo')}>Voir la démo <UiIcon name="arrow-up-right" size={16}/></button>
             <button className="btn !px-3 sm:!px-4" onClick={logout}><UiIcon name="logout" size={16} /><span className="hidden sm:inline">Déconnexion</span></button>
             <button className="btn-dark !px-3 sm:!px-4" onClick={() => setAdding(true)}><UiIcon name="plus" size={17}/><span className="hidden sm:inline">Ajouter un site</span><span className="sm:hidden">Ajouter</span></button>
           </div>

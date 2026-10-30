@@ -1,68 +1,134 @@
-import type { ReactNode } from 'react';
-import { navigate } from '../App';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { CommandMenu, SHORTCUT, useCommandShortcut } from './CommandMenu';
+import { Link } from './Link';
 import { Logo } from './Logo';
 import { LiveDot } from './Sparkline';
 import { UiIcon } from './UiIcon';
 
-export type NavKey = 'overview' | 'videos' | 'realtime' | 'settings' | 'sites';
+export type NavKey = 'overview' | 'videos' | 'sponsors' | 'content' | 'sources' | 'realtime' | 'settings' | 'sites';
+type Icon = Parameters<typeof UiIcon>[0]['name'];
 
-const ITEMS: { key: NavKey; label: string; short: string; icon: Parameters<typeof UiIcon>[0]['name']; path: (id: string) => string }[] = [
-  { key: 'overview', label: 'Vue d’ensemble', short: 'Aperçu', icon: 'bar-chart', path: (id) => `/site/${id}` },
-  { key: 'videos', label: 'Vidéos', short: 'Vidéos', icon: 'play', path: (id) => `/site/${id}/videos` },
-  { key: 'realtime', label: 'Temps réel', short: 'Direct', icon: 'activity', path: (id) => `/site/${id}/realtime` },
-  { key: 'sites', label: 'Mes sites', short: 'Sites', icon: 'layers', path: () => '/sites' },
-  { key: 'settings', label: 'Réglages', short: 'Réglages', icon: 'shield', path: (id) => `/site/${id}/settings` },
+const ITEMS: { key: NavKey; label: string; short: string; icon: Icon; path: string; keep: boolean }[] = [
+  { key: 'overview', label: 'Vue d’ensemble', short: 'Aperçu', icon: 'bar-chart', path: '', keep: true },
+  { key: 'videos', label: 'Vidéos', short: 'Vidéos', icon: 'play', path: '/videos', keep: true },
+  { key: 'sponsors', label: 'Sponsors', short: 'Sponsors', icon: 'megaphone', path: '/sponsors', keep: true },
+  { key: 'content', label: 'Contenus', short: 'Contenus', icon: 'grid', path: '/contenus', keep: true },
+  { key: 'sources', label: 'Sources', short: 'Sources', icon: 'compass', path: '/sources', keep: true },
+  { key: 'realtime', label: 'Temps réel', short: 'Direct', icon: 'activity', path: '/realtime', keep: false },
+  { key: 'settings', label: 'Réglages', short: 'Réglages', icon: 'settings', path: '/settings', keep: false },
 ];
+const MOBILE_MAIN: NavKey[] = ['overview', 'videos', 'sponsors', 'realtime'];
 
-/** Keep the period/filters when switching between the overview and the videos view. */
-function go(key: NavKey, siteId: string) {
-  const item = ITEMS.find((i) => i.key === key)!;
-  const keepQuery = key === 'overview' || key === 'videos';
-  navigate(item.path(siteId) + (keepQuery ? window.location.search : ''));
+const TITLES: Record<NavKey, string> = {
+  overview: 'Vue d’ensemble', videos: 'Vidéos', sponsors: 'Sponsors', content: 'Contenus', sources: 'Sources', realtime: 'Temps réel', settings: 'Réglages', sites: 'Mes sites',
+};
+
+/** Period and filters follow you between analysis views (they live in the URL). */
+function hrefFor(siteId: string, item: (typeof ITEMS)[number]) {
+  return `/site/${siteId}${item.path}` + (item.keep && typeof window !== 'undefined' ? window.location.search : '');
 }
 
-/** Site-level header: full buttons on desktop, compact on phones (where the bottom bar takes over). */
+/** Site-level header + tab bar on desktop; compact header + bottom bar on phones. */
 export function AppHeader({ siteId, active, online, title }: { siteId: string; active: NavKey; online?: boolean; title?: ReactNode }) {
+  const [cmd, setCmd] = useState(false);
+  const toggle = useCallback((fn: (o: boolean) => boolean) => setCmd(fn), []);
+  useCommandShortcut(toggle);
+  useEffect(() => {
+    document.title = `${TITLES[active]}${typeof title === 'string' ? ' · ' + title : ''} — Minilytics`;
+  }, [active, title]);
+  // Re-render on navigation so links carry the current query string.
+  const [, force] = useState(0);
+  useEffect(() => {
+    const on = () => force((x) => x + 1);
+    window.addEventListener('popstate', on);
+    return () => window.removeEventListener('popstate', on);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-[#e8edf5] bg-white/90 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-      <div className="mx-auto flex h-[60px] max-w-[1480px] items-center justify-between gap-3 px-4 sm:px-6 md:h-[76px]">
-        <button aria-label="Retour à mes sites" className="flex min-h-[44px] min-w-0 items-center gap-2" onClick={() => navigate('/sites')}>
-          <Logo />
-          {title && <span className="truncate text-[13px] font-semibold text-[#56657e] md:hidden">· {title}</span>}
-        </button>
-        <nav className="hidden items-center gap-2 md:flex" aria-label="Navigation du site">
-          <button className="btn hidden lg:inline-flex" onClick={() => navigate('/')}>Voir la démo <UiIcon name="external" size={16} /></button>
-          {ITEMS.map((i) => (
-            <button key={i.key} aria-current={active === i.key ? 'page' : undefined} className={active === i.key ? 'btn-dark' : 'btn'} onClick={() => go(i.key, siteId)}>
-              {i.key === 'realtime' ? <LiveDot on={!!online} /> : <UiIcon name={i.icon} size={16} />}
-              <span className="hidden xl:inline">{i.label}</span>
-              <span className="xl:hidden">{i.short}</span>
+    <>
+      <a href="#contenu" className="ml-skip">Aller au contenu</a>
+      <header className="sticky top-0 z-40 border-b border-[#e8edf5] bg-white/90 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="mx-auto flex h-[56px] max-w-[1480px] items-center justify-between gap-3 px-4 sm:px-6 md:h-[64px]">
+          <Link href="/sites" aria-label="Mes sites" className="flex min-h-[44px] min-w-0 items-center gap-2 rounded-lg">
+            <Logo />
+            {title && <span className="hidden min-w-0 truncate text-[13px] font-semibold text-[#56657e] sm:inline md:hidden lg:inline" translate="no">/ {title}</span>}
+          </Link>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button type="button" className="ml-cmd-btn" onClick={() => setCmd(true)} aria-label={`Rechercher (${SHORTCUT})`}>
+              <UiIcon name="search" size={16} />
+              <span className="hidden lg:inline">Rechercher…</span>
+              <kbd className="ml-kbd hidden lg:inline-flex">{SHORTCUT}</kbd>
             </button>
-          ))}
+            <Link href="/demo" className="btn hidden md:inline-flex">Démo publique</Link>
+            <Link href="/sites" className="btn hidden md:inline-flex"><UiIcon name="layers" size={16} /> Mes sites</Link>
+            {online !== undefined && (
+              <Link href={`/site/${siteId}/realtime`} className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-2 text-[12px] font-semibold text-[#179569] md:hidden">
+                <LiveDot on={online} /> <span>Direct</span>
+              </Link>
+            )}
+          </div>
+        </div>
+        <nav aria-label="Sections" className="mx-auto hidden max-w-[1480px] px-4 sm:px-6 md:block">
+          <ul className="ml-navtabs">
+            {ITEMS.map((i) => (
+              <li key={i.key}>
+                <Link href={hrefFor(siteId, i)} aria-current={active === i.key ? 'page' : undefined} className="ml-navtab">
+                  {i.key === 'realtime' ? <LiveDot on={!!online} /> : <UiIcon name={i.icon} size={16} />}
+                  {i.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </nav>
-        {online !== undefined && (
-          <button className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-2 text-[12px] font-semibold text-[#179569] md:hidden" onClick={() => go('realtime', siteId)}>
-            <LiveDot on={online} /> Direct
-          </button>
-        )}
-      </div>
-    </header>
+      </header>
+      <CommandMenu siteId={siteId} open={cmd} onClose={() => setCmd(false)} />
+    </>
   );
 }
 
-/** Thumb-reachable navigation on phones and small tablets. */
+/** Thumb-reachable navigation on phones: 4 main views + “Plus” sheet. */
 export function BottomNav({ siteId, active }: { siteId: string; active: NavKey }) {
+  const [more, setMore] = useState(false);
+  const inMore = !MOBILE_MAIN.includes(active);
+  useEffect(() => {
+    if (!more) return;
+    const on = (e: KeyboardEvent) => e.key === 'Escape' && setMore(false);
+    window.addEventListener('keydown', on);
+    return () => window.removeEventListener('keydown', on);
+  }, [more]);
   return (
-    <nav aria-label="Navigation principale" className="fixed inset-x-0 bottom-0 z-40 border-t border-[#e8edf5] bg-white/95 backdrop-blur-xl md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      <div className="mx-auto grid max-w-lg grid-cols-5">
-        {ITEMS.map((i) => (
-          <button key={i.key} aria-current={active === i.key ? 'page' : undefined} onClick={() => go(i.key, siteId)}
-            className={`flex min-h-[58px] flex-col items-center justify-center gap-1 text-[11px] font-semibold ${active === i.key ? 'text-[#4f62ef]' : 'text-[#7a869d]'}`}>
-            <span className={`flex h-7 w-12 items-center justify-center rounded-full ${active === i.key ? 'bg-[#eef1ff]' : ''}`}><UiIcon name={i.icon} size={19} /></span>
-            {i.short}
+    <>
+      {more && (
+        <div className="fixed inset-0 z-40 bg-[#101828]/25 md:hidden" onClick={() => setMore(false)}>
+          <div role="dialog" aria-label="Plus de sections" className="ml-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-[#dfe4ee]" aria-hidden />
+            {[...ITEMS.filter((i) => !MOBILE_MAIN.includes(i.key)), { key: 'sites' as NavKey, label: 'Mes sites', short: '', icon: 'layers' as Icon, path: '', keep: false }].map((i) => (
+              <Link key={i.key} href={i.key === 'sites' ? '/sites' : hrefFor(siteId, i)} onClick={() => setMore(false)} aria-current={active === i.key ? 'page' : undefined}
+                className={`flex min-h-[52px] items-center gap-3 rounded-xl px-3 text-[15px] font-semibold ${active === i.key ? 'bg-[#f1f3ff] text-[#2f3fd0]' : 'text-[#33415c]'}`}>
+                <UiIcon name={i.icon} size={19} /> {i.label}
+              </Link>
+            ))}
+            <Link href="/demo" onClick={() => setMore(false)} className="flex min-h-[52px] items-center gap-3 rounded-xl px-3 text-[15px] font-semibold text-[#33415c]"><UiIcon name="eye" size={19} /> Démo publique</Link>
+          </div>
+        </div>
+      )}
+      <nav aria-label="Navigation principale" className="fixed inset-x-0 bottom-0 z-40 border-t border-[#e8edf5] bg-white/95 backdrop-blur-xl md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="mx-auto grid max-w-lg grid-cols-5">
+          {MOBILE_MAIN.map((k) => {
+            const i = ITEMS.find((x) => x.key === k)!;
+            return (
+              <Link key={k} href={hrefFor(siteId, i)} aria-current={active === k ? 'page' : undefined} className={`ml-bottomtab ${active === k ? 'is-active' : ''}`}>
+                <span className="ml-bottomtab-icon"><UiIcon name={i.icon} size={19} /></span>
+                {i.short}
+              </Link>
+            );
+          })}
+          <button type="button" aria-expanded={more} onClick={() => setMore((m) => !m)} className={`ml-bottomtab ${inMore || more ? 'is-active' : ''}`}>
+            <span className="ml-bottomtab-icon"><UiIcon name="menu" size={19} /></span>
+            Plus
           </button>
-        ))}
-      </div>
-    </nav>
+        </div>
+      </nav>
+    </>
   );
 }

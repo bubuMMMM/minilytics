@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { qs, type BreakdownRow } from '../lib/api';
 import { useDash } from '../lib/context';
-import { countryName, fmtNumber, fmtPct } from '../lib/format';
+import { countryName, fmtNumber, fmtPct , channelName } from '../lib/format';
 import { useApi } from '../lib/useApi';
 import { BrowserIcon, ChannelIcon, DeviceIcon, Favicon, Flag, OSIcon, SourceIcon } from './Icons';
 import { Modal } from './Modal';
@@ -22,14 +22,14 @@ export function renderLabel(dim: string, row: Pick<BreakdownRow, 'label' | 'extr
       return (
         <>
           <ChannelIcon channel={l} />
-          {text(l)}
+          {text(channelName(l))}
         </>
       );
     case 'source':
       return (
         <>
           <SourceIcon source={l} domain={row.extra} />
-          {text(l ?? 'Direct/None')}
+          {text(!l || l === 'Direct/None' ? 'Direct' : l)}
         </>
       );
     case 'country':

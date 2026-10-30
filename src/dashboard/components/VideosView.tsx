@@ -232,9 +232,9 @@ export function VideosView() {
       <div className="ml-bento p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div><h3 className="text-[15px] font-semibold">Top vidéos</h3><p className="text-[12px] text-[#8290a3]">Cliquez sur une vidéo pour voir sa rétention, d’où viennent ses spectateurs et leurs pays.</p></div>
-          <input className="input !h-9 max-w-[260px]" placeholder="Rechercher une vidéo…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input type="search" aria-label="Rechercher une vidéo" autoComplete="off" className="input !h-10 w-full sm:max-w-[260px]" placeholder="Rechercher une vidéo…" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        {!data && loading && <div className="space-y-2">{Array.from({ length: 6 }, (_, i) => <div key={i} className="skeleton h-14" />)}</div>}
+        {!data && loading && <div className="space-y-2">{Array.from({ length: 6 }, (_, i) => <div key={i} className="ml-skeleton h-14" />)}</div>}
         {data && !rows.length && (
           <div className="flex min-h-[200px] flex-col items-center justify-center text-center">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#4f62ef]"><UiIcon name="play" size={22} /></span>
@@ -243,15 +243,35 @@ export function VideosView() {
           </div>
         )}
         {rows.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-[13px]">
+          <ul className="-mx-1 divide-y divide-[#f0f2f7] md:hidden">
+            {rows.map((v) => (
+              <li key={v.id}>
+                <button type="button" className="flex w-full items-start gap-3 rounded-xl px-1 py-3 text-left active:bg-[#f8f9ff]" onClick={() => setOpen(v.id)}>
+                  <Thumb id={v.id} className="h-[54px] w-[96px] shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="line-clamp-2 text-[14px] font-medium leading-snug text-[#1d2b45]">{v.title ?? v.id}</div>
+                    <div className="truncate text-[12px] text-[#8b98ad]">{v.channel ?? '—'}{v.duration ? ' · ' + fmtWatch(v.duration) : ''}</div>
+                    <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-[#56657e]">
+                      <span><b className="tnum text-[#17213a]">{fmtNumber(v.plays)}</b> lectures</span>
+                      <span><b className="tnum text-[#17213a]">{fmtWatch(v.avgWatchSeconds)}</b> en moy.</span>
+                      <span><b className="tnum text-[#17213a]">{fmtPct(v.completionRate)}</b> complétion</span>
+                    </div>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {rows.length > 0 && (
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[760px] text-[13px]">
               <thead>
                 <tr className="text-left text-[12px] text-[#7a889e]">
                   <th className="pb-2 font-medium">Vidéo</th>
                   <th className="pb-2 text-right"><SortBtn k="plays">Lectures</SortBtn></th>
                   <th className="pb-2 text-right"><SortBtn k="viewers">Spectateurs</SortBtn></th>
                   <th className="pb-2 text-right"><SortBtn k="watchSeconds">Temps total</SortBtn></th>
-                  <th className="pb-2 text-right font-medium">Moyenne</th>
+                  <th className="hidden pb-2 text-right font-medium lg:table-cell">Moyenne</th>
                   <th className="pb-2 text-right"><SortBtn k="completionRate">Complétion</SortBtn></th>
                   <th className="pb-2 pl-4 font-medium">Rétention</th>
                 </tr>
@@ -263,7 +283,7 @@ export function VideosView() {
                       <div className="flex min-w-0 items-center gap-3">
                         <Thumb id={v.id} className="h-[45px] w-[80px] shrink-0" />
                         <div className="min-w-0">
-                          <div className="max-w-[380px] truncate font-medium text-[#1d2b45]">{v.title ?? v.id}</div>
+                          <button type="button" className="block max-w-[380px] truncate text-left font-medium text-[#1d2b45] hover:text-[#2f3fd0]" onClick={(e) => { e.stopPropagation(); setOpen(v.id); }}>{v.title ?? v.id}</button>
                           <div className="max-w-[380px] truncate text-[12px] text-[#8b98ad]">{v.channel ?? '—'}{v.duration ? ' · ' + fmtWatch(v.duration) : ''}</div>
                           <div className="mt-1 h-1 w-40 overflow-hidden rounded bg-[#eef1f7]"><div className="h-full rounded bg-[#4f62ef]" style={{ width: `${(v.plays / maxPlays) * 100}%` }} /></div>
                         </div>
@@ -272,7 +292,7 @@ export function VideosView() {
                     <td className="tnum py-2.5 text-right font-semibold">{fmtNumber(v.plays)}</td>
                     <td className="tnum py-2.5 text-right">{fmtNumber(v.viewers)}</td>
                     <td className="tnum py-2.5 text-right">{fmtWatch(v.watchSeconds)}</td>
-                    <td className="tnum py-2.5 text-right">{fmtWatch(v.avgWatchSeconds)}{v.avgPercentWatched != null && <div className="text-[11px] text-[#9aa7ba]">{fmtPct(v.avgPercentWatched)} de la vidéo</div>}</td>
+                    <td className="tnum hidden py-2.5 text-right lg:table-cell">{fmtWatch(v.avgWatchSeconds)}{v.avgPercentWatched != null && <div className="text-[11px] text-[#9aa7ba]">{fmtPct(v.avgPercentWatched)} de la vidéo</div>}</td>
                     <td className="tnum py-2.5 text-right font-semibold">{fmtPct(v.completionRate)}</td>
                     <td className="py-2.5 pl-4"><DropOff video={v} compact /></td>
                   </tr>
@@ -297,7 +317,7 @@ export function VideosTeaser({ onOpen }: { onOpen: () => void }) {
     <section className="ml-bento mt-7 p-5" aria-label="Top vidéos">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div><div className="ml-kicker">VIDÉOS / VISIONNAGE</div><h2 className="mt-2 text-[clamp(1.4rem,2.6vw,1.9rem)] font-semibold tracking-[-.04em]">Ce que vos visiteurs regardent<span className="text-[#4f62ef]">.</span></h2>
-          <p className="mt-1 text-[13px] text-[#8290a3]">{fmtNumber(t.plays)} lectures · {fmtNumber(t.viewers)} spectateurs · {fmtWatch(t.watchSeconds)} de visionnage · {fmtPct(t.completionRate)} de complétion</p></div>
+          <p className="mt-1 text-[13px] text-[#8290a3]">{fmtNumber(t.plays)} lecture{t.plays > 1 ? 's' : ''} · {fmtNumber(t.viewers)} spectateur{t.viewers > 1 ? 's' : ''} · {fmtWatch(t.watchSeconds)} de visionnage · {fmtPct(t.completionRate)} de complétion</p></div>
         <button className="btn-dark" onClick={onOpen}>Toutes les vidéos <UiIcon name="arrow-right" size={16} /></button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">

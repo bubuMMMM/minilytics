@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Logo } from '../components/Logo';
 import { UiIcon } from '../components/UiIcon';
@@ -8,6 +8,9 @@ export function Login({ onLogin }: { onLogin: () => void }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // Autofocus only with a mouse: on phones the keyboard would jump up and shift the layout.
+  const [autoFocus] = useState(() => typeof window !== 'undefined' && window.matchMedia?.('(pointer: fine)').matches);
+  useEffect(() => { document.title = 'Connexion — Minilytics'; }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -17,7 +20,8 @@ export function Login({ onLogin }: { onLogin: () => void }) {
       await api('/api/auth/login', { method: 'POST', json: { password } });
       onLogin();
     } catch (err) {
-      setError((err as Error).message);
+      const status = (err as { status?: number }).status;
+      setError(status === 401 ? 'Mot de passe incorrect. Vérifiez-le puis réessayez.' : status === 429 ? 'Trop de tentatives. Patientez quelques minutes puis réessayez.' : 'Connexion impossible pour le moment. Vérifiez votre réseau puis réessayez.');
     } finally {
       setBusy(false);
     }
@@ -27,8 +31,8 @@ export function Login({ onLogin }: { onLogin: () => void }) {
     <div className="ml-site-bg flex min-h-screen flex-col bg-[#ffffff]">
       <header className="border-b border-[#e8edf5]">
         <div className="mx-auto flex h-[80px] max-w-[1380px] items-center justify-between px-5 sm:px-8 lg:px-12">
-          <a href="/" aria-label="Retour à l'accueil"><Logo /></a>
-          <a href="/" className="btn !px-3 sm:!px-4">Voir la démo <UiIcon name="arrow-up-right" size={16}/></a>
+          <a href="/" aria-label="Retour à l’accueil" className="rounded-lg"><Logo /></a>
+          <a href="/demo" className="btn !px-3 sm:!px-4">Voir la démo <UiIcon name="arrow-up-right" size={16}/></a>
         </div>
       </header>
       <main className="mx-auto grid w-full max-w-[1280px] flex-1 items-center gap-12 px-5 py-12 sm:px-8 lg:grid-cols-[1.02fr_.98fr] lg:gap-20 lg:py-20">
@@ -41,7 +45,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
             <div className="relative grid grid-cols-2 gap-4">
               {[
                 { icon: 'activity' as const, title: 'Temps réel', caption: 'Le trafic en direct' },
-                { icon: 'globe' as const, title: 'Live Globe', caption: 'Audience dans le monde' },
+                { icon: 'globe' as const, title: 'Globe en direct', caption: 'Audience dans le monde' },
                 { icon: 'bar-chart' as const, title: 'Statistiques', caption: 'Les signaux essentiels' },
                 { icon: 'shield' as const, title: 'Données privées', caption: 'Accès protégé' },
               ].map(item => <div key={item.title} className="rounded-[17px] border border-[#e7edf8] bg-white p-4"><span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#536af0]/10 text-[#536af0]"><UiIcon name={item.icon} size={19}/></span><p className="mt-4 text-[13px] font-semibold">{item.title}</p><p className="mt-1.5 text-[11px] text-[#8996ad]">{item.caption}</p></div>)}
@@ -58,12 +62,12 @@ export function Login({ onLogin }: { onLogin: () => void }) {
             <div>
               <label className="label" htmlFor="pw">Mot de passe</label>
               <div className="relative">
-                <input id="pw" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required className="input !h-[55px] !pr-16" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
+                <input id="pw" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required className="input !h-[55px] !pr-16" name="password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus={autoFocus} />
                 <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-[#92897e] hover:bg-[#f6f8ff] hover:text-[#3a4961]" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?'Masquer le mot de passe':'Afficher le mot de passe'}><UiIcon name="eye" size={19}/></button>
               </div>
             </div>
             {error && <div className="rounded-xl border border-[#ffc1ca] bg-[#fff2f5] p-3 text-[13px] text-[#bf5263]" role="alert">{error}</div>}
-            <button className="btn-dark !h-[55px] w-full" disabled={busy || !password}>{busy ? 'Connexion en cours…' : 'Accéder à mes statistiques'} <UiIcon name="arrow-right" size={17}/></button>
+            <button className="btn-dark !h-[55px] w-full" disabled={busy}>{busy ? 'Connexion en cours…' : 'Accéder à mes statistiques'} <UiIcon name="arrow-right" size={17}/></button>
           </form>
           <div className="mt-9 flex items-center gap-3 border-t border-[#e8edf5] pt-6 text-[12px] text-[#8996aa]"><UiIcon name="shield" size={17} className="text-[#4f62ef]"/> Vos données sont protégées par votre espace privé.</div>
         </div>
