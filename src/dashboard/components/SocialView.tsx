@@ -147,10 +147,10 @@ export function SocialView() {
         <LinkBuilder domain={site.domain} />
         <div className="mt-5 overflow-x-auto">
           {linkRows.length ? (
-            <table className="w-full min-w-[480px] text-[13px]">
-              <thead><tr className="text-left text-[11px] uppercase tracking-wide text-[#8a97ab]"><th className="py-2 font-semibold">Lien / campagne</th><th className="py-2 text-right font-semibold">Visiteurs</th><th className="py-2 text-right font-semibold">Visites</th><th className="py-2 text-right font-semibold">Pages vues</th></tr></thead>
+            <table className="w-full text-[13px]">
+              <thead><tr className="text-left text-[11px] uppercase tracking-wide text-[#8a97ab]"><th className="py-2 font-semibold">Lien / campagne</th><th className="py-2 text-right font-semibold">Visiteurs</th><th className="hidden py-2 text-right font-semibold sm:table-cell">Visites</th><th className="hidden py-2 text-right font-semibold sm:table-cell">Pages vues</th></tr></thead>
               <tbody>{linkRows.map((l, i) => (
-                <tr key={i} className="border-t border-[#edf0f6]"><td className="py-2.5 pr-3"><span className={l.tagged ? 'font-medium text-[#1d2b45]' : 'text-[#8a97ab]'} translate={l.tagged ? 'no' : undefined}>{l.label}</span>{l.tagged && l.campaign && l.content && <span className="ml-2 text-[#8a97ab]" translate="no">· {l.content}</span>}</td><td className="tnum py-2.5 text-right font-semibold">{fmtNumber(l.visitors)}</td><td className="tnum py-2.5 text-right">{fmtNumber(l.sessions)}</td><td className="tnum py-2.5 text-right">{fmtNumber(l.pageviews)}</td></tr>
+                <tr key={i} className="border-t border-[#edf0f6]"><td className="py-2.5 pr-3"><span className={l.tagged ? 'font-medium text-[#1d2b45]' : 'text-[#8a97ab]'} translate={l.tagged ? 'no' : undefined}>{l.label}</span>{l.tagged && l.campaign && l.content && <span className="ml-2 text-[#8a97ab]" translate="no">· {l.content}</span>}</td><td className="tnum py-2.5 text-right font-semibold">{fmtNumber(l.visitors)}</td><td className="tnum hidden py-2.5 text-right sm:table-cell">{fmtNumber(l.sessions)}</td><td className="tnum hidden py-2.5 text-right sm:table-cell">{fmtNumber(l.pageviews)}</td></tr>
               ))}</tbody>
             </table>
           ) : <p className="py-4 text-center text-[13px] text-[#8a97ab]">Pas encore de visite venue de 𝕏 sur cette période.</p>}
