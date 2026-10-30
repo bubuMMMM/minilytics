@@ -35,7 +35,7 @@ export interface BlockDetail {
 const WORDS: Record<string, string> = {
   trending: 'Tendances', watch: 'Lecture', home: 'Accueil', party: 'Party', music: 'Musique', playlist: 'Playlist', search: 'Recherche',
   justdropped: 'Nouveautés', 'just-dropped': 'Nouveautés', mostwatched: 'Les plus vues', best: 'Les plus vues', kids: 'Enfants', playlists: 'Playlists',
-  sidebar: 'colonne', recommended: 'recommandées', sponsor: 'sponsor', empty: 'vide', hero: 'bannière', cta: 'appel à sponsor',
+  sidebar: 'colonne', recommended: 'recommandées', reco: 'recommandations', sponsor: 'sponsor', sponsor2: 'sponsor (2ᵉ position)', house: 'emplacement libre', end: 'fin de liste', dialog: 'fenêtre', empty: 'vide', hero: 'bannière', cta: 'appel à sponsor', results: 'résultats', videos: 'vidéos', bidouilleurs: 'Bidouilleurs',
 };
 export function blockName(id: string): string {
   const parts = id.split(/[-_:/.]+/).filter(Boolean);

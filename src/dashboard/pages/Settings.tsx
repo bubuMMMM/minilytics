@@ -135,6 +135,18 @@ async rewrites() {
         <p className="mt-3 text-sm text-stone-500">Les clics vers des liens externes sont suivis automatiquement (onglet Liens sortants).</p>
       </Section>
 
+      <Section title="Sponsors et contenus (impressions et clics)" desc="Ajoutez des attributs aux éléments à mesurer. Une impression compte quand au moins la moitié de l’élément reste visible 1 seconde, une fois par page vue. Les clics (y compris molette et nouvel onglet) partent même si la page change.">
+        <Code>{`<!-- Un emplacement sponsor : vue Sponsors -->
+<a href="https://sponsor.com" data-ml-block="trending-sponsor-2"
+   data-ml-sponsor="Nom du sponsor">…</a>
+
+<!-- Une section de contenus : vue Contenus -->
+<section data-ml-block="home-tendances" data-ml-kind="content">
+  <a href="/watch?v=ID" data-ml-item="ID" data-ml-pos="1"
+     data-ml-title="Titre de la vidéo">…</a>
+</section>`}</Code>
+      </Section>
+
       <Section
         title="Nouveau · Analyse du scroll et du comportement"
         desc="Aucune nouvelle installation n'est nécessaire. La version actuelle du script mesure automatiquement le scroll, le temps actif et les clics vers les pages internes."

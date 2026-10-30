@@ -65,7 +65,27 @@ const EVENT_STYLE: Record<string, { label: string; cls: string }> = {
   pageview: { label: 'Vue', cls: 'bg-visitors/10 text-visitors' },
   goal: { label: 'Objectif', cls: 'bg-brand/10 text-brand' },
   outbound: { label: 'Clic sortant', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
+  click: { label: 'Clic', cls: 'bg-[#eef1ff] text-[#4f62ef]' },
+  scroll: { label: 'Scroll', cls: 'bg-stone-100 text-stone-600' },
+  engagement: { label: 'Temps actif', cls: 'bg-emerald-50 text-emerald-700' },
+  video: { label: 'Vidéo', cls: 'bg-rose-50 text-rose-600' },
+  action: { label: 'Action', cls: 'bg-violet-50 text-violet-700' },
+  form: { label: 'Formulaire', cls: 'bg-violet-50 text-violet-700' },
+  block_view: { label: 'Impression', cls: 'bg-sky-50 text-sky-700' },
+  block_click: { label: 'Clic bloc', cls: 'bg-orange-50 text-orange-700' },
 };
+const VIDEO_FR: Record<string, string> = { start: 'lancement', play: 'lecture', pause: 'pause', seek: 'déplacement', progress: 'palier', complete: 'fin', watch: 'visionnage', error: 'erreur', quality: 'qualité', fullscreen: 'plein écran', mute: 'son', rate: 'vitesse', rewatch: 'revisionnage' };
+/** Human detail for one live event (no raw ids or milliseconds). */
+function eventText(e: { type: string; name: string | null; path: string | null }): string {
+  const n = e.name ?? '';
+  if (e.type === 'pageview') return e.path ?? '/';
+  if (e.type === 'engagement') return `${(Number(n) / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} s sur ${e.path ?? '/'}`;
+  if (e.type === 'scroll') return `${n} % de ${e.path ?? '/'}`;
+  if (e.type === 'click') return `${e.path ?? ''} → ${n}`;
+  if (e.type === 'video') return VIDEO_FR[n] ?? n;
+  if (e.type === 'outbound') return n.replace(/^https?:\/\//, '');
+  return n || e.path || '';
+}
 
 export function Realtime({ siteId }: { siteId: string }) {
   const { data: sites } = useApi<Site[]>('/api/sites');
@@ -140,7 +160,7 @@ export function Realtime({ siteId }: { siteId: string }) {
           render={(l) => (
             <>
               <SourceIcon source={l} />
-              <span className="truncate">{l ?? 'Direct'}</span>
+              <span className="truncate">{!l || l === 'Direct/None' ? 'Direct' : l}</span>
             </>
           )}
         />
@@ -156,10 +176,10 @@ export function Realtime({ siteId }: { siteId: string }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 text-sm">
                       <span className={`pill ${st.cls}`}>{st.label}</span>
-                      <span className="truncate font-mono text-[12.5px] text-stone-700">{e.type === 'pageview' ? e.path : e.name}</span>
+                      <span className="truncate text-[13px] text-stone-700">{eventText(e)}</span>
                     </div>
                     <div className="mt-0.5 flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-stone-400">
-                      <Flag cc={e.country} size={12} /> {countryName(e.country)} · <DeviceIcon name={e.device} size={12} /> {e.browser ?? '—'} · {e.source ?? 'Direct'}
+                      <Flag cc={e.country} size={12} /> {countryName(e.country)} · <DeviceIcon name={e.device} size={12} /> {e.browser ?? '—'} · {!e.source || e.source === 'Direct/None' ? 'Direct' : e.source}
                     </div>
                   </div>
                   <span className="shrink-0 text-[11px] text-stone-400">{agoFr(Date.now() - e.ts)}</span>
