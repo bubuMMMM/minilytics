@@ -237,9 +237,21 @@ export async function ingest(
       db
         .prepare(`UPDATE sessions SET last_seen_at = ?, interactions = interactions + ${ev.action === 'start' ? 1 : 0} WHERE site_id = ? AND id = ?`)
         .bind(now, site.id, sid),
-      db
-        .prepare('INSERT INTO events (site_id, session_id, visitor_id, ts, type, name, path, props, video_id, value, label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-        .bind(site.id, sid, vid, now, 'video', ev.action, path, ev.props, ev.id, ev.value, ev.play),
+      ev.play && (ev.action === 'progress' || ev.action === 'complete' || ev.action === 'start')
+        ? // Milestones, completion and start count once per play session (player re-renders, retries, strict mode).
+          db
+            .prepare(
+              `INSERT INTO events (site_id, session_id, visitor_id, ts, type, name, path, props, video_id, value, label)
+               SELECT CAST(? AS TEXT), CAST(? AS TEXT), CAST(? AS TEXT), CAST(? AS BIGINT), 'video', CAST(? AS TEXT), CAST(? AS TEXT),
+                 CAST(? AS TEXT), CAST(? AS TEXT), CAST(? AS BIGINT), CAST(? AS TEXT)
+               WHERE NOT EXISTS (SELECT 1 FROM events x WHERE x.site_id = ? AND x.session_id = ? AND x.type = 'video'
+                 AND x.video_id = ? AND x.label = ? AND x.name = ?${ev.action === 'progress' ? ' AND x.value = ?' : ''})`,
+            )
+            .bind(site.id, sid, vid, now, ev.action, path, ev.props, ev.id, ev.value, ev.play,
+              site.id, sid, ev.id, ev.play, ev.action, ...(ev.action === 'progress' ? [ev.value] : []))
+        : db
+            .prepare('INSERT INTO events (site_id, session_id, visitor_id, ts, type, name, path, props, video_id, value, label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+            .bind(site.id, sid, vid, now, 'video', ev.action, path, ev.props, ev.id, ev.value, ev.play),
     );
     if (ev.title || ev.channel || ev.duration) {
       stmts.push(
@@ -272,13 +284,33 @@ export async function ingest(
         .prepare(`UPDATE sessions SET last_seen_at = ?, interactions = interactions + ${click ? 1 : 0} WHERE site_id = ? AND id = ?`)
         .bind(now, site.id, sid),
     );
-    for (const b of ev) {
+    // One multi-row INSERT: a batch of 20 impressions costs one round trip, not 20.
+    const cols = 12;
+    stmts.push(
+      db
+        .prepare(
+          `INSERT INTO events (site_id, session_id, visitor_id, ts, type, name, path, props, video_id, value, label, kind) VALUES ${ev
+            .map(() => `(${new Array(cols).fill('?').join(', ')})`)
+            .join(', ')}`,
+        )
+        .bind(
+          ...ev.flatMap((b) => [
+            site.id, sid, vid, now, click ? 'block_click' : 'block_view', b.id, path,
+            b.href ? JSON.stringify({ href: b.href }) : null, b.item, b.pos, b.sponsor, b.kind,
+          ]),
+        ),
+    );
+    // Content items (video cards) carry their title, so reports can name them before anyone plays them.
+    const titled = ev.filter((b) => b.item && b.title && /^[\w-]{1,64}$/.test(b.item));
+    const uniq = [...new Map(titled.map((b) => [b.item!, b])).values()];
+    if (uniq.length) {
       stmts.push(
         db
           .prepare(
-            'INSERT INTO events (site_id, session_id, visitor_id, ts, type, name, path, props, video_id, value, label, kind) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            `INSERT INTO videos (site_id, id, title, channel, duration, first_seen, last_seen) VALUES ${uniq.map(() => '(?, ?, ?, NULL, NULL, ?, ?)').join(', ')}
+             ON CONFLICT (site_id, id) DO UPDATE SET title = COALESCE(videos.title, excluded.title)`,
           )
-          .bind(site.id, sid, vid, now, click ? 'block_click' : 'block_view', b.id, path, b.href ? JSON.stringify({ href: b.href }) : null, b.item, b.pos, b.sponsor, b.kind),
+          .bind(...uniq.flatMap((b) => [site.id, b.item, b.title, now, now])),
       );
     }
   }
@@ -290,7 +322,7 @@ const BLOCK_ID = /^[\w:.\-/]{1,80}$/;
 export function blockEvents(body: Pick<Payload, 'n' | 'p'>) {
   const p = (body.p && typeof body.p === 'object' && !Array.isArray(body.p) ? body.p : {}) as Record<string, unknown>;
   const list = body.n === 'view' ? (Array.isArray(p.items) ? p.items.slice(0, 25) : []) : body.n === 'click' ? [p] : [];
-  const out: { id: string; kind: 'sponsor' | 'content'; sponsor: string | null; href: string | null; item: string | null; pos: number | null }[] = [];
+  const out: { id: string; kind: 'sponsor' | 'content'; sponsor: string | null; href: string | null; item: string | null; pos: number | null; title: string | null }[] = [];
   const seen = new Set<string>();
   for (const raw of list) {
     if (!raw || typeof raw !== 'object') continue;
@@ -316,6 +348,7 @@ export function blockEvents(body: Pick<Payload, 'n' | 'p'>) {
       href,
       item,
       pos: Number.isFinite(pos) && pos > 0 && pos < 10000 ? pos : null,
+      title: item ? clip(r.tt, 200) : null,
     });
   }
   return out;

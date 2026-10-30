@@ -270,8 +270,9 @@
     flushBlocks(true);
     seenBlocks = {};
     send('pageview', { r: firstView ? cleanUrl(d.referrer) : '' });
+    var again = !firstView;
     firstView = false;
-    setTimeout(scanBlocks, 0);
+    setTimeout(again ? rearm : scanBlocks, 0);
   }
   var hist = w.history;
   if (hist && hist.pushState) {
@@ -294,21 +295,22 @@
     var id = attr(host, 'data-ml-block') || attr(el, 'data-ml-block');
     if (!id) return null;
     return { id: id.slice(0, 80), k: attr(el, 'data-ml-kind') || attr(host, 'data-ml-kind') || (attr(el, 'data-ml-sponsor') || attr(host, 'data-ml-sponsor') ? 'sponsor' : 'content'),
-      s: attr(el, 'data-ml-sponsor') || attr(host, 'data-ml-sponsor'), h: attr(el, 'data-ml-href') || attr(host, 'data-ml-href'), i: item, pos: item ? +attr(el, 'data-ml-pos') || undefined : undefined };
+      s: attr(el, 'data-ml-sponsor') || attr(host, 'data-ml-sponsor'), h: attr(el, 'data-ml-href') || attr(host, 'data-ml-href'), i: item, pos: item ? +attr(el, 'data-ml-pos') || undefined : undefined,
+      tt: item ? (attr(el, 'data-ml-title') || '').slice(0, 90) || undefined : undefined };
   }
   function blockView(id, info) {
-    var b = { id: String(id).slice(0, 80), k: info.kind === 'sponsor' ? 'sponsor' : 'content', s: info.sponsor, h: info.href, i: info.item, pos: info.pos };
+    var b = { id: String(id).slice(0, 80), k: info.kind === 'sponsor' ? 'sponsor' : 'content', s: info.sponsor, h: info.href, i: info.item, pos: info.pos, tt: info.title };
     var key = b.id + '|' + (b.i || '');
     if (seenBlocks[key]) return;
     seenBlocks[key] = true;
     viewQueue.push(b);
-    if (viewQueue.length >= 25) flushBlocks(false);
+    if (viewQueue.length >= 20) flushBlocks(false);
     else if (!viewTimer) viewTimer = setTimeout(function () { flushBlocks(false); }, 2000);
   }
   function flushBlocks(beacon) {
     if (viewTimer) { clearTimeout(viewTimer); viewTimer = 0; }
     if (!viewQueue.length) return;
-    var items = viewQueue.splice(0, 25);
+    var items = viewQueue.splice(0, 20);
     send('block', { n: 'view', p: { items: items }, u: engagementUrl }, beacon);
     if (viewQueue.length) flushBlocks(beacon);
   }
@@ -322,7 +324,8 @@
         timers && timers.set(el, setTimeout(function (node) { return function () {
           timers && timers.delete(node);
           var b = blockOf(node);
-          if (b && node.isConnected !== false) blockView(b.id, { kind: b.k, sponsor: b.s, href: b.h, item: b.i, pos: b.pos });
+          // Only a foreground tab counts; a hidden tab re-arms the observers when it comes back.
+          if (b && node.isConnected !== false && d.visibilityState === 'visible') blockView(b.id, { kind: b.k, sponsor: b.s, href: b.h, item: b.i, pos: b.pos, title: b.tt });
         }; }(el), 1000));
       } else if (!visible && t) { clearTimeout(t); timers.delete(el); }
     }
@@ -336,10 +339,18 @@
       io.observe(el);
     }
   }
+  // Observe everything again: IntersectionObserver re-reports elements already on screen, so blocks that stay
+  // in view across a client-side navigation or a tab switch get their (new) impression.
+  function rearm() {
+    if (!io) return;
+    io.disconnect();
+    if (observed) observed = new WeakSet();
+    scanBlocks();
+  }
   var scanQueued = false;
   function queueScan() { if (scanQueued) return; scanQueued = true; setTimeout(function () { scanQueued = false; scanBlocks(); }, 200); }
   if (w.MutationObserver) new MutationObserver(queueScan).observe(d.documentElement, { childList: true, subtree: true });
-  d.addEventListener('visibilitychange', function () { if (d.visibilityState === 'hidden') flushBlocks(true); });
+  d.addEventListener('visibilitychange', function () { if (d.visibilityState === 'hidden') flushBlocks(true); else rearm(); });
   w.addEventListener('pagehide', function () { flushBlocks(true); });
   // Clicks (left, middle, ctrl/cmd + click, keyboard Enter) go out by beacon so the navigation never drops them.
   var lastBlockClick = 0, lastBlockKey = '';
@@ -447,8 +458,10 @@
     else if (cmd === 'identify' && a) send('identify', { p: { user_id: a.user_id || a.id, email: a.email, name: a.name } });
     else if (cmd === 'pageview') { lastPage = null; pageview(); }
     else if (cmd === 'impression' && a) blockView(a, b || {});
+    else if (cmd === 'active') markActive();
     // Video player lifecycle: minilytics('video', 'start'|'play'|'pause'|'seek'|'progress'|'complete'|'watch', { id, title, channel, duration, pct, s, t })
-    else if (cmd === 'video' && a && b && b.id) send('video', { n: String(a).slice(0, 16), p: b }, a === 'watch' || a === 'pause' || a === 'complete');
+    // A playing video is engagement even when nobody touches the page.
+    else if (cmd === 'video' && a && b && b.id && (markActive() || true)) send('video', { n: String(a).slice(0, 16), p: b }, a === 'watch' || a === 'pause' || a === 'complete');
     // Named UI interactions that are not conversions: minilytics('event', 'search', { label: 'query' })
     else if (cmd === 'event' && a) send('action', { n: String(a).slice(0, 64), p: b || undefined }, true);
   }
