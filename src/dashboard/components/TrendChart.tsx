@@ -60,26 +60,26 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
               </linearGradient>
             ))}
           </defs>
-          {[0.25, 0.5, 0.75, 1].map((f) => <line key={f} x1="0" x2={W} y1={H - 24 - f * (H - 44)} y2={H - 24 - f * (H - 44)} stroke="#eef1f6" strokeDasharray="4 6" vectorEffect="non-scaling-stroke" />)}
-          <line x1="0" x2={W} y1={H - 24} y2={H - 24} stroke="#e3e8f1" vectorEffect="non-scaling-stroke" />
+          {[0.25, 0.5, 0.75, 1].map((f) => <line key={f} x1="0" x2={W} y1={H - 24 - f * (H - 44)} y2={H - 24 - f * (H - 44)} stroke="rgb(var(--ink-4))" strokeDasharray="4 6" vectorEffect="non-scaling-stroke" />)}
+          <line x1="0" x2={W} y1={H - 24} y2={H - 24} stroke="rgb(var(--ink-4))" vectorEffect="non-scaling-stroke" />
           {series.map((s, k) => (
             <g key={s.key}>
               {k === 0 && n > 1 && <path d={`${path(s.values, s.axis)} L${x(n - 1)},${H - 24} L${x(0)},${H - 24} Z`} fill={`url(#${gid}-${s.key})`} />}
               <path d={path(s.values, s.axis)} fill="none" stroke={s.color} strokeWidth={k === 0 ? 2.25 : 1.75} strokeDasharray={k === 0 ? undefined : '0'} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
             </g>
           ))}
-          {h !== null && <line x1={x(h)} x2={x(h)} y1="8" y2={H - 24} stroke="#c3cbe0" vectorEffect="non-scaling-stroke" />}
+          {h !== null && <line x1={x(h)} x2={x(h)} y1="8" y2={H - 24} stroke="rgb(var(--ink-4))" vectorEffect="non-scaling-stroke" />}
         </svg>
         {h !== null && series.map((s) => (
           <span key={s.key} className="pointer-events-none absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white" style={{ left: `${(x(h) / W) * 100}%`, top: y(s.values[h] ?? 0, s.axis), background: s.color, boxShadow: '0 0 0 1px rgba(23,39,75,.08)' }} />
         ))}
         {h !== null && (
-          <div className="pointer-events-none absolute top-0 z-10 min-w-[150px] -translate-x-1/2 rounded-xl border border-[#e8edf5] bg-white/95 px-3 py-2 text-[12px] shadow-[0_8px_24px_rgba(23,39,75,.12)] backdrop-blur"
+          <div className="pointer-events-none absolute top-0 z-10 min-w-[150px] -translate-x-1/2 rounded-xl border border-line bg-surface/95 px-3 py-2 text-[12px] shadow-[0_8px_24px_rgba(23,39,75,.12)] backdrop-blur"
             style={{ left: `clamp(80px, ${(x(h) / W) * 100}%, calc(100% - 80px))` }} aria-live="polite">
-            <div className="mb-1 font-semibold text-[#17213a]">{bucketLabel(buckets[h], granularity, true)}</div>
+            <div className="mb-1 font-semibold text-ink">{bucketLabel(buckets[h], granularity, true)}</div>
             {series.map((s) => (
               <div key={s.key} className="flex items-center justify-between gap-4">
-                <span className="flex items-center gap-1.5 text-[#6b7891]"><span className="h-2 w-2 rounded-full" style={{ background: s.color }} />{s.label}</span>
+                <span className="flex items-center gap-1.5 text-ink-3"><span className="h-2 w-2 rounded-full" style={{ background: s.color }} />{s.label}</span>
                 <span className="tnum font-semibold">{format(s.values[h] ?? 0)}</span>
               </div>
             ))}
@@ -87,11 +87,11 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
         )}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-5">
           {buckets.map((b, i) => i % step === 0 && (
-            <span key={b} className="absolute -translate-x-1/2 whitespace-nowrap text-[10px] text-[#9aa7ba]" style={{ left: `${(x(i) / W) * 100}%` }}>{bucketLabel(b, granularity)}</span>
+            <span key={b} className="absolute -translate-x-1/2 whitespace-nowrap text-[10px] text-ink-4" style={{ left: `${(x(i) / W) * 100}%` }}>{bucketLabel(b, granularity)}</span>
           ))}
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-4 text-[12px] text-[#6b7891]">
+      <div className="mt-3 flex flex-wrap gap-4 text-[12px] text-ink-3">
         {series.map((s) => <span key={s.key} className="flex items-center gap-1.5"><span className="h-2 w-4 rounded-full" style={{ background: s.color }} />{s.label}{s.axis === 'right' ? ' (échelle de droite)' : ''}</span>)}
       </div>
       <table className="sr-only">

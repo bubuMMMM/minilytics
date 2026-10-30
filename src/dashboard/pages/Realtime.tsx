@@ -22,7 +22,7 @@ function MinuteBars({ data }: { data: number[] }) {
         {data.map((v, i) => (
           <div key={i} className="group relative flex h-full flex-1 items-end">
             <div
-              className={`w-full rounded-t-[4px] transition-all duration-500 ${i === data.length - 1 ? 'bg-[#1dbb88]' : 'bg-[#a5b3ff] group-hover:bg-[#4f62ef]'}`}
+              className={`w-full rounded-t-[4px] transition-all duration-500 ${i === data.length - 1 ? 'bg-success' : 'bg-accent group-hover:bg-accent'}`}
               style={{ height: `${Math.max(v ? 6 : 2, (v / max) * 100)}%`, opacity: v ? 1 : 0.25 }}
             />
             <div className="pointer-events-none absolute -top-8 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-ink px-2 py-1 text-[11px] text-white group-hover:block">
@@ -31,7 +31,7 @@ function MinuteBars({ data }: { data: number[] }) {
           </div>
         ))}
       </div>
-      <div className="mt-2 flex justify-between text-[11px] text-stone-400">
+      <div className="mt-2 flex justify-between text-[11px] text-ink-4">
         <span>il y a 30 min</span>
         <span>15 min</span>
         <span>maintenant</span>
@@ -45,7 +45,7 @@ function List({ title, rows, render }: { title: string; rows: { label: string | 
   return (
     <div className="ml-bento p-5">
       <h3 className="mb-3 text-[15px] font-semibold tracking-[-.02em]">{title}</h3>
-      {!rows.length && <p className="py-8 text-center text-sm text-stone-400">Rien sur les 30 dernières minutes</p>}
+      {!rows.length && <p className="py-8 text-center text-sm text-ink-4">Rien sur les 30 dernières minutes</p>}
       <div className="space-y-1">
         {rows.map((r, i) => (
           <div key={i} className="relative flex h-9 items-center rounded-lg">
@@ -62,14 +62,14 @@ function List({ title, rows, render }: { title: string; rows: { label: string | 
 const EVENT_STYLE: Record<string, { label: string; cls: string }> = {
   pageview: { label: 'Vue', cls: 'bg-visitors/10 text-visitors' },
   goal: { label: 'Objectif', cls: 'bg-brand/10 text-brand' },
-  outbound: { label: 'Clic sortant', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
-  click: { label: 'Clic', cls: 'bg-[#eef1ff] text-[#4f62ef]' },
-  scroll: { label: 'Scroll', cls: 'bg-stone-100 text-stone-600' },
-  engagement: { label: 'Temps actif', cls: 'bg-emerald-50 text-emerald-700' },
-  video: { label: 'Vidéo', cls: 'bg-rose-50 text-rose-600' },
-  action: { label: 'Action', cls: 'bg-violet-50 text-violet-700' },
-  form: { label: 'Formulaire', cls: 'bg-violet-50 text-violet-700' },
-  block_view: { label: 'Impression', cls: 'bg-sky-50 text-sky-700' },
+  outbound: { label: 'Clic sortant', cls: 'bg-amber-500/10 text-warning dark:text-warning' },
+  click: { label: 'Clic', cls: 'bg-accent-soft text-accent' },
+  scroll: { label: 'Scroll', cls: 'bg-well text-ink-2' },
+  engagement: { label: 'Temps actif', cls: 'bg-success-soft text-success' },
+  video: { label: 'Vidéo', cls: 'bg-danger-soft text-danger' },
+  action: { label: 'Action', cls: 'bg-accent-soft text-accent' },
+  form: { label: 'Formulaire', cls: 'bg-accent-soft text-accent' },
+  block_view: { label: 'Impression', cls: 'bg-accent-soft text-accent' },
   block_click: { label: 'Clic bloc', cls: 'bg-orange-50 text-orange-700' },
 };
 const VIDEO_FR: Record<string, string> = { start: 'lancement', play: 'lecture', pause: 'pause', seek: 'déplacement', progress: 'palier', complete: 'fin', watch: 'visionnage', error: 'erreur', quality: 'qualité', fullscreen: 'plein écran', mute: 'son', rate: 'vitesse', rewatch: 'revisionnage' };
@@ -116,21 +116,21 @@ export function Realtime({ siteId }: { siteId: string }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="ml-kicker"><span className="ml-dot" /> TEMPS RÉEL / {site?.domain ?? '…'}</div>
-          <h1 className="ml-heading mt-3 text-[clamp(2.3rem,4.4vw,3.7rem)]">En direct<span className="text-[#4f62ef]">.</span></h1>
-          <p className="mt-3 text-[13px] text-[#8290a3]">Ce qui se passe sur votre site en ce moment · actualisé toutes les {POLL_MS / 1000} s</p>
+          <h1 className="ml-heading mt-3 text-[clamp(2.3rem,4.4vw,3.7rem)]">En direct<span className="text-accent">.</span></h1>
+          <p className="mt-3 text-[13px] text-ink-3">Ce qui se passe sur votre site en ce moment · actualisé toutes les {POLL_MS / 1000} s</p>
         </div>
-        {site && <span className="flex items-center gap-2 rounded-full border border-[#e8edf5] bg-[#f8faff] px-3 py-1.5 text-[12px] font-semibold text-[#56657e]"><Favicon domain={site.domain} size={16} /> {site.name}</span>}
+        {site && <span className="flex items-center gap-2 rounded-full border border-line bg-well px-3 py-1.5 text-[12px] font-semibold text-ink-2"><Favicon domain={site.domain} size={16} /> {site.name}</span>}
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <div className="ml-bento relative overflow-hidden p-6 lg:col-span-1">
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-emerald-500/10 blur-2xl" />
-          <div className="flex items-center gap-2 text-sm font-medium text-stone-500">
+          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-success/10 blur-2xl" />
+          <div className="flex items-center gap-2 text-sm font-medium text-ink-3">
             <LiveDot on={!!rt?.online} /> Visiteurs en ligne
           </div>
-          <div className="tnum mt-3 text-[64px] font-semibold leading-none tracking-[-.06em] text-[#111b33]">{rt ? fmtNumber(rt.online) : <span className="skeleton inline-block h-14 w-20" />}</div>
-          <p className="mt-2 text-xs text-stone-400">Actifs sur les 5 dernières minutes</p>
-          <div className="mt-6 grid grid-cols-2 gap-3 border-t border-stone-100 pt-4">
+          <div className="tnum mt-3 text-[64px] font-semibold leading-none tracking-[-.06em] text-ink">{rt ? fmtNumber(rt.online) : <span className="skeleton inline-block h-14 w-20" />}</div>
+          <p className="mt-2 text-xs text-ink-4">Actifs sur les 5 dernières minutes</p>
+          <div className="mt-6 grid grid-cols-2 gap-3 border-t border-line pt-4">
             <div>
               <div className="eyebrow">Visiteurs récents</div>
               <div className="tnum mt-1 text-xl font-semibold">{total30}</div>
@@ -144,7 +144,7 @@ export function Realtime({ siteId }: { siteId: string }) {
         <div className="ml-bento p-6 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-[15px] font-semibold tracking-[-.02em]">Visiteurs par minute</h3>
-            <span className="text-xs text-stone-400">30 dernières minutes</span>
+            <span className="text-xs text-ink-4">30 dernières minutes</span>
           </div>
           {rt ? <MinuteBars data={rt.perMinute} /> : <div className="skeleton h-44" />}
         </div>
@@ -164,23 +164,23 @@ export function Realtime({ siteId }: { siteId: string }) {
         />
         <div className="ml-bento p-5">
           <h3 className="mb-3 text-[15px] font-semibold tracking-[-.02em]">Activité en direct</h3>
-          {rt && !rt.recent.length && <p className="py-8 text-center text-sm text-stone-400">En attente du prochain visiteur…</p>}
+          {rt && !rt.recent.length && <p className="py-8 text-center text-sm text-ink-4">En attente du prochain visiteur…</p>}
           <ol className="max-h-[420px] space-y-1 overflow-y-auto pr-1" data-tick={tick}>
             {rt?.recent.map((e, i) => {
-              const st = EVENT_STYLE[e.type] ?? { label: e.type, cls: 'bg-stone-100 text-stone-500' };
+              const st = EVENT_STYLE[e.type] ?? { label: e.type, cls: 'bg-well text-ink-3' };
               return (
-                <li key={`${e.ts}-${i}`} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-stone-50">
+                <li key={`${e.ts}-${i}`} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-well">
                   <Avatar id={e.visitor_id} size={28} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 text-sm">
                       <span className={`pill ${st.cls}`}>{st.label}</span>
-                      <span className="truncate text-[13px] text-stone-700">{eventText(e)}</span>
+                      <span className="truncate text-[13px] text-ink-2">{eventText(e)}</span>
                     </div>
-                    <div className="mt-0.5 flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-stone-400">
+                    <div className="mt-0.5 flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-ink-4">
                       <Flag cc={e.country} size={12} /> {countryName(e.country)} · <DeviceIcon name={e.device} size={12} /> {e.browser ?? '—'} · {!e.source || e.source === 'Direct/None' ? 'Direct' : e.source}
                     </div>
                   </div>
-                  <span className="shrink-0 text-[11px] text-stone-400">{agoFr(Date.now() - e.ts)}</span>
+                  <span className="shrink-0 text-[11px] text-ink-4">{agoFr(Date.now() - e.ts)}</span>
                 </li>
               );
             })}

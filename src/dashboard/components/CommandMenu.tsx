@@ -63,10 +63,10 @@ export function CommandMenu({ siteId, open, onClose }: { siteId?: string; open: 
   const run = (c?: Cmd) => { if (!c) return; onClose(); c.run(); };
   let lastGroup = '';
   return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center bg-[#101828]/30 p-3 pt-[12vh] backdrop-blur-[2px]" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-start justify-center bg-ink/30 p-3 pt-[12vh] backdrop-blur-[2px]" onMouseDown={onClose}>
       <div role="dialog" aria-modal="true" aria-label="Menu de commandes" className="ml-cmd w-full max-w-[560px] overflow-hidden" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-3 border-b border-[#e8edf5] px-4">
-          <UiIcon name="search" size={18} className="text-[#8290a3]" />
+        <div className="flex items-center gap-3 border-b border-line px-4">
+          <UiIcon name="search" size={18} className="text-ink-3" />
           <input
             ref={input}
             role="combobox"
@@ -74,7 +74,7 @@ export function CommandMenu({ siteId, open, onClose }: { siteId?: string; open: 
             aria-controls="ml-cmd-list"
             aria-activedescendant={shown[i] ? 'cmd-' + shown[i].id : undefined}
             aria-label="Rechercher une page ou une action"
-            className="h-14 w-full bg-transparent text-[16px] outline-none placeholder:text-[#9aa6b8]"
+            className="h-14 w-full bg-transparent text-[16px] outline-none placeholder:text-ink-4"
             placeholder="Aller à, changer de période…"
             autoComplete="off"
             spellCheck={false}
@@ -90,23 +90,23 @@ export function CommandMenu({ siteId, open, onClose }: { siteId?: string; open: 
           <kbd className="ml-kbd hidden sm:inline-flex">Échap</kbd>
         </div>
         <ul id="ml-cmd-list" role="listbox" className="max-h-[min(60vh,420px)] overflow-y-auto overscroll-contain p-2">
-          {shown.length === 0 && <li className="px-3 py-8 text-center text-[13px] text-[#8290a3]">Aucun résultat pour « {q} ».</li>}
+          {shown.length === 0 && <li className="px-3 py-8 text-center text-[13px] text-ink-3">Aucun résultat pour « {q} ».</li>}
           {shown.map((c, k) => {
             const head = c.group !== lastGroup ? (lastGroup = c.group) : null;
             return (
               <li key={c.id} role="presentation">
-                {head && <div className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[.08em] text-[#9aa6b8]">{head}</div>}
+                {head && <div className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[.08em] text-ink-4">{head}</div>}
                 <div
                   id={'cmd-' + c.id}
                   role="option"
                   aria-selected={k === i}
                   onMouseMove={() => setI(k)}
                   onClick={() => run(c)}
-                  className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl px-3 text-[14px] ${k === i ? 'bg-[#f1f3ff] text-[#2f3fd0]' : 'text-[#33415c]'}`}
+                  className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl px-3 text-[14px] ${k === i ? 'bg-accent-soft text-accent' : 'text-ink-2'}`}
                 >
                   <UiIcon name={c.icon} size={17} />
                   <span className="font-medium">{c.label}</span>
-                  {c.hint && <span className="ml-auto truncate text-[12px] text-[#8290a3]">{c.hint}</span>}
+                  {c.hint && <span className="ml-auto truncate text-[12px] text-ink-3">{c.hint}</span>}
                 </div>
               </li>
             );

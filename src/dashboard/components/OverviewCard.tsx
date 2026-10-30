@@ -8,7 +8,7 @@ import { Sparkline, Trend } from './Sparkline';
 
 type Series = 'visitors' | 'revenue' | 'prev';
 
-const COLORS = { visitors: '#4f62ef', visitorsFill: '#6f82ff', revenue: '#16b99c', prev: '#b9c3da', grid: '#eef1f7', tick: '#9aa5b7', dot: '#ffffff' };
+const COLORS = { visitors: 'rgb(var(--accent))', visitorsFill: 'rgb(var(--accent))', revenue: 'rgb(var(--success))', prev: 'rgb(var(--ink-4))', grid: 'rgb(var(--ink-4))', tick: 'rgb(var(--ink-4))', dot: '#ffffff' };
 
 interface KpiDef {
   key: keyof Kpis;
@@ -24,11 +24,11 @@ function KpiCard({ k, cur, prev }: { k: KpiDef; cur: number; prev: number }) {
   return (
     <div className="ml-bento ml-bento-interactive group relative flex min-w-0 flex-col p-4 sm:p-5">
       <div className="flex items-center justify-between gap-2">
-        <span className="flex min-w-0 items-center text-[12px] font-semibold text-[#77849b]"><span className="truncate">{k.label}</span>{k.hint && <InfoTip text={k.hint} label={`Comment est calculé « ${k.label} » ?`} />}</span>
+        <span className="flex min-w-0 items-center text-[12px] font-semibold text-ink-3"><span className="truncate">{k.label}</span>{k.hint && <InfoTip text={k.hint} label={`Comment est calculé « ${k.label} » ?`} />}</span>
         <Trend cur={cur} prev={prev} invert={k.invert} />
       </div>
-      <div className="tnum mt-2 text-[clamp(1.6rem,2.4vw,2.1rem)] font-semibold leading-none tracking-[-.05em] text-[#111b33]">{k.value}</div>
-      <div className="mt-3 h-8">{k.spark && k.spark.length > 1 ? <Sparkline data={k.spark} className={k.color} height={32} /> : <div className="h-px w-full translate-y-6 bg-stone-100" />}</div>
+      <div className="tnum mt-2 text-[clamp(1.6rem,2.4vw,2.1rem)] font-semibold leading-none tracking-[-.05em] text-ink">{k.value}</div>
+      <div className="mt-3 h-8">{k.spark && k.spark.length > 1 ? <Sparkline data={k.spark} className={k.color} height={32} /> : <div className="h-px w-full translate-y-6 bg-well" />}</div>
     </div>
   );
 }
@@ -70,7 +70,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
   const g = data?.range.granularity ?? 'day';
   const legend: { key: Series; label: string; swatch: string; show: boolean }[] = [
     { key: 'visitors', label: 'Visiteurs', swatch: 'bg-visitors', show: true },
-    { key: 'prev', label: 'Période précédente', swatch: 'border-2 border-dashed border-stone-400 bg-transparent', show: true },
+    { key: 'prev', label: 'Période précédente', swatch: 'border-2 border-dashed border-line-strong bg-transparent', show: true },
     { key: 'revenue', label: 'Revenus', swatch: 'bg-revenue', show: hasRevenue },
   ];
 
@@ -90,7 +90,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4">
           <div>
             <div className="font-display text-base font-semibold text-ink">Trafic{hasRevenue ? ' & revenus' : ''}</div>
-            <div className="text-xs text-stone-500">Comparé à la période précédente de même durée</div>
+            <div className="text-xs text-ink-3">Comparé à la période précédente de même durée</div>
           </div>
           <div className="flex flex-wrap items-center gap-1">
             {legend
@@ -99,7 +99,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
                 <button
                   key={l.key}
                   onClick={() => setHidden((h) => ({ ...h, [l.key]: !h[l.key] }))}
-                  className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium transition hover:bg-stone-100 ${hidden[l.key] ? 'text-stone-400 line-through' : 'text-stone-600'}`}
+                  className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium transition hover:bg-well ${hidden[l.key] ? 'text-ink-4 line-through' : 'text-ink-2'}`}
                 >
                   <span className={`h-2.5 w-2.5 rounded-sm ${l.swatch} ${hidden[l.key] ? 'opacity-30' : ''}`} />
                   {l.label}
@@ -141,7 +141,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
                       <div className="card min-w-[200px] px-4 py-3 text-sm shadow-pop">
                         <div className="mb-2 font-semibold text-ink">{bucketLabel(d.bucket, g, true)}</div>
                         <Row color="bg-visitors" label="Visiteurs" value={fmtNumber(d.visitors)} />
-                        {!hidden.prev && <Row color="bg-stone-300" label="Période précédente" value={fmtNumber(d.prevVisitors ?? 0)} />}
+                        {!hidden.prev && <Row color="bg-line-strong" label="Période précédente" value={fmtNumber(d.prevVisitors ?? 0)} />}
                         <Row color="bg-brand" label="Pages vues" value={fmtNumber(d.pageviews)} />
                         {hasRevenue && <Row color="bg-revenue" label="Revenus" value={money(d.revenue)} />}
                         {d.payments > 0 && <Row color="bg-revenueSoft" label="Paiements" value={String(d.payments)} />}
@@ -178,7 +178,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
 function Row({ color, label, value }: { color: string; label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-6 py-0.5">
-      <span className="flex items-center gap-2 text-stone-500">
+      <span className="flex items-center gap-2 text-ink-3">
         <span className={`h-2.5 w-2.5 rounded-sm ${color}`} />
         {label}
       </span>

@@ -9,7 +9,7 @@ function Section({ title, desc, children }: { title: string; desc?: ReactNode; c
   return (
     <section className="card min-w-0 p-4 sm:p-6">
       <h2 className="text-[17px] font-semibold sm:text-lg">{title}</h2>
-      {desc && <p className="mt-1 text-sm text-stone-500">{desc}</p>}
+      {desc && <p className="mt-1 text-sm text-ink-3">{desc}</p>}
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -21,7 +21,7 @@ function Code({ children }: { children: string }) {
     <div className="relative min-w-0">
       <code className="code !p-4 !pr-20 !text-[12px] sm:!p-5 sm:!text-[13px]">{children}</code>
       <button
-        className="absolute right-2 top-2 min-h-[36px] rounded-lg bg-white/15 px-3 py-1 text-xs font-semibold text-white hover:bg-white/25"
+        className="absolute right-2 top-2 min-h-[36px] rounded-lg bg-surface/15 px-3 py-1 text-xs font-semibold text-white hover:bg-surface/25"
         onClick={() => {
           navigator.clipboard.writeText(children);
           setCopied(true);
@@ -69,7 +69,7 @@ export function Settings({ siteId }: { siteId: string }) {
     <AppHeader siteId={site.id} active="settings" title={site.name} />
     <div className="mx-auto max-w-3xl space-y-5 px-4 py-6 sm:py-12">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><div className="ml-kicker">RÉGLAGES / INSTALLATION</div><h1 className="mt-2 text-[clamp(1.7rem,5vw,2.4rem)] font-semibold tracking-[-.045em]">Réglages<span className="text-[#4f62ef]">.</span></h1></div>
+        <div><div className="ml-kicker">RÉGLAGES / INSTALLATION</div><h1 className="mt-2 text-[clamp(1.7rem,5vw,2.4rem)] font-semibold tracking-[-.045em]">Réglages<span className="text-accent">.</span></h1></div>
         <div className="flex min-w-0 items-center gap-2 font-semibold">
           <Favicon domain={site.domain} size={22} /> <span className="truncate">{site.name}</span>
         </div>
@@ -92,7 +92,7 @@ import Script from 'next/script';
         </details>
         <details className="mt-3 text-sm">
           <summary className="flex min-h-[44px] cursor-pointer items-center font-medium">Contourner les bloqueurs de pub (recommandé pour la précision)</summary>
-          <p className="mt-2 text-stone-600">
+          <p className="mt-2 text-ink-2">
             Les bloqueurs de publicité peuvent bloquer les domaines d’analytics tiers. Servez le script et l’endpoint depuis votre propre domaine avec une réécriture, puis pointez le script dessus :
           </p>
           <div className="mt-3">
@@ -107,7 +107,7 @@ async rewrites() {
 <script defer data-website-id="${site.id}" data-api="/stats/event" src="/stats/script.js"></script>`}</Code>
           </div>
         </details>
-        <p className="mt-4 text-sm text-stone-500">
+        <p className="mt-4 text-sm text-ink-3">
           Excluez vos propres visites : ouvrez <code>https://{site.domain}/?ml_ignore=true</code> une fois dans chaque navigateur que vous utilisez.
         </p>
       </Section>
@@ -132,7 +132,7 @@ async rewrites() {
   // Après connexion : associer un nom / e-mail au visiteur
   window.minilytics('identify', { user_id: '123', email: 'jane@acme.com', name: 'Jane' });
 </script>`}</Code>
-        <p className="mt-3 text-sm text-stone-500">Les clics vers des liens externes sont suivis automatiquement (onglet Liens sortants).</p>
+        <p className="mt-3 text-sm text-ink-3">Les clics vers des liens externes sont suivis automatiquement (onglet Liens sortants).</p>
       </Section>
 
       <Section title="Sponsors et contenus (impressions et clics)" desc="Ajoutez des attributs aux éléments à mesurer. Une impression compte quand au moins la moitié de l’élément reste visible 1 seconde, une fois par page vue. Les clics (y compris molette et nouvel onglet) partent même si la page change.">
@@ -156,9 +156,9 @@ async rewrites() {
             ['25 · 50 · 75 · 90 · 100 %', 'Profondeur de scroll atteinte par page'],
             ['Temps actif', 'Temps estimé sur un onglet visible avec interaction récente'],
             ['Clics internes', 'Destinations de navigation, sans paramètres d’URL'],
-          ].map(([value, label]) => <div key={value} className="rounded-xl border border-[#e8edfa] bg-[#f8faff] p-4"><p className="text-[13px] font-semibold text-[#5368e7]">{value}</p><p className="mt-2 text-[12px] leading-relaxed text-[#8793a7]">{label}</p></div>)}
+          ].map(([value, label]) => <div key={value} className="rounded-xl border border-accent/30 bg-well p-4"><p className="text-[13px] font-semibold text-accent">{value}</p><p className="mt-2 text-[12px] leading-relaxed text-ink-3">{label}</p></div>)}
         </div>
-        <p className="mt-5 text-sm text-stone-600">Pour suivre les soumissions d'un formulaire, ajoutez simplement <code>data-ml-form</code> à sa balise. Aucun nom de champ, réponse ou saisie n'est transmis.</p>
+        <p className="mt-5 text-sm text-ink-2">Pour suivre les soumissions d'un formulaire, ajoutez simplement <code>data-ml-form</code> à sa balise. Aucun nom de champ, réponse ou saisie n'est transmis.</p>
         <div className="mt-3">
           <Code>{`<!-- Un événement "form" à chaque soumission valide -->
 <form data-ml-form="contact" action="/contact" method="post">
@@ -169,7 +169,7 @@ async rewrites() {
 <!-- Facultatif : exclure un lien du suivi des clics -->
 <a data-ml-ignore href="/account">Mon compte</a>`}</Code>
         </div>
-        <p className="mt-3 text-xs leading-relaxed text-stone-500">Les nouveaux indicateurs démarrent à la mise à jour du script. Ils ne reconstituent pas l'historique. Les seuils de scroll correspondent à des sessions, pas à des enregistrements vidéo ni à un suivi de la souris.</p>
+        <p className="mt-3 text-xs leading-relaxed text-ink-3">Les nouveaux indicateurs démarrent à la mise à jour du script. Ils ne reconstituent pas l'historique. Les seuils de scroll correspondent à des sessions, pas à des enregistrements vidéo ni à un suivi de la souris.</p>
       </Section>
 
       <Section
@@ -198,7 +198,7 @@ async rewrites() {
                 Enregistrer
               </button>
             </div>
-            {site.dodo_webhook_secret && <p className="mt-1 text-xs text-emerald-600">✓ Secret configuré</p>}
+            {site.dodo_webhook_secret && <p className="mt-1 text-xs text-success">✓ Secret configuré</p>}
           </li>
           <li>
             Transmettez les cookies du visiteur en métadonnées à la création du paiement (c’est ce qui rend l’attribution exacte) :
@@ -218,10 +218,10 @@ const session = await dodo.checkoutSessions.create({
   },
 });`}</Code>
             </div>
-            <p className="mt-2 text-stone-500">
+            <p className="mt-2 text-ink-3">
               Vous utilisez plutôt des <b>liens de paiement</b> Dodo (checkout.dodopayments.com/buy/…) ? Le script y ajoute automatiquement les métadonnées au clic, mais elles n’atteignent pas toujours le paiement : configurez aussi l’URL de retour (étape 4). Dans le navigateur, les identifiants sont lisibles avec <code>window.minilytics.attribution()</code>.
             </p>
-            <p className="mt-2 text-stone-500">
+            <p className="mt-2 text-ink-3">
               Sans métadonnées, Minilytics relie quand même le paiement quand l’acheteur revient sur votre site, quand son e-mail correspond à un visiteur passé à <code>identify()</code>, quand il s’agit d’un renouvellement, ou quand un seul visiteur a cliqué sur un lien de paiement juste avant de payer. L’onglet Parcours montre comment chaque paiement a été rapproché.
             </p>
           </li>
@@ -293,14 +293,14 @@ curl -X POST ${origin}/api/v1/goals \\
       </Section>
 
       {(saved || error) && (
-        <div className={`fixed bottom-24 left-1/2 z-50 md:bottom-6 -translate-x-1/2 rounded-xl px-4 py-2 text-sm text-white shadow-lg ${error ? 'bg-red-600' : 'bg-ink'}`}>
+        <div className={`fixed bottom-24 left-1/2 z-50 md:bottom-6 -translate-x-1/2 rounded-xl px-4 py-2 text-sm text-white shadow-lg ${error ? 'bg-danger' : 'bg-ink'}`}>
           {error || saved}
         </div>
       )}
 
       <Section title="Zone de danger">
         <button
-          className="btn border-red-200 text-red-600"
+          className="btn border-danger/30 text-danger"
           onClick={async () => {
             if (prompt(`Tapez ${site.domain} pour supprimer ce site et toutes ses données`) !== site.domain) return;
             await api(`/api/sites/${siteId}`, { method: 'DELETE' });
@@ -322,11 +322,11 @@ function AiSetup({ site, origin }: { site: Site; origin: string }) {
   const [open, setOpen] = useState(false);
   const prompt = buildAiPrompt(site, origin);
   return (
-    <section className="card border-[#e4e9ff] bg-gradient-to-br from-[#f7f9ff] to-white p-4 sm:p-6">
+    <section className="card border-accent/30 bg-gradient-to-br from-well to-surface p-4 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">✨ Installer avec une IA</h2>
-          <p className="mt-1 max-w-lg text-sm text-stone-600">
+          <p className="mt-1 max-w-lg text-sm text-ink-2">
             Copiez ce prompt dans Claude Code, Cursor ou toute IA de code ouverte dans votre projet. Elle installe le script, branche l’attribution Dodo Payments, identifie les utilisateurs et ajoute les objectifs de boutons, avec les vraies valeurs de ce site. Elle ne vous demande que ce qu’elle ne trouve pas dans votre code.
           </p>
         </div>
@@ -341,11 +341,11 @@ function AiSetup({ site, origin }: { site: Site; origin: string }) {
           {copied ? '✓ Copié' : 'Copier le prompt IA'}
         </button>
       </div>
-      <button className="mt-3 min-h-[44px] text-sm font-medium text-[#4f62ef] hover:underline" onClick={() => setOpen((o) => !o)}>
+      <button className="mt-3 min-h-[44px] text-sm font-medium text-accent hover:underline" onClick={() => setOpen((o) => !o)}>
         {open ? 'Masquer le prompt' : 'Aperçu du prompt'}
       </button>
       {open && <pre className="code mt-3 max-h-96 whitespace-pre-wrap">{prompt}</pre>}
-      <p className="mt-3 text-xs text-stone-500">
+      <p className="mt-3 text-xs text-ink-3">
         L’IA s’occupe du code. Le webhook Dodo reste à connecter vous-même (étape 3 ci-dessous), car cela se fait dans le tableau de bord Dodo.
       </p>
     </section>
@@ -403,7 +403,7 @@ function LinkBuilder({ domain }: { domain: string }) {
           <Code>{built}</Code>
         </div>
       )}
-      <p className="mt-2 text-xs text-stone-500">
+      <p className="mt-2 text-xs text-ink-3">
         Alternative plus courte : <code>?ref=launch-tweet</code> fonctionne aussi et apparaît comme référent.
       </p>
     </Section>

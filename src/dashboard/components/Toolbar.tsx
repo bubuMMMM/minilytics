@@ -49,13 +49,13 @@ export function Dropdown({ button, children, align = 'left', grow = false }: { b
 const fmtShort = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 
 const Chevron = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-stone-400">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink-4">
     <path d="m6 9 6 6 6-6" />
   </svg>
 );
 
 function itemCls(active: boolean) {
-  return `flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left sm:min-h-0 text-sm hover:bg-stone-100 ${active ? 'font-medium text-ink' : 'text-stone-600'}`;
+  return `flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left sm:min-h-0 text-sm hover:bg-well ${active ? 'font-medium text-ink' : 'text-ink-2'}`;
 }
 
 export function Toolbar({
@@ -121,7 +121,7 @@ export function Toolbar({
                 <Favicon domain={s.domain} size={16} /> {s.name}
               </button>
             ))}
-            <div className="my-1 border-t border-stone-100" />
+            <div className="my-1 border-t border-line" />
             <button className={itemCls(false)} onClick={() => navigate(`/site/${site.id}/settings`)}>
               ⚙️ Réglages et installation
             </button>
@@ -132,14 +132,14 @@ export function Toolbar({
         )}
       </Dropdown>
 
-      <div className="col-start-1 row-start-2 flex h-11 min-w-0 items-stretch rounded-xl border border-stone-200 bg-white shadow-card sm:col-auto sm:row-auto">
-        <button className="w-11 shrink-0 rounded-l-xl text-xl text-stone-500 hover:bg-stone-50" onClick={() => shift(-1)} aria-label="Période précédente">
+      <div className="col-start-1 row-start-2 flex h-11 min-w-0 items-stretch rounded-xl border border-line bg-surface shadow-card sm:col-auto sm:row-auto">
+        <button className="w-11 shrink-0 rounded-l-xl text-xl text-ink-3 hover:bg-well" onClick={() => shift(-1)} aria-label="Période précédente">
           ‹
         </button>
         <Dropdown
           grow
           button={
-            <button className="flex h-full w-full min-w-0 items-center justify-center gap-2 whitespace-nowrap border-x border-stone-200 px-3 text-[15px] font-medium hover:bg-stone-50 sm:px-4 sm:text-base">
+            <button className="flex h-full w-full min-w-0 items-center justify-center gap-2 whitespace-nowrap border-x border-line px-3 text-[15px] font-medium hover:bg-well sm:px-4 sm:text-base">
               {label} <Chevron />
             </button>
           }
@@ -158,7 +158,7 @@ export function Toolbar({
                   {p.label}
                 </button>
               ))}
-              <div className="my-1 border-t border-stone-100" />
+              <div className="my-1 border-t border-line" />
               <form
                 className="space-y-2 p-2"
                 onSubmit={(e) => {
@@ -168,7 +168,7 @@ export function Toolbar({
                   update({ period: 'custom', from, to: to < from ? from : to, granularity: undefined });
                 }}
               >
-                <div className="text-xs font-medium text-stone-500">Période personnalisée</div>
+                <div className="text-xs font-medium text-ink-3">Période personnalisée</div>
                 <input type="date" aria-label="Du" className="input py-1.5" value={from} onChange={(e) => setFrom(e.target.value)} />
                 <input type="date" aria-label="Au" className="input py-1.5" value={to} onChange={(e) => setTo(e.target.value)} />
                 <button className="btn-dark w-full py-1.5">Appliquer</button>
@@ -177,7 +177,7 @@ export function Toolbar({
           )}
         </Dropdown>
         <button
-          className="w-11 shrink-0 rounded-r-xl text-xl text-stone-500 hover:bg-stone-50 disabled:opacity-30"
+          className="w-11 shrink-0 rounded-r-xl text-xl text-ink-3 hover:bg-well disabled:opacity-30"
           onClick={() => shift(1)}
           disabled={!canForward}
           aria-label="Période suivante"

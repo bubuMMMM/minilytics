@@ -48,11 +48,11 @@ export function AppHeader({ siteId, active, online, title }: { siteId: string; a
   return (
     <>
       <a href="#contenu" className="ml-skip">Aller au contenu</a>
-      <header className="sticky top-0 z-40 border-b border-[#e8edf5] bg-white/90 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="mx-auto flex h-[56px] max-w-[1480px] items-center justify-between gap-3 px-4 sm:px-6 md:h-[64px]">
           <Link href="/sites" aria-label="Mes sites" className="flex min-h-[44px] min-w-0 items-center gap-2 rounded-lg">
             <Logo />
-            {title && <span className="hidden min-w-0 truncate text-[13px] font-semibold text-[#56657e] sm:inline md:hidden lg:inline" translate="no">/ {title}</span>}
+            {title && <span className="hidden min-w-0 truncate text-[13px] font-semibold text-ink-2 sm:inline md:hidden lg:inline" translate="no">/ {title}</span>}
           </Link>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <button type="button" className="ml-cmd-btn" onClick={() => setCmd(true)} aria-label={`Rechercher (${SHORTCUT})`}>
@@ -63,7 +63,7 @@ export function AppHeader({ siteId, active, online, title }: { siteId: string; a
             <Link href="/demo" className="btn hidden md:inline-flex">Démo publique</Link>
             <Link href="/sites" className="btn hidden md:inline-flex"><UiIcon name="layers" size={16} /> Mes sites</Link>
             {online !== undefined && (
-              <Link href={`/site/${siteId}/realtime`} className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-2 text-[12px] font-semibold text-[#179569] md:hidden">
+              <Link href={`/site/${siteId}/realtime`} className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-2 text-[12px] font-semibold text-success md:hidden">
                 <LiveDot on={online} /> <span>Direct</span>
               </Link>
             )}
@@ -100,20 +100,20 @@ export function BottomNav({ siteId, active }: { siteId: string; active: NavKey }
   return (
     <>
       {more && (
-        <div className="fixed inset-0 z-40 bg-[#101828]/25 md:hidden" onClick={() => setMore(false)}>
+        <div className="fixed inset-0 z-40 bg-ink/25 md:hidden" onClick={() => setMore(false)}>
           <div role="dialog" aria-label="Plus de sections" className="ml-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-[#dfe4ee]" aria-hidden />
+            <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-well" aria-hidden />
             {[...ITEMS.filter((i) => !MOBILE_MAIN.includes(i.key)), { key: 'sites' as NavKey, label: 'Mes sites', short: '', icon: 'layers' as Icon, path: '', keep: false }].map((i) => (
               <Link key={i.key} href={i.key === 'sites' ? '/sites' : hrefFor(siteId, i)} onClick={() => setMore(false)} aria-current={active === i.key ? 'page' : undefined}
-                className={`flex min-h-[52px] items-center gap-3 rounded-xl px-3 text-[15px] font-semibold ${active === i.key ? 'bg-[#f1f3ff] text-[#2f3fd0]' : 'text-[#33415c]'}`}>
+                className={`flex min-h-[52px] items-center gap-3 rounded-xl px-3 text-[15px] font-semibold ${active === i.key ? 'bg-accent-soft text-accent' : 'text-ink-2'}`}>
                 <UiIcon name={i.icon} size={19} /> {i.label}
               </Link>
             ))}
-            <Link href="/demo" onClick={() => setMore(false)} className="flex min-h-[52px] items-center gap-3 rounded-xl px-3 text-[15px] font-semibold text-[#33415c]"><UiIcon name="eye" size={19} /> Démo publique</Link>
+            <Link href="/demo" onClick={() => setMore(false)} className="flex min-h-[52px] items-center gap-3 rounded-xl px-3 text-[15px] font-semibold text-ink-2"><UiIcon name="eye" size={19} /> Démo publique</Link>
           </div>
         </div>
       )}
-      <nav aria-label="Navigation principale" className="fixed inset-x-0 bottom-0 z-40 border-t border-[#e8edf5] bg-white/95 backdrop-blur-xl md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <nav aria-label="Navigation principale" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 backdrop-blur-xl md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="mx-auto grid max-w-lg grid-cols-5">
           {MOBILE_MAIN.map((k) => {
             const i = ITEMS.find((x) => x.key === k)!;

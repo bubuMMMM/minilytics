@@ -35,7 +35,7 @@ export function Sites() {
 
   return (
     <div className="ml-site-bg min-h-screen">
-      <header className="border-b border-[#e8edf5] bg-[#ffffff]/85">
+      <header className="border-b border-line bg-surface/85">
         <div className="mx-auto flex h-[76px] max-w-[1380px] items-center justify-between gap-3 px-5 sm:px-8 lg:px-12">
           <button onClick={() => navigate('/sites')} aria-label="Mes sites"><Logo /></button>
           <div className="flex items-center gap-2">
@@ -50,8 +50,8 @@ export function Sites() {
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
             <div className="ml-kicker"><span className="ml-dot" /> WORKSPACE / VOS PROJETS</div>
-            <h1 className="ml-heading mt-4 text-[clamp(2.55rem,5vw,4.3rem)]">Votre trafic, à portée de main<span className="text-[#4f62ef]">.</span></h1>
-            <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[#82786f]">Tous vos sites au même endroit. Suivez vos visiteurs, comprenez votre audience et repérez les signaux qui comptent.</p>
+            <h1 className="ml-heading mt-4 text-[clamp(2.55rem,5vw,4.3rem)]">Votre trafic, à portée de main<span className="text-accent">.</span></h1>
+            <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-ink-3">Tous vos sites au même endroit. Suivez vos visiteurs, comprenez votre audience et repérez les signaux qui comptent.</p>
           </div>
         </div>
 
@@ -61,27 +61,27 @@ export function Sites() {
             { label: 'Visiteurs · 24 heures', value: sites ? fmtNumber(sites.reduce((n, s) => n + (s.visitors24h ?? 0), 0)) : '—', icon: 'users' as const },
             { label: 'En ligne maintenant', value: sites ? fmtNumber(online) : '—', icon: 'activity' as const },
           ].map((card) => <div key={card.label} className="ml-panel flex min-w-0 items-center justify-between gap-4 p-5 sm:p-6">
-            <div><p className="text-[12px] text-[#7886a0]">{card.label}</p><p className="mt-2 text-[33px] font-semibold leading-none tracking-[-.055em]">{card.value}</p></div>
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5266ef]"><UiIcon name={card.icon} size={21}/></span>
+            <div><p className="text-[12px] text-ink-3">{card.label}</p><p className="mt-2 text-[33px] font-semibold leading-none tracking-[-.055em]">{card.value}</p></div>
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-accent"><UiIcon name={card.icon} size={21}/></span>
           </div>)}
         </div>
 
         <div className="mt-12 flex flex-wrap items-end justify-between gap-5">
-          <div><h2 className="ml-section-heading text-[26px] sm:text-[32px]">Mes sites</h2><p className="mt-2 text-[13px] text-[#8f9bb0]">Choisissez un projet pour explorer ses statistiques.</p></div>
-          {sites && sites.length > 3 && <div className="relative w-full sm:w-72"><span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9eaac0]"><UiIcon name="search" size={18}/></span><input aria-label="Rechercher un site" className="input !pl-11" type="search" placeholder="Rechercher un site..." value={search} onChange={(e) => setSearch(e.target.value)}/></div>}
+          <div><h2 className="ml-section-heading text-[26px] sm:text-[32px]">Mes sites</h2><p className="mt-2 text-[13px] text-ink-4">Choisissez un projet pour explorer ses statistiques.</p></div>
+          {sites && sites.length > 3 && <div className="relative w-full sm:w-72"><span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-4"><UiIcon name="search" size={18}/></span><input aria-label="Rechercher un site" className="input !pl-11" type="search" placeholder="Rechercher un site..." value={search} onChange={(e) => setSearch(e.target.value)}/></div>}
         </div>
 
-        {loadError && <div className="ml-panel mt-5 p-5" role="alert"><p className="text-sm text-red-700">{loadError}</p><button className="btn mt-4" onClick={() => setAttempt(n => n + 1)}>Réessayer</button></div>}
+        {loadError && <div className="ml-panel mt-5 p-5" role="alert"><p className="text-sm text-danger">{loadError}</p><button className="btn mt-4" onClick={() => setAttempt(n => n + 1)}>Réessayer</button></div>}
         {!sites && !loadError && <div className="mt-5 grid gap-4 sm:grid-cols-3" role="status">{[0,1,2].map((i)=><div key={i} className="ml-loading h-52 rounded-3xl" />)}</div>}
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visibleSites?.map((site) => (
-            <button key={site.id} onClick={() => navigate('/site/' + site.id)} className="ml-panel group flex min-h-[230px] flex-col p-6 text-left transition-all duration-200 hover:-translate-y-1 hover:border-[#cbd5ff] hover:shadow-[0_18px_50px_rgba(48,36,26,.08)]">
+            <button key={site.id} onClick={() => navigate('/site/' + site.id)} className="ml-panel group flex min-h-[230px] flex-col p-6 text-left transition-all duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-[0_18px_50px_rgba(48,36,26,.08)]">
               <div className="flex items-start justify-between gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-[15px] border border-[#e8edf5] bg-[#f8faff]"><Favicon domain={site.domain} size={25} /></span>
-                <span className="flex items-center gap-1.5 rounded-full border border-[#daf2e6] bg-[#f1fbf6] px-2.5 py-1.5 text-[11px] font-semibold text-[#218b68]"><i className={'inline-block h-1.5 w-1.5 rounded-full ' + (site.online ? 'animate-pulse bg-[#1dbb88]' : 'bg-[#b0bccc]')} />{site.online ?? 0} en ligne</span>
+                <span className="flex h-11 w-11 items-center justify-center rounded-[15px] border border-line bg-well"><Favicon domain={site.domain} size={25} /></span>
+                <span className="flex items-center gap-1.5 rounded-full border border-line bg-success-soft px-2.5 py-1.5 text-[11px] font-semibold text-success"><i className={'inline-block h-1.5 w-1.5 rounded-full ' + (site.online ? 'animate-pulse bg-success' : 'bg-line-strong')} />{site.online ?? 0} en ligne</span>
               </div>
-              <div className="mt-4 min-w-0"><p className="truncate text-lg font-semibold tracking-tight">{site.name}</p><p className="mt-1 truncate text-[12px] text-[#8b97ab]">{site.domain}</p></div>
+              <div className="mt-4 min-w-0"><p className="truncate text-lg font-semibold tracking-tight">{site.name}</p><p className="mt-1 truncate text-[12px] text-ink-3">{site.domain}</p></div>
               {(() => {
                 const sp = site.spark ?? [];
                 const last7 = sp.slice(-7).reduce((x, y) => x + y, 0);
@@ -90,37 +90,37 @@ export function Sites() {
                   <div className="mt-4 flex items-end justify-between gap-4">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2"><span className="tnum text-[22px] font-semibold leading-none tracking-[-.05em]">{fmtNumber(last7)}</span><Trend cur={last7} prev={prev7} /></div>
-                      <p className="mt-1.5 text-[11px] text-[#96a3b6]">Visiteurs · 7 jours</p>
+                      <p className="mt-1.5 text-[11px] text-ink-4">Visiteurs · 7 jours</p>
                     </div>
-                    <div className="w-28 shrink-0 text-[#4f62ef]" title="Visiteurs par jour, 14 derniers jours"><Sparkline data={sp} height={40} className="text-[#4f62ef]" /></div>
+                    <div className="w-28 shrink-0 text-accent" title="Visiteurs par jour, 14 derniers jours"><Sparkline data={sp} height={40} className="text-accent" /></div>
                   </div>
                 );
               })()}
-              <div className="mt-auto flex items-end justify-between border-t border-[#e9edf5] pt-5">
-                <div><p className="text-[27px] font-semibold leading-none tracking-[-.055em]">{fmtNumber(site.visitors24h ?? 0)}</p><p className="mt-1.5 text-[11px] text-[#96a3b6]">Visiteurs sur 24 heures</p></div>
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#edf1ff] text-[#4f62ef] transition-all group-hover:bg-[#4f62ef] group-hover:text-white"><UiIcon name="arrow-up-right" size={18}/></span>
+              <div className="mt-auto flex items-end justify-between border-t border-line pt-5">
+                <div><p className="text-[27px] font-semibold leading-none tracking-[-.055em]">{fmtNumber(site.visitors24h ?? 0)}</p><p className="mt-1.5 text-[11px] text-ink-4">Visiteurs sur 24 heures</p></div>
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-soft text-accent transition-all group-hover:bg-accent group-hover:text-white"><UiIcon name="arrow-up-right" size={18}/></span>
               </div>
             </button>
           ))}
 
-          {sites && sites.length > 0 && <button onClick={() => setAdding(true)} className="group flex min-h-[230px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#dae2f6] bg-[#f8faff] p-7 text-center transition hover:border-[#b7c6ff] hover:bg-[#f2f5ff]"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e9efff] text-[#5970e8] transition group-hover:bg-[#dee6ff]"><UiIcon name="plus" size={23}/></span><h3 className="mt-4 font-semibold">Connecter un autre site</h3><p className="mt-1 max-w-[210px] text-[12px] leading-relaxed text-[#8693a7]">Une installation légère. Des données vraiment utiles.</p></button>}
+          {sites && sites.length > 0 && <button onClick={() => setAdding(true)} className="group flex min-h-[230px] flex-col items-center justify-center rounded-[24px] border border-dashed border-accent/30 bg-well p-7 text-center transition hover:border-accent/40 hover:bg-accent-soft"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft text-accent transition group-hover:bg-accent-soft"><UiIcon name="plus" size={23}/></span><h3 className="mt-4 font-semibold">Connecter un autre site</h3><p className="mt-1 max-w-[210px] text-[12px] leading-relaxed text-ink-3">Une installation légère. Des données vraiment utiles.</p></button>}
 
           {sites && sites.length === 0 && <section className="ml-panel col-span-full overflow-hidden p-6 sm:p-10">
             <div className="ml-kicker">BIENVENUE DANS MINILYTICS</div>
             <h2 className="ml-section-heading mt-4 max-w-xl text-[30px] sm:text-[38px]">Votre premier insight commence ici.</h2>
-            <p className="mt-4 max-w-xl text-[14px] leading-relaxed text-[#8c8279]">Quelques minutes suffisent pour connecter votre site et commencer à explorer de vraies visites.</p>
-            <ol className="mt-10 grid gap-6 border-t border-[#eee9e3] pt-8 sm:grid-cols-3">
+            <p className="mt-4 max-w-xl text-[14px] leading-relaxed text-ink-3">Quelques minutes suffisent pour connecter votre site et commencer à explorer de vraies visites.</p>
+            <ol className="mt-10 grid gap-6 border-t border-line pt-8 sm:grid-cols-3">
               {[
                 ['Connectez votre site', 'Entrez votre domaine et choisissez vos réglages.'],
                 ['Installez le script', 'Copiez le code de suivi dans votre site.'],
                 ['Explorez les visites', 'Regardez les premières statistiques arriver.'],
-              ].map(([title, detail], index) => <li key={title}><span className="font-mono text-[12px] font-semibold text-[#5f72ed]">0{index+1} /</span><h3 className="mt-3 font-semibold">{title}</h3><p className="mt-2 text-[13px] leading-relaxed text-[#8895ab]">{detail}</p></li>)}
+              ].map(([title, detail], index) => <li key={title}><span className="font-mono text-[12px] font-semibold text-accent">0{index+1} /</span><h3 className="mt-3 font-semibold">{title}</h3><p className="mt-2 text-[13px] leading-relaxed text-ink-3">{detail}</p></li>)}
             </ol>
             <button className="btn-dark mt-9" onClick={() => setAdding(true)}>Connecter mon premier site <UiIcon name="arrow-right" size={17}/></button>
-            <p className="mt-3 text-[11px] text-[#a5afc1]">Les statistiques apparaissent après l'installation du script de suivi.</p>
+            <p className="mt-3 text-[11px] text-ink-4">Les statistiques apparaissent après l'installation du script de suivi.</p>
           </section>}
 
-          {sites && sites.length > 0 && visibleSites?.length === 0 && <p className="col-span-full py-10 text-sm text-[#968a80]">Aucun site ne correspond à « {search} ».</p>}
+          {sites && sites.length > 0 && visibleSites?.length === 0 && <p className="col-span-full py-10 text-sm text-ink-3">Aucun site ne correspond à « {search} ».</p>}
         </div>
       </main>
       <AddSite open={adding} onClose={() => setAdding(false)}/>
@@ -162,12 +162,12 @@ function AddSite({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <Modal open={open} onClose={() => { if (!submitting.current) onClose(); }} title="Ajouter un site" width="max-w-md">
       <form onSubmit={submit} className="space-y-4" aria-busy={busy}>
-        <p className="text-sm text-stone-500">Un petit script à installer, et les premières statistiques arriveront automatiquement.</p>
+        <p className="text-sm text-ink-3">Un petit script à installer, et les premières statistiques arriveront automatiquement.</p>
         <fieldset disabled={busy} className="space-y-4">
         <div>
           <label className="label" htmlFor="site-domain">Domaine</label>
           <input id="site-domain" required autoCapitalize="none" spellCheck={false} aria-describedby="domain-help" className="input" placeholder="example.com" value={domain} onChange={(e) => setDomain(e.target.value)} autoFocus />
-          <p id="domain-help" className="mt-1 text-xs text-stone-500">Saisissez un domaine ou une URL complète. Les sous-domaines sont aussi suivis.</p>
+          <p id="domain-help" className="mt-1 text-xs text-ink-3">Saisissez un domaine ou une URL complète. Les sous-domaines sont aussi suivis.</p>
         </div>
         <div>
           <label className="label" htmlFor="site-name">Nom du site (facultatif)</label>
@@ -188,7 +188,7 @@ function AddSite({ open, onClose }: { open: boolean; onClose: () => void }) {
           </div>
         </div>
         </fieldset>
-        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         <button className="btn-dark w-full" disabled={busy || !domain.trim()}>
           {busy ? 'Connexion…' : 'Ajouter le site et obtenir le script'}
         </button>

@@ -21,7 +21,7 @@ export function Sparkline({ data, className = 'text-visitors', height = 36, widt
 }
 
 export function Trend({ cur, prev, invert = false }: { cur: number; prev: number; invert?: boolean }) {
-  if (!prev) return <span className="pill bg-stone-100 text-stone-400">—</span>;
+  if (!prev) return <span className="pill bg-well text-ink-4">—</span>;
   const pct = (cur - prev) / prev;
   if (!Number.isFinite(pct)) return null;
   const up = pct >= 0;
@@ -29,7 +29,7 @@ export function Trend({ cur, prev, invert = false }: { cur: number; prev: number
   const flat = Math.abs(pct) < 0.005;
   return (
     <span
-      className={`pill ${flat ? 'bg-stone-100 text-stone-500' : good ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}
+      className={`pill ${flat ? 'bg-well text-ink-3' : good ? 'bg-success/10 text-success dark:text-success' : 'bg-rose-500/10 text-danger dark:text-danger'}`}
       title="vs période précédente"
     >
       {flat ? '•' : up ? '▲' : '▼'} {Math.abs(pct) < 0.1 ? Math.abs(pct * 100).toFixed(1) : Math.round(Math.abs(pct * 100))}%
@@ -40,8 +40,8 @@ export function Trend({ cur, prev, invert = false }: { cur: number; prev: number
 export function LiveDot({ on = true }: { on?: boolean }) {
   return (
     <span className="relative inline-flex h-2.5 w-2.5">
-      {on && <span className="absolute inline-flex h-full w-full animate-ping2 rounded-full bg-emerald-400 opacity-60" />}
-      <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${on ? 'bg-emerald-500' : 'bg-stone-300'}`} />
+      {on && <span className="absolute inline-flex h-full w-full animate-ping2 rounded-full bg-success opacity-60" />}
+      <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${on ? 'bg-success' : 'bg-line-strong'}`} />
     </span>
   );
 }

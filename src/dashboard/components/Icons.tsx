@@ -7,7 +7,7 @@ export function Favicon({ domain, size = 18, fallback }: { domain?: string | nul
   if (!domain || broken) {
     return (
       <span
-        className="inline-flex shrink-0 items-center justify-center rounded text-stone-400"
+        className="inline-flex shrink-0 items-center justify-center rounded text-ink-4"
         style={{ width: size, height: size, fontSize: size * 0.8 }}
       >
         {fallback ?? <LinkIcon size={size} />}
@@ -104,7 +104,7 @@ export function Flag({ cc, size = 18 }: { cc: string | null; size?: number }) {
 }
 
 const FACES = ['😀', '😎', '🤓', '🧐', '🙂', '😊', '🤠', '🥳', '😺', '🦊', '🐼', '🐨', '🐯', '🦁', '🐸', '🐵', '🦄', '🐙'];
-const BGS = ['#fde68a', '#bfdbfe', '#fbcfe8', '#bbf7d0', '#ddd6fe', '#fed7aa', '#a5f3fc', '#fecaca', '#e9d5ff'];
+const BGS = ['rgb(var(--warning))', 'rgb(var(--ink-4))', 'rgb(var(--ink-4))', 'rgb(var(--ink-4))', 'rgb(var(--ink-4))', 'rgb(var(--warning))', 'rgb(var(--success))', 'rgb(var(--ink-4))', 'rgb(var(--ink-4))'];
 
 function hash(s: string) {
   let h = 0;

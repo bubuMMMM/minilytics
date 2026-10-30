@@ -29,16 +29,16 @@ export function VisitorModal({ visitorId, onClose }: { visitorId: string | null;
 
   return (
     <Modal open={!!visitorId} onClose={onClose} width="max-w-3xl" title="Profil du visiteur">
-      {!p && <div className="h-60 animate-pulse rounded-xl bg-stone-50" />}
+      {!p && <div className="h-60 animate-pulse rounded-xl bg-well" />}
       {p && (
         <div>
           <div className="flex items-center gap-3 sm:gap-4">
             <Avatar id={visitorId!} size={64} />
             <div className="min-w-0">
               <div className="truncate text-xl font-semibold">{p.visitor?.name || p.visitor?.email || `Visiteur ${shortId(visitorId!)}`}</div>
-              {p.visitor?.email && p.visitor.name && <div className="text-sm text-stone-500">{p.visitor.email}</div>}
+              {p.visitor?.email && p.visitor.name && <div className="text-sm text-ink-3">{p.visitor.email}</div>}
               {last && (
-                <div className="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-stone-500">
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-ink-3">
                   <span className="flex items-center gap-1">
                     <Flag cc={last.country} size={15} /> {last.city ? `${last.city}, ` : ''}
                     {countryName(last.country)}
@@ -72,36 +72,36 @@ export function VisitorModal({ visitorId, onClose }: { visitorId: string | null;
               const evs = [...(bySession.get(s.id) ?? [])].reverse();
               const pays = p.payments.filter((x) => x.ts >= s.started_at && x.ts <= s.last_seen_at + 30 * 60_000);
               return (
-                <div key={s.id} className="relative border-l-2 border-stone-100 pl-5">
+                <div key={s.id} className="relative border-l-2 border-line pl-5">
                   <div className="absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-visitors ring-4 ring-white" />
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                     <span className="font-semibold">{fmtDateTime(s.started_at, site.timezone)}</span>
-                    <span className="flex items-center gap-1.5 rounded-md bg-stone-100 px-2 py-0.5">
+                    <span className="flex items-center gap-1.5 rounded-md bg-well px-2 py-0.5">
                       <SourceIcon source={s.source} domain={s.referrer_domain} size={14} /> {s.source}
                     </span>
-                    {s.referrer && <span className="max-w-full truncate sm:max-w-[260px] text-stone-500">{s.referrer}</span>}
-                    {s.utm_campaign && <span className="rounded-md bg-amber-50 px-2 py-0.5 text-amber-700">campagne : {s.utm_campaign}</span>}
-                    {s.ref && <span className="rounded-md bg-amber-50 px-2 py-0.5 text-amber-700">réf : {s.ref}</span>}
-                    <span className="text-stone-400">{fmtDuration(s.duration)}</span>
+                    {s.referrer && <span className="max-w-full truncate sm:max-w-[260px] text-ink-3">{s.referrer}</span>}
+                    {s.utm_campaign && <span className="rounded-md bg-warning-soft px-2 py-0.5 text-warning">campagne : {s.utm_campaign}</span>}
+                    {s.ref && <span className="rounded-md bg-warning-soft px-2 py-0.5 text-warning">réf : {s.ref}</span>}
+                    <span className="text-ink-4">{fmtDuration(s.duration)}</span>
                   </div>
                   <ol className="mt-2 space-y-1 text-sm">
                     {evs.map((e, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <span className="w-14 shrink-0 text-xs leading-5 text-stone-400">
+                        <span className="w-14 shrink-0 text-xs leading-5 text-ink-4">
                           {new Intl.DateTimeFormat('en', { timeZone: site.timezone, hour: 'numeric', minute: '2-digit' }).format(e.ts)}
                         </span>
-                        {e.type === 'pageview' && <span className="text-stone-700">📄 {e.path}</span>}
+                        {e.type === 'pageview' && <span className="text-ink-2">📄 {e.path}</span>}
                         {e.type === 'goal' && (
-                          <span className="font-medium text-violet-700">
-                            🎯 {e.name} <span className="font-normal text-stone-400">sur {e.path}</span>
+                          <span className="font-medium text-accent">
+                            🎯 {e.name} <span className="font-normal text-ink-4">sur {e.path}</span>
                           </span>
                         )}
-                        {e.type === 'outbound' && <span className="text-stone-600">↗ Sortie vers {e.name?.replace(/^https?:\/\//, '')}</span>}
+                        {e.type === 'outbound' && <span className="text-ink-2">↗ Sortie vers {e.name?.replace(/^https?:\/\//, '')}</span>}
                       </li>
                     ))}
                     {pays.map((x) => (
                       <li key={x.id} className="flex items-start gap-2">
-                        <span className="w-14 shrink-0 text-xs leading-5 text-stone-400">
+                        <span className="w-14 shrink-0 text-xs leading-5 text-ink-4">
                           {new Intl.DateTimeFormat('en', { timeZone: site.timezone, hour: 'numeric', minute: '2-digit' }).format(x.ts)}
                         </span>
                         <span className="font-semibold text-revenue">💰 {x.kind === 'refund' ? 'Remboursement' : 'Payé'} {money(x.amount)}</span>
@@ -133,8 +133,8 @@ export function VisitorModal({ visitorId, onClose }: { visitorId: string | null;
 
 function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="rounded-xl bg-stone-50 px-4 py-3">
-      <div className="text-xs text-stone-500">{label}</div>
+    <div className="rounded-xl bg-well px-4 py-3">
+      <div className="text-xs text-ink-3">{label}</div>
       <div className={`mt-0.5 truncate font-semibold ${accent ? 'text-revenue' : ''}`}>{value}</div>
     </div>
   );

@@ -55,16 +55,16 @@ export function fmtWatch(seconds: number): string {
 
 export const isYouTubeId = (id: string) => /^[\w-]{11}$/.test(id);
 export function Thumb({ id, className = '' }: { id: string; className?: string }) {
-  if (!isYouTubeId(id)) return <span className={`flex items-center justify-center rounded-lg bg-[#eef1ff] text-[#4f62ef] ${className}`}><UiIcon name="play" size={18} /></span>;
-  return <img src={`https://i.ytimg.com/vi/${id}/mqdefault.jpg`} alt="" loading="lazy" className={`rounded-lg bg-[#eef1ff] object-cover ${className}`} />;
+  if (!isYouTubeId(id)) return <span className={`flex items-center justify-center rounded-lg bg-accent-soft text-accent ${className}`}><UiIcon name="play" size={18} /></span>;
+  return <img src={`https://i.ytimg.com/vi/${id}/mqdefault.jpg`} alt="" loading="lazy" className={`rounded-lg bg-accent-soft object-cover ${className}`} />;
 }
 
 function Kpi({ label, value, hint, icon }: { label: string; value: ReactNode; hint?: ReactNode; icon: Parameters<typeof UiIcon>[0]['name'] }) {
   return (
     <div className="ml-bento p-4 sm:p-5">
-      <div className="flex items-center justify-between"><span className="text-[12px] font-medium text-[#7a889e]">{label}</span><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f1f3ff] text-[#5165e7]"><UiIcon name={icon} size={16} /></span></div>
-      <div className="tnum mt-3 text-[26px] font-semibold tracking-[-.04em] text-[#111b33]">{value}</div>
-      {hint && <div className="mt-1 text-[11px] text-[#9aa7ba]">{hint}</div>}
+      <div className="flex items-center justify-between"><span className="text-[12px] font-medium text-ink-3">{label}</span><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft text-accent"><UiIcon name={icon} size={16} /></span></div>
+      <div className="tnum mt-3 text-[26px] font-semibold tracking-[-.04em] text-ink">{value}</div>
+      {hint && <div className="mt-1 text-[11px] text-ink-4">{hint}</div>}
     </div>
   );
 }
@@ -77,11 +77,11 @@ function PlayChart({ series, granularity }: { series: Series[]; granularity: str
       <div className="flex h-44 items-end gap-[3px]">
         {series.map((s, i) => (
           <div key={s.bucket} className="group relative flex h-full flex-1 items-end">
-            <div className="w-full rounded-t-[4px] bg-[#a5b3ff] transition-all group-hover:bg-[#4f62ef]" style={{ height: `${Math.max(s.plays ? 6 : 1.5, (s.plays / max) * 100)}%`, opacity: s.plays ? 1 : 0.35 }} />
-            <div className="pointer-events-none absolute -top-12 left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-[#111b33] px-2 py-1 text-[11px] text-white group-hover:block">
+            <div className="w-full rounded-t-[4px] bg-accent transition-all group-hover:bg-accent" style={{ height: `${Math.max(s.plays ? 6 : 1.5, (s.plays / max) * 100)}%`, opacity: s.plays ? 1 : 0.35 }} />
+            <div className="pointer-events-none absolute -top-12 left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-ink px-2 py-1 text-[11px] text-white group-hover:block">
               {bucketLabel(s.bucket, granularity)} · {s.plays} lecture{s.plays > 1 ? 's' : ''} · {fmtWatch(s.watchSeconds)}
             </div>
-            {i % step === 0 && <span className="absolute -bottom-5 left-0 whitespace-nowrap text-[10px] text-[#9aa7ba]">{bucketLabel(s.bucket, granularity)}</span>}
+            {i % step === 0 && <span className="absolute -bottom-5 left-0 whitespace-nowrap text-[10px] text-ink-4">{bucketLabel(s.bucket, granularity)}</span>}
           </div>
         ))}
       </div>
@@ -97,7 +97,7 @@ export function DropOff({ video, compact = false }: { video: VideoRow; compact?:
   if (compact) {
     return (
       <div className="flex h-6 items-end gap-[2px]" title="Rétention : part des visionnages qui atteignent 0 / 10 / 25 / 50 / 75 / 90 / 100 %">
-        {steps.map((m) => <div key={m.pct} className="w-[7px] rounded-sm bg-[#4f62ef]" style={{ height: `${Math.max(8, (m.sessions / base) * 100)}%`, opacity: 0.35 + 0.65 * (m.sessions / base) }} />)}
+        {steps.map((m) => <div key={m.pct} className="w-[7px] rounded-sm bg-accent" style={{ height: `${Math.max(8, (m.sessions / base) * 100)}%`, opacity: 0.35 + 0.65 * (m.sessions / base) }} />)}
       </div>
     );
   }
@@ -105,10 +105,10 @@ export function DropOff({ video, compact = false }: { video: VideoRow; compact?:
     <div className="space-y-2">
       {steps.map((m) => (
         <div key={m.pct} className="flex items-center gap-3 text-[13px]">
-          <span className="w-12 shrink-0 text-right text-[#7a889e]">{m.pct === 0 ? 'Début' : m.pct + ' %'}</span>
-          <div className="relative h-7 flex-1 overflow-hidden rounded-lg bg-[#f4f6fb]">
-            <div className="absolute inset-y-0 left-0 rounded-lg bg-[#c9d1ff]" style={{ width: `${Math.min(100, (m.sessions / base) * 100)}%` }} />
-            <span className="tnum relative flex h-full items-center px-2.5 font-medium text-[#1d2b45]">{fmtNumber(m.sessions)}</span>
+          <span className="w-12 shrink-0 text-right text-ink-3">{m.pct === 0 ? 'Début' : m.pct + ' %'}</span>
+          <div className="relative h-7 flex-1 overflow-hidden rounded-lg bg-accent-soft">
+            <div className="absolute inset-y-0 left-0 rounded-lg bg-accent-soft" style={{ width: `${Math.min(100, (m.sessions / base) * 100)}%` }} />
+            <span className="tnum relative flex h-full items-center px-2.5 font-medium text-ink">{fmtNumber(m.sessions)}</span>
           </div>
           <span className="tnum w-12 shrink-0 text-right font-semibold">{fmtPct(m.sessions / base)}</span>
         </div>
@@ -131,7 +131,7 @@ function AudienceBox({ title, tabs, data }: { title: string; tabs: { key: string
     <div className="ml-bento min-w-0 p-4">
       <h4 className="mb-2 text-[14px] font-semibold">{title}</h4>
       <div className="mb-2 max-w-full overflow-x-auto"><div className="tabs">{tabs.map((t) => <button key={t.key} className={`tab whitespace-nowrap ${t.key === active ? 'tab-active' : ''}`} onClick={() => setActive(t.key)}>{t.label}</button>)}</div></div>
-      {!rows.length && <p className="py-6 text-center text-xs text-stone-400">Aucune donnée</p>}
+      {!rows.length && <p className="py-6 text-center text-xs text-ink-4">Aucune donnée</p>}
       <div className="space-y-1">
         {rows.map((r, i) => (
           <div key={i} className="relative flex h-8 items-center rounded-lg">
@@ -163,7 +163,7 @@ function VideoDetailModal({ videoId, onClose }: { videoId: string | null; onClos
           <div className="flex flex-wrap items-start gap-4">
             <Thumb id={v.id} className="h-[90px] w-[160px] shrink-0" />
             <div className="min-w-0 flex-1">
-              <div className="text-[13px] text-[#7a889e]">{v.channel ?? 'Chaîne inconnue'}{v.duration ? ' · ' + fmtWatch(v.duration) : ''}</div>
+              <div className="text-[13px] text-ink-3">{v.channel ?? 'Chaîne inconnue'}{v.duration ? ' · ' + fmtWatch(v.duration) : ''}</div>
               <div className="mt-2 flex flex-wrap gap-2 text-[12px]">
                 <a className="btn !h-8" href={`https://${site.domain}/watch?v=${encodeURIComponent(v.id)}`} target="_blank" rel="noreferrer">Ouvrir sur {site.domain} <UiIcon name="external" size={14} /></a>
                 {isYouTubeId(v.id) && <a className="btn !h-8" href={`https://www.youtube.com/watch?v=${v.id}`} target="_blank" rel="noreferrer">YouTube <UiIcon name="external" size={14} /></a>}
@@ -179,7 +179,7 @@ function VideoDetailModal({ videoId, onClose }: { videoId: string | null; onClos
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="ml-bento p-4"><h4 className="mb-3 text-[14px] font-semibold">Rétention (où les spectateurs décrochent)</h4><DropOff video={v} /></div>
             <div className="ml-bento p-4"><h4 className="mb-3 text-[14px] font-semibold">Lectures dans le temps</h4><PlayChart series={data.series} granularity={data.range.granularity} />
-              {data.actions.length > 0 && <div className="mt-3 border-t border-[#edf0f6] pt-3"><h5 className="mb-2 text-[12px] font-semibold text-[#56657e]">Actions sur cette vidéo</h5>{data.actions.map((a) => <div key={a.label} className="flex justify-between py-1 text-[13px]"><span>{ACTION_LABELS[a.label] ?? a.label}</span><span className="tnum font-semibold">{a.count}</span></div>)}</div>}
+              {data.actions.length > 0 && <div className="mt-3 border-t border-line pt-3"><h5 className="mb-2 text-[12px] font-semibold text-ink-2">Actions sur cette vidéo</h5>{data.actions.map((a) => <div key={a.label} className="flex justify-between py-1 text-[13px]"><span>{ACTION_LABELS[a.label] ?? a.label}</span><span className="tnum font-semibold">{a.count}</span></div>)}</div>}
             </div>
           </div>
           <div className="grid gap-4 lg:grid-cols-3">{AUDIENCE_TABS.map((b) => <AudienceBox key={b.title} title={b.title} tabs={b.tabs} data={data.audience} />)}</div>
@@ -201,12 +201,12 @@ export function VideosView() {
   const t = data?.totals;
   const maxPlays = Math.max(1, ...rows.map((r) => r.plays));
   const SortBtn = ({ k, children }: { k: typeof sort; children: ReactNode }) => (
-    <button className={`whitespace-nowrap font-medium ${sort === k ? 'text-[#4f62ef]' : ''}`} onClick={() => setSort(k)}>{children}{sort === k ? ' ↓' : ''}</button>
+    <button className={`whitespace-nowrap font-medium ${sort === k ? 'text-accent' : ''}`} onClick={() => setSort(k)}>{children}{sort === k ? ' ↓' : ''}</button>
   );
 
   return (
     <section aria-label="Vidéos" className="space-y-5">
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Kpi label="Lectures" value={t ? fmtNumber(t.plays) : '—'} hint="Vidéos lancées" icon="play" />
         <Kpi label="Spectateurs uniques" value={t ? fmtNumber(t.viewers) : '—'} hint="Visiteurs ayant lancé une vidéo" icon="users" />
@@ -220,10 +220,10 @@ export function VideosView() {
         <div className="ml-bento p-5"><h3 className="mb-4 text-[15px] font-semibold">Lectures sur la période</h3>{data ? <PlayChart series={data.series} granularity={data.range.granularity} /> : <div className="skeleton h-44" />}</div>
         <div className="ml-bento p-5">
           <h3 className="mb-3 text-[15px] font-semibold">Chaînes les plus regardées</h3>
-          {!data?.channels.length && <p className="py-8 text-center text-sm text-stone-400">Aucune vidéo lancée sur cette période</p>}
+          {!data?.channels.length && <p className="py-8 text-center text-sm text-ink-4">Aucune vidéo lancée sur cette période</p>}
           {data?.channels.slice(0, 8).map((c, i) => (
-            <div key={i} className="flex items-center justify-between gap-3 border-b border-[#f0f2f7] py-2 text-[13px] last:border-0">
-              <span className="truncate">{c.label ?? 'Inconnue'}</span><span className="tnum shrink-0 text-[#7a889e]">{c.plays} · {fmtWatch(c.watchSeconds)}</span>
+            <div key={i} className="flex items-center justify-between gap-3 border-b border-line py-2 text-[13px] last:border-0">
+              <span className="truncate">{c.label ?? 'Inconnue'}</span><span className="tnum shrink-0 text-ink-3">{c.plays} · {fmtWatch(c.watchSeconds)}</span>
             </div>
           ))}
         </div>
@@ -231,30 +231,30 @@ export function VideosView() {
 
       <div className="ml-bento p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div><h3 className="text-[15px] font-semibold">Top vidéos</h3><p className="text-[12px] text-[#8290a3]">Cliquez sur une vidéo pour voir sa rétention, d’où viennent ses spectateurs et leurs pays.</p></div>
+          <div><h3 className="text-[15px] font-semibold">Top vidéos</h3><p className="text-[12px] text-ink-3">Cliquez sur une vidéo pour voir sa rétention, d’où viennent ses spectateurs et leurs pays.</p></div>
           <input type="search" aria-label="Rechercher une vidéo" autoComplete="off" className="input !h-10 w-full sm:max-w-[260px]" placeholder="Rechercher une vidéo…" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         {!data && loading && <div className="space-y-2">{Array.from({ length: 6 }, (_, i) => <div key={i} className="ml-skeleton h-14" />)}</div>}
         {data && !rows.length && (
           <div className="flex min-h-[200px] flex-col items-center justify-center text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#4f62ef]"><UiIcon name="play" size={22} /></span>
-            <p className="mt-3 text-sm font-medium text-stone-600">Aucune vidéo regardée sur cette période</p>
-            <p className="max-w-md text-xs text-stone-400">Les lectures apparaissent ici dès que le lecteur du site envoie <code>minilytics('video', 'start', {'{ id, title }'})</code>.</p>
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft text-accent"><UiIcon name="play" size={22} /></span>
+            <p className="mt-3 text-sm font-medium text-ink-2">Aucune vidéo regardée sur cette période</p>
+            <p className="max-w-md text-xs text-ink-4">Les lectures apparaissent ici dès que le lecteur du site envoie <code>minilytics('video', 'start', {'{ id, title }'})</code>.</p>
           </div>
         )}
         {rows.length > 0 && (
-          <ul className="-mx-1 divide-y divide-[#f0f2f7] md:hidden">
+          <ul className="-mx-1 divide-y divide-line md:hidden">
             {rows.map((v) => (
               <li key={v.id}>
-                <button type="button" className="flex w-full items-start gap-3 rounded-xl px-1 py-3 text-left active:bg-[#f8f9ff]" onClick={() => setOpen(v.id)}>
+                <button type="button" className="flex w-full items-start gap-3 rounded-xl px-1 py-3 text-left active:bg-well" onClick={() => setOpen(v.id)}>
                   <Thumb id={v.id} className="h-[54px] w-[96px] shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <div className="line-clamp-2 text-[14px] font-medium leading-snug text-[#1d2b45]">{v.title ?? v.id}</div>
-                    <div className="truncate text-[12px] text-[#8b98ad]">{v.channel ?? '—'}{v.duration ? ' · ' + fmtWatch(v.duration) : ''}</div>
-                    <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-[#56657e]">
-                      <span><b className="tnum text-[#17213a]">{fmtNumber(v.plays)}</b> lectures</span>
-                      <span><b className="tnum text-[#17213a]">{fmtWatch(v.avgWatchSeconds)}</b> en moy.</span>
-                      <span><b className="tnum text-[#17213a]">{fmtPct(v.completionRate)}</b> complétion</span>
+                    <div className="line-clamp-2 text-[14px] font-medium leading-snug text-ink">{v.title ?? v.id}</div>
+                    <div className="truncate text-[12px] text-ink-3">{v.channel ?? '—'}{v.duration ? ' · ' + fmtWatch(v.duration) : ''}</div>
+                    <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-ink-2">
+                      <span><b className="tnum text-ink">{fmtNumber(v.plays)}</b> lectures</span>
+                      <span><b className="tnum text-ink">{fmtWatch(v.avgWatchSeconds)}</b> en moy.</span>
+                      <span><b className="tnum text-ink">{fmtPct(v.completionRate)}</b> complétion</span>
                     </div>
                   </div>
                 </button>
@@ -266,7 +266,7 @@ export function VideosView() {
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[760px] text-[13px]">
               <thead>
-                <tr className="text-left text-[12px] text-[#7a889e]">
+                <tr className="text-left text-[12px] text-ink-3">
                   <th className="pb-2 font-medium">Vidéo</th>
                   <th className="pb-2 text-right"><SortBtn k="plays">Lectures</SortBtn></th>
                   <th className="pb-2 text-right"><SortBtn k="viewers">Spectateurs</SortBtn></th>
@@ -278,21 +278,21 @@ export function VideosView() {
               </thead>
               <tbody>
                 {rows.map((v) => (
-                  <tr key={v.id} className="cursor-pointer border-t border-[#f0f2f7] hover:bg-[#f8f9ff]" onClick={() => setOpen(v.id)}>
+                  <tr key={v.id} className="cursor-pointer border-t border-line hover:bg-well" onClick={() => setOpen(v.id)}>
                     <td className="py-2.5 pr-3">
                       <div className="flex min-w-0 items-center gap-3">
                         <Thumb id={v.id} className="h-[45px] w-[80px] shrink-0" />
                         <div className="min-w-0">
-                          <button type="button" className="block max-w-[380px] truncate text-left font-medium text-[#1d2b45] hover:text-[#2f3fd0]" onClick={(e) => { e.stopPropagation(); setOpen(v.id); }}>{v.title ?? v.id}</button>
-                          <div className="max-w-[380px] truncate text-[12px] text-[#8b98ad]">{v.channel ?? '—'}{v.duration ? ' · ' + fmtWatch(v.duration) : ''}</div>
-                          <div className="mt-1 h-1 w-40 overflow-hidden rounded bg-[#eef1f7]"><div className="h-full rounded bg-[#4f62ef]" style={{ width: `${(v.plays / maxPlays) * 100}%` }} /></div>
+                          <button type="button" className="block max-w-[380px] truncate text-left font-medium text-ink hover:text-accent" onClick={(e) => { e.stopPropagation(); setOpen(v.id); }}>{v.title ?? v.id}</button>
+                          <div className="max-w-[380px] truncate text-[12px] text-ink-3">{v.channel ?? '—'}{v.duration ? ' · ' + fmtWatch(v.duration) : ''}</div>
+                          <div className="mt-1 h-1 w-40 overflow-hidden rounded bg-well"><div className="h-full rounded bg-accent" style={{ width: `${(v.plays / maxPlays) * 100}%` }} /></div>
                         </div>
                       </div>
                     </td>
                     <td className="tnum py-2.5 text-right font-semibold">{fmtNumber(v.plays)}</td>
                     <td className="tnum py-2.5 text-right">{fmtNumber(v.viewers)}</td>
                     <td className="tnum py-2.5 text-right">{fmtWatch(v.watchSeconds)}</td>
-                    <td className="tnum hidden py-2.5 text-right lg:table-cell">{fmtWatch(v.avgWatchSeconds)}{v.avgPercentWatched != null && <div className="text-[11px] text-[#9aa7ba]">{fmtPct(v.avgPercentWatched)} de la vidéo</div>}</td>
+                    <td className="tnum hidden py-2.5 text-right lg:table-cell">{fmtWatch(v.avgWatchSeconds)}{v.avgPercentWatched != null && <div className="text-[11px] text-ink-4">{fmtPct(v.avgPercentWatched)} de la vidéo</div>}</td>
                     <td className="tnum py-2.5 text-right font-semibold">{fmtPct(v.completionRate)}</td>
                     <td className="py-2.5 pl-4"><DropOff video={v} compact /></td>
                   </tr>
@@ -316,16 +316,16 @@ export function VideosTeaser({ onOpen }: { onOpen: () => void }) {
   return (
     <section className="ml-bento mt-7 p-5" aria-label="Top vidéos">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div><div className="ml-kicker">VIDÉOS / VISIONNAGE</div><h2 className="mt-2 text-[clamp(1.4rem,2.6vw,1.9rem)] font-semibold tracking-[-.04em]">Ce que vos visiteurs regardent<span className="text-[#4f62ef]">.</span></h2>
-          <p className="mt-1 text-[13px] text-[#8290a3]">{fmtNumber(t.plays)} lecture{t.plays > 1 ? 's' : ''} · {fmtNumber(t.viewers)} spectateur{t.viewers > 1 ? 's' : ''} · {fmtWatch(t.watchSeconds)} de visionnage · {fmtPct(t.completionRate)} de complétion</p></div>
+        <div><div className="ml-kicker">VIDÉOS / VISIONNAGE</div><h2 className="mt-2 text-[clamp(1.4rem,2.6vw,1.9rem)] font-semibold tracking-[-.04em]">Ce que vos visiteurs regardent<span className="text-accent">.</span></h2>
+          <p className="mt-1 text-[13px] text-ink-3">{fmtNumber(t.plays)} lecture{t.plays > 1 ? 's' : ''} · {fmtNumber(t.viewers)} spectateur{t.viewers > 1 ? 's' : ''} · {fmtWatch(t.watchSeconds)} de visionnage · {fmtPct(t.completionRate)} de complétion</p></div>
         <button className="btn-dark" onClick={onOpen}>Toutes les vidéos <UiIcon name="arrow-right" size={16} /></button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {data.videos.slice(0, 5).map((v) => (
-          <button key={v.id} onClick={onOpen} className="group rounded-xl border border-[#edf0f6] p-2 text-left transition hover:border-[#cfd6ff] hover:bg-[#f8f9ff]">
+          <button key={v.id} onClick={onOpen} className="group rounded-xl border border-line p-2 text-left transition hover:border-accent/30 hover:bg-well">
             <Thumb id={v.id} className="aspect-video w-full" />
-            <div className="mt-2 line-clamp-2 text-[13px] font-medium leading-snug text-[#1d2b45]">{v.title ?? v.id}</div>
-            <div className="mt-1 text-[11px] text-[#8b98ad]">{v.plays} lecture{v.plays > 1 ? 's' : ''} · {fmtWatch(v.watchSeconds)} · {fmtPct(v.completionRate)}</div>
+            <div className="mt-2 line-clamp-2 text-[13px] font-medium leading-snug text-ink">{v.title ?? v.id}</div>
+            <div className="mt-1 text-[11px] text-ink-3">{v.plays} lecture{v.plays > 1 ? 's' : ''} · {fmtWatch(v.watchSeconds)} · {fmtPct(v.completionRate)}</div>
           </button>
         ))}
       </div>

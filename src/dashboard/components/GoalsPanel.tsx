@@ -38,15 +38,15 @@ function Goals({ totalVisitors }: { totalVisitors: number }) {
   if (!data) return <div className="h-40 animate-pulse" />;
   if (!data.length)
     return (
-      <div className="p-8 text-center text-sm text-stone-500">
-        Aucun objectif pour l’instant. Ajoutez <code className="rounded bg-stone-100 px-1">data-ml-goal="signup_click"</code> à un bouton, ou appelez{' '}
-        <code className="rounded bg-stone-100 px-1">window.minilytics('goal', 'signup')</code>.
+      <div className="p-8 text-center text-sm text-ink-3">
+        Aucun objectif pour l’instant. Ajoutez <code className="rounded bg-well px-1">data-ml-goal="signup_click"</code> à un bouton, ou appelez{' '}
+        <code className="rounded bg-well px-1">window.minilytics('goal', 'signup')</code>.
       </div>
     );
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="text-left text-stone-500">
+        <tr className="text-left text-ink-3">
           <th className="px-3 pb-2 font-medium">Objectif</th>
           <th className="pb-2 text-right font-medium">Visiteurs</th>
           <th className="hidden pb-2 text-right font-medium sm:table-cell">Réalisations</th>
@@ -56,7 +56,7 @@ function Goals({ totalVisitors }: { totalVisitors: number }) {
       </thead>
       <tbody>
         {data.map((g) => (
-          <tr key={g.label} className="cursor-pointer border-t border-stone-100 hover:bg-stone-50" onClick={() => addFilter('goal', g.label ?? '')} title="Filtrer sur les visiteurs ayant atteint cet objectif">
+          <tr key={g.label} className="cursor-pointer border-t border-line hover:bg-well" onClick={() => addFilter('goal', g.label ?? '')} title="Filtrer sur les visiteurs ayant atteint cet objectif">
             <td className="max-w-[160px] truncate px-3 py-3 font-medium">🎯 {g.label}</td>
             <td className="py-2.5 text-right">{fmtNumber(g.visitors)}</td>
             <td className="hidden py-2.5 text-right sm:table-cell">{fmtNumber(g.pageviews ?? 0)}</td>
@@ -116,7 +116,7 @@ function Funnels() {
         </button>
         {current && (
           <button
-            className="btn py-1.5 text-red-600"
+            className="btn py-1.5 text-danger"
             onClick={async () => {
               if (!confirm(`Supprimer l’entonnoir « ${current.name} » ?`)) return;
               await api(`/api/sites/${site.id}/funnels/${current.id}`, { method: 'DELETE' });
@@ -133,13 +133,13 @@ function Funnels() {
           const pct = top ? s.visitors / top : 0;
           const prev = i ? stats[i - 1].visitors : s.visitors;
           return (
-            <div key={i} className="rounded-xl border border-stone-100 p-3">
+            <div key={i} className="rounded-xl border border-line p-3">
               <div className="flex items-center justify-between gap-2 text-sm">
                 <span className="min-w-0 truncate font-medium">{i + 1}. {s.type === 'goal' ? '🎯 ' : ''}{s.value}</span>
                 <span className="tnum shrink-0 font-semibold">{fmtNumber(s.visitors)} · {fmtPct(pct)}</span>
               </div>
-              <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-stone-100"><div className="h-full rounded-full bg-visitors/70" style={{ width: `${Math.max(pct * 100, 2)}%` }} /></div>
-              {i > 0 && <div className="mt-1 text-xs text-red-500">−{prev ? fmtPct(1 - s.visitors / prev) : '0 %'} d’abandon</div>}
+              <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-well"><div className="h-full rounded-full bg-visitors/70" style={{ width: `${Math.max(pct * 100, 2)}%` }} /></div>
+              {i > 0 && <div className="mt-1 text-xs text-danger">−{prev ? fmtPct(1 - s.visitors / prev) : '0 %'} d’abandon</div>}
             </div>
           );
         })}
@@ -150,17 +150,17 @@ function Funnels() {
           const prev = i ? stats[i - 1].visitors : s.visitors;
           return (
             <div key={i} className="min-w-0">
-              <div className="flex h-48 items-end rounded-xl bg-stone-50">
+              <div className="flex h-48 items-end rounded-xl bg-well">
                 <div className="w-full rounded-xl bg-visitors/70 transition-all" style={{ height: `${Math.max(pct * 100, 2)}%` }} />
               </div>
               <div className="mt-2 truncate text-sm font-medium" title={s.value}>
                 {i + 1}. {s.type === 'goal' ? '🎯 ' : ''}
                 {s.value}
               </div>
-              <div className="text-sm text-stone-600">
+              <div className="text-sm text-ink-2">
                 {fmtNumber(s.visitors)} visiteurs · {fmtPct(pct)}
               </div>
-              {i > 0 && <div className="text-xs text-red-500">−{prev ? fmtPct(1 - s.visitors / prev) : '0%'} d’abandon</div>}
+              {i > 0 && <div className="text-xs text-danger">−{prev ? fmtPct(1 - s.visitors / prev) : '0%'} d’abandon</div>}
             </div>
           );
         })}
@@ -193,7 +193,7 @@ function FunnelForm({ onDone, canCancel }: { onDone: (id?: string) => void; canC
         }
       }}
     >
-      <p className="text-sm text-stone-500">Les étapes sont comptées dans l’ordre, par visiteur. Les chemins acceptent les jokers, par ex. <code>/blog/*</code>.</p>
+      <p className="text-sm text-ink-3">Les étapes sont comptées dans l’ordre, par visiteur. Les chemins acceptent les jokers, par ex. <code>/blog/*</code>.</p>
       <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom de l’entonnoir" />
       {steps.map((s, i) => (
         <div key={i} className="flex gap-2">
@@ -218,7 +218,7 @@ function FunnelForm({ onDone, canCancel }: { onDone: (id?: string) => void; canC
           </button>
         )}
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </form>
   );
 }
@@ -232,7 +232,7 @@ function VisitorCell({ id, name, email, country, city, device, os, browser, badg
           <span className="truncate font-medium">{name || email || `Visiteur ${shortId(id)}`}</span>
           {badge}
         </div>
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[13px] text-stone-500 sm:text-sm">
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[13px] text-ink-3 sm:text-sm">
           <span className="flex items-center gap-1">
             <Flag cc={country} size={15} /> {city ? `${city}, ` : ''}
             {countryName(country)}
@@ -263,7 +263,7 @@ function matches(r: Record<string, any>, search: string) {
 function ShowAll({ total, shown, onClick }: { total: number; shown: number; onClick: () => void }) {
   if (total <= shown) return null;
   return (
-    <button className="mx-auto mt-3 block min-h-[44px] text-xs font-semibold uppercase tracking-wider text-stone-500 hover:text-ink" onClick={onClick}>
+    <button className="mx-auto mt-3 block min-h-[44px] text-xs font-semibold uppercase tracking-wider text-ink-3 hover:text-ink" onClick={onClick}>
       Tout afficher ({total})
     </button>
   );
@@ -285,12 +285,12 @@ function Journey({ search }: { search: string }) {
   const { data } = useApi<any[]>(`/api/sites/${site.id}/customers?${qs(q)}`, reloadKey + version);
   if (!data) return <div className="h-40 animate-pulse" />;
   if (!data.length)
-    return <div className="p-8 text-center text-sm text-stone-500">Aucun paiement sur cette période. Connectez Dodo Payments dans les réglages pour voir qui a payé et d’où il venait.</div>;
+    return <div className="p-8 text-center text-sm text-ink-3">Aucun paiement sur cette période. Connectez Dodo Payments dans les réglages pour voir qui a payé et d’où il venait.</div>;
   const unmatched = data.filter((r) => !r.visitor_id).length;
   return (
     <div className="overflow-x-auto">
       {unmatched > 0 && (
-        <div className="mx-3 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="mx-3 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-warning-soft px-4 py-3 text-sm text-warning">
           <span>
             {unmatched} paiement{unmatched > 1 ? 's' : ''} pas encore relié{unmatched > 1 ? 's' : ''} à un visiteur.{' '}
             <a className="underline" href={`/site/${site.id}/settings`}>
@@ -313,7 +313,7 @@ function Journey({ search }: { search: string }) {
             {rematch === 'working' ? 'Rapprochement…' : rematch ?? 'Relancer le rapprochement'}
           </button>
           {reasons.length > 0 && (
-            <ul className="w-full space-y-1 border-t border-amber-200 pt-2 text-xs">
+            <ul className="w-full space-y-1 border-t border-warning/30 pt-2 text-xs">
               {reasons.map((r) => (
                 <li key={r.id}>
                   <b>{r.name ?? r.id}</b>: {r.matched ? '✓ rapproché' : '✗ non rapproché'}
@@ -327,14 +327,14 @@ function Journey({ search }: { search: string }) {
       <ul className="space-y-2 md:hidden">
         {data.filter((r) => matches(r, search)).slice(0, all || search ? undefined : 10).map((r) => (
           <li key={r.id}>
-            <button className="w-full rounded-xl border border-stone-100 p-3 text-left active:bg-stone-50" disabled={!r.visitor_id} onClick={() => r.visitor_id && openVisitor(r.visitor_id)}>
+            <button className="w-full rounded-xl border border-line p-3 text-left active:bg-well" disabled={!r.visitor_id} onClick={() => r.visitor_id && openVisitor(r.visitor_id)}>
               <VisitorCell id={r.visitor_id ?? r.id} name={r.name ?? r.pay_name} email={r.email ?? r.pay_email} country={r.country} city={null} device={r.device} os={r.os} browser={r.browser}
                 badge={<span className="rounded-md border border-revenue/30 bg-revenueSoft/50 px-1.5 py-0.5 text-xs text-revenue">{r.renewal ? 'Récurrent' : 'Client'}</span>} />
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-2 text-[13px]">
-                <span className="flex min-w-0 items-center gap-2 text-stone-600">{r.session_id ? <><SourceIcon source={r.source} domain={r.referrer_domain} /> <span className="truncate">{r.source}</span></> : 'Non attribué'}</span>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-2 text-[13px]">
+                <span className="flex min-w-0 items-center gap-2 text-ink-2">{r.session_id ? <><SourceIcon source={r.source} domain={r.referrer_domain} /> <span className="truncate">{r.source}</span></> : 'Non attribué'}</span>
                 <span className="font-semibold">{money(r.amount)}</span>
               </div>
-              <div className="mt-1 text-[12px] text-stone-500">{fmtDateTime(r.ts, site.timezone)}{r.first_seen ? ' · après ' + fmtAgo(r.ts - r.first_seen) : ''}</div>
+              <div className="mt-1 text-[12px] text-ink-3">{fmtDateTime(r.ts, site.timezone)}{r.first_seen ? ' · après ' + fmtAgo(r.ts - r.first_seen) : ''}</div>
             </button>
           </li>
         ))}
@@ -342,7 +342,7 @@ function Journey({ search }: { search: string }) {
       <div className="hidden overflow-x-auto md:block">
       <table className="w-full min-w-[760px] text-[15px]">
         <thead>
-          <tr className="text-left text-sm text-stone-500">
+          <tr className="text-left text-sm text-ink-3">
             <th className="px-3 pb-3 font-medium">Visiteur</th>
             <th className="pb-3 font-medium">Source</th>
             <th className="pb-3 font-medium">Dépensé</th>
@@ -357,7 +357,7 @@ function Journey({ search }: { search: string }) {
             .map((r) => (
               <tr
                 key={r.id}
-                className={`border-t border-stone-100 ${r.visitor_id ? 'cursor-pointer hover:bg-stone-50' : ''}`}
+                className={`border-t border-line ${r.visitor_id ? 'cursor-pointer hover:bg-well' : ''}`}
                 onClick={() => r.visitor_id && openVisitor(r.visitor_id)}
               >
                 <td className="px-3 py-4">
@@ -383,16 +383,16 @@ function Journey({ search }: { search: string }) {
                       <SourceIcon source={r.source} domain={r.referrer_domain} />
                       <div>
                         <div>{r.source}</div>
-                        {(r.utm_campaign || r.ref) && <div className="text-xs text-stone-500">{r.utm_campaign || r.ref}</div>}
+                        {(r.utm_campaign || r.ref) && <div className="text-xs text-ink-3">{r.utm_campaign || r.ref}</div>}
                         {r.matched_by && r.matched_by !== 'metadata' && (
-                          <div className="text-xs text-stone-400" title="Comment ce paiement a été relié au visiteur">
+                          <div className="text-xs text-ink-4" title="Comment ce paiement a été relié au visiteur">
                             rapproché par {MATCH_LABELS[r.matched_by] ?? r.matched_by}
                           </div>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <span className="text-stone-400" title="Aucun identifiant visiteur dans les métadonnées, ni page de retour, e-mail ou clic correspondant">
+                    <span className="text-ink-4" title="Aucun identifiant visiteur dans les métadonnées, ni page de retour, e-mail ou clic correspondant">
                       Non attribué
                     </span>
                   )}
@@ -400,7 +400,7 @@ function Journey({ search }: { search: string }) {
                 <td className="py-4 font-medium">{money(r.amount)}</td>
                 <td className="py-4">
                   {r.first_seen ? fmtAgo(r.ts - r.first_seen) : '—'}
-                  {r.visits > 0 && <div className="text-xs text-stone-500">{r.visits} visite{r.visits > 1 ? 's' : ''}</div>}
+                  {r.visits > 0 && <div className="text-xs text-ink-3">{r.visits} visite{r.visits > 1 ? 's' : ''}</div>}
                 </td>
                 <td className="py-4">{fmtDateTime(r.ts, site.timezone)}</td>
               </tr>
@@ -418,23 +418,23 @@ function Users({ search }: { search: string }) {
   const [all, setAll] = useState(false);
   const { data } = useApi<any[]>(`/api/sites/${site.id}/visitors?${qs(q)}`, reloadKey);
   if (!data) return <div className="h-40 animate-pulse" />;
-  if (!data.length) return <div className="p-8 text-center text-sm text-stone-500">Aucun visiteur sur cette période.</div>;
+  if (!data.length) return <div className="p-8 text-center text-sm text-ink-3">Aucun visiteur sur cette période.</div>;
   const rows = data.filter((r) => matches(r, search)).slice(0, all || search ? undefined : 10);
   return (
     <div>
       <ul className="space-y-2 md:hidden">
         {rows.map((r) => (
           <li key={r.visitor_id}>
-            <button className="w-full rounded-xl border border-stone-100 p-3 text-left active:bg-stone-50" onClick={() => openVisitor(r.visitor_id)}>
+            <button className="w-full rounded-xl border border-line p-3 text-left active:bg-well" onClick={() => openVisitor(r.visitor_id)}>
               <VisitorCell id={r.visitor_id} name={r.name} email={r.email} country={r.country} city={r.city} device={r.device} os={r.os} browser={r.browser}
                 badge={r.spent > 0 ? <span className="rounded-md border border-revenue/30 bg-revenueSoft/50 px-1.5 py-0.5 text-xs text-revenue">Client</span> : null} />
-              <div className="mt-3 grid grid-cols-4 gap-2 border-t border-stone-100 pt-2 text-center text-[11px] text-stone-500">
+              <div className="mt-3 grid grid-cols-4 gap-2 border-t border-line pt-2 text-center text-[11px] text-ink-3">
                 <div><div className="tnum text-[14px] font-semibold text-ink">{r.sessions}</div>visites</div>
                 <div><div className="tnum text-[14px] font-semibold text-ink">{r.pageviews}</div>pages</div>
                 <div><div className="tnum text-[14px] font-semibold text-ink">{fmtDuration(r.duration)}</div>temps</div>
                 <div><div className="text-[13px] font-semibold text-ink">{fmtAgo(Date.now() - r.last_seen)}</div>vu il y a</div>
               </div>
-              <div className="mt-2 flex items-center gap-2 text-[13px] text-stone-600"><SourceIcon source={r.source} domain={r.referrer_domain} /> {r.source}{r.spent ? ' · ' + money(r.spent) : ''}</div>
+              <div className="mt-2 flex items-center gap-2 text-[13px] text-ink-2"><SourceIcon source={r.source} domain={r.referrer_domain} /> {r.source}{r.spent ? ' · ' + money(r.spent) : ''}</div>
             </button>
           </li>
         ))}
@@ -442,7 +442,7 @@ function Users({ search }: { search: string }) {
       <div className="hidden overflow-x-auto md:block">
       <table className="w-full min-w-[760px] text-[15px]">
         <thead>
-          <tr className="text-left text-sm text-stone-500">
+          <tr className="text-left text-sm text-ink-3">
             <th className="px-3 pb-3 font-medium">Visiteur</th>
             <th className="pb-3 font-medium">Source</th>
             <th className="pb-3 text-right font-medium">Visites</th>
@@ -457,7 +457,7 @@ function Users({ search }: { search: string }) {
             .filter((r) => matches(r, search))
             .slice(0, all || search ? undefined : 10)
             .map((r) => (
-              <tr key={r.visitor_id} className="cursor-pointer border-t border-stone-100 hover:bg-stone-50" onClick={() => openVisitor(r.visitor_id)}>
+              <tr key={r.visitor_id} className="cursor-pointer border-t border-line hover:bg-well" onClick={() => openVisitor(r.visitor_id)}>
                 <td className="px-3 py-3">
                   <VisitorCell
                     id={r.visitor_id}
@@ -480,7 +480,7 @@ function Users({ search }: { search: string }) {
                 <td className="py-3 text-right">{r.pageviews}</td>
                 <td className="py-3 text-right">{fmtDuration(r.duration)}</td>
                 <td className="py-3 text-right">{r.spent ? money(r.spent) : '—'}</td>
-                <td className="px-3 py-3 text-right text-stone-500">il y a {fmtAgo(Date.now() - r.last_seen)}</td>
+                <td className="px-3 py-3 text-right text-ink-3">il y a {fmtAgo(Date.now() - r.last_seen)}</td>
               </tr>
             ))}
         </tbody>

@@ -32,7 +32,7 @@ function Loading() {
     const t = setTimeout(() => setShow(true), 200);
     return () => clearTimeout(t);
   }, []);
-  return <div className="flex min-h-screen items-center justify-center text-sm text-stone-500" aria-busy="true">{show ? 'Chargement…' : ''}</div>;
+  return <div className="flex min-h-screen items-center justify-center text-sm text-ink-3" aria-busy="true">{show ? 'Chargement…' : ''}</div>;
 }
 
 const SITE_VIEWS: Record<string, 'videos' | 'sponsors' | 'content' | 'sources' | 'social'> = { videos: 'videos', sponsors: 'sponsors', contenus: 'content', sources: 'sources', social: 'social' };
