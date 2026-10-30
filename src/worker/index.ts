@@ -10,6 +10,7 @@ import { passwordsMatch, randomId, signToken, verifyToken } from './lib/crypto.j
 import { handleDodoWebhook, handleGoalApi, handlePaymentApi, rematchPayments } from './payments.js';
 import { realtime, sparklines, toCsv } from './insights.js';
 import { publicTopVideos, videoDetail, videoReport } from './videos.js';
+import { BLOCK_ID_RE, blockDetail, blocksCsv, blocksReport, parseKind, publicBlocks } from './blocks.js';
 import { breakdown, customers, engagementReport, funnel, makeCtx, overview, visitorProfile, visitors, type FunnelStep } from './stats.js';
 
 const app = new Hono<AppEnv>();
@@ -81,6 +82,19 @@ app.get('/api/public/videos', async (c) => {
   } catch (error) {
     console.error('Public videos failed', error);
     return c.json({ error: 'Video analytics temporarily unavailable' }, 503);
+  }
+});
+// Public sponsor / content block aggregates (impressions, clicks, CTR only) for public sites.
+app.get('/api/public/blocks', async (c) => {
+  try {
+    const site = await resolvePublicSite(c.env.DB, c.req.query('site'));
+    if (!site) return c.json({ error: 'Site not public' }, 404);
+    const range = resolveRange({ period: c.req.query('days') === '30' ? '30d' : '7d' }, site.timezone, site.created_at);
+    c.header('Cache-Control', 'no-store');
+    return c.json(await publicBlocks({ db: c.env.DB, site, range, filters: {}, offset: tzOffset(site.timezone, range.to) }, parseKind(c.req.query('kind'))));
+  } catch (error) {
+    console.error('Public blocks failed', error);
+    return c.json({ error: 'Block analytics temporarily unavailable' }, 503);
   }
 });
 app.post('/api/webhooks/dodo/:siteId', handleDodoWebhook);
@@ -313,6 +327,24 @@ app.get('/api/sites/:id/videos/:vid', async (c) => {
   const vid = c.req.param('vid');
   if (!/^[\w-]{1,64}$/.test(vid)) return c.json({ error: 'Invalid video id' }, 400);
   return c.json(await videoDetail(makeCtx(c), vid));
+});
+
+// Sponsor placements and content blocks: impressions, clicks, CTR, unique viewers/clickers.
+app.get('/api/sites/:id/blocks', async (c) => c.json(await blocksReport(makeCtx(c), parseKind(c.req.query('kind')))));
+app.get('/api/sites/:id/blocks.csv', async (c) => {
+  const kind = parseKind(c.req.query('kind'));
+  const report = await blocksReport(makeCtx(c), kind, 500);
+  const site = c.get('site');
+  return c.body(blocksCsv(report.blocks), 200, {
+    'Content-Type': 'text/csv; charset=utf-8',
+    'Content-Disposition': `attachment; filename="${site.domain}-${kind ?? 'blocks'}.csv"`,
+  });
+});
+app.get('/api/sites/:id/blocks/:blockId', async (c) => {
+  const id = c.req.param('blockId');
+  if (!BLOCK_ID_RE.test(id)) return c.json({ error: 'Invalid block id' }, 400);
+  const sponsor = c.req.query('sponsor');
+  return c.json(await blockDetail(makeCtx(c), id, parseKind(c.req.query('kind')), sponsor === undefined ? undefined : sponsor.slice(0, 120)));
 });
 
 app.get('/api/sites/:id/breakdown', async (c) => {

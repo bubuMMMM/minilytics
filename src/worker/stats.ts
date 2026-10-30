@@ -105,10 +105,16 @@ function paymentsFrom(ctx: Ctx, from = ctx.range.from, to = ctx.range.to) {
   };
 }
 
+/** A session is engaged when it viewed 2+ pages, converted, interacted (click, video, search…) or stayed active ≥ 10 s. */
+export const ENGAGED_MS = 10_000;
+export const BOUNCE_SQL = `(s.pageviews <= 1 AND s.goals = 0 AND COALESCE(s.interactions, 0) = 0 AND COALESCE(s.engaged_ms, 0) < ${ENGAGED_MS})`;
+
 const KPI_SQL = (where: string) => `
   SELECT COUNT(DISTINCT s.visitor_id) AS visitors, COUNT(*) AS sessions, COALESCE(SUM(s.pageviews), 0) AS pageviews,
-         COALESCE(SUM(CASE WHEN s.pageviews <= 1 AND s.goals = 0 THEN 1 ELSE 0 END), 0) AS bounces,
-         COALESCE(AVG(s.duration), 0) AS avg_duration
+         COALESCE(SUM(CASE WHEN ${BOUNCE_SQL} THEN 1 ELSE 0 END), 0) AS bounces,
+         COALESCE(AVG(s.duration), 0) AS avg_duration,
+         COALESCE(AVG(COALESCE(s.engaged_ms, 0)), 0) AS avg_engaged_ms,
+         COALESCE(SUM(COALESCE(s.interactions, 0)), 0) AS interactions
   FROM sessions s WHERE ${where}`;
 
 const REVENUE_SQL = (from: string) => `
@@ -123,6 +129,8 @@ interface KpiRow {
   pageviews: number;
   bounces: number;
   avg_duration: number;
+  avg_engaged_ms?: number;
+  interactions?: number;
 }
 interface RevRow {
   revenue: number;
@@ -136,7 +144,11 @@ function kpis(k: KpiRow, r: RevRow) {
     sessions: k.sessions,
     pageviews: k.pageviews,
     bounceRate: k.sessions ? k.bounces / k.sessions : 0,
+    engagedSessions: k.sessions - k.bounces,
+    engagementRate: k.sessions ? (k.sessions - k.bounces) / k.sessions : 0,
     avgDuration: Math.round(k.avg_duration),
+    avgEngagedMs: Math.round(Number(k.avg_engaged_ms ?? 0)),
+    interactions: Number(k.interactions ?? 0),
     revenue: r.revenue,
     payments: r.payments,
     customers: r.customers,
