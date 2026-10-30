@@ -10,7 +10,7 @@ export function StatCard({ label, value, hint, help, icon, loading, accent = fal
     <div className={`ml-bento min-w-0 p-4 sm:p-5 ${accent ? 'ring-1 ring-[#dfe4ff]' : ''}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-0.5 text-[12px] font-medium text-[#6f7d94]">
-          <span className="truncate">{label}</span>
+          <span className="min-w-0 leading-snug">{label}</span>
           {help && <InfoTip text={help} label={`Comment est calculé « ${label} » ?`} />}
         </span>
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f1f3ff] text-[#5165e7]" aria-hidden><UiIcon name={icon} size={16} /></span>
