@@ -13,7 +13,7 @@
     "dev": "concurrently -k -n api,web \"wrangler dev --port 8787\" \"vite\"",
     "dev:api": "wrangler dev --port 8787",
     "dev:web": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/minify-tracker.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:migrate:local": "wrangler d1 migrations apply minilytics --local",
@@ -35,7 +35,6 @@
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@types/ws": "^8.18.2",
-    "@vercel/node": "^27.0.2",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.6.1",
     "concurrently": "^10.0.6",
@@ -46,7 +45,7 @@
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
     "vite": "^6.4.5",
-    "vitest": "^3.2.7",
+    "vitest": "^4.1.12",
     "wrangler": "^4.152.0"
   }
 }

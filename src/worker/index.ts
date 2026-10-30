@@ -102,7 +102,7 @@ app.get('/api/public/blocks', async (c) => {
     const site = await resolvePublicSite(c.env.DB, c.req.query('site'));
     if (!site) return c.json({ error: 'Site not public' }, 404);
     const range = resolveRange({ period: c.req.query('days') === '30' ? '30d' : '7d' }, site.timezone, site.created_at);
-    c.header('Cache-Control', 'no-store');
+    c.header('Cache-Control', PUBLIC_CACHE);
     return c.json(await publicBlocks({ db: c.env.DB, site, range, filters: {}, offset: tzOffset(site.timezone, range.to) }, parseKind(c.req.query('kind'))));
   } catch (error) {
     console.error('Public blocks failed', error);
@@ -143,7 +143,7 @@ app.post('/api/auth/login', async (c) => {
     return c.json({ error: 'Too many wrong attempts. Try again in 15 minutes.' }, 429);
   }
   const { password } = await c.req.json<{ password?: unknown }>().catch(() => ({ password: undefined }));
-  if (typeof password !== 'string' || password.length > MAX_PASSWORD_LENGTH || !passwordsMatch(password, c.env.ADMIN_PASSWORD)) {
+  if (typeof password !== 'string' || password.length > MAX_PASSWORD_LENGTH || !(await passwordsMatch(password, c.env.ADMIN_PASSWORD))) {
     await c.env.DB.batch([
       c.env.DB.prepare('INSERT INTO login_failures (ip, ts) VALUES (?, ?)').bind(ip, now),
       c.env.DB.prepare('DELETE FROM login_failures WHERE ts < ?').bind(now - LOCKOUT_MS),

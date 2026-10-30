@@ -27,7 +27,11 @@ const siteCache = new Map<string, { site: Site | null; at: number }>();
 export async function getSite(db: D1Database, id: string): Promise<Site | null> {
   const hit = siteCache.get(id);
   if (hit && Date.now() - hit.at < 60_000) return hit.site;
+  // Site ids are short slugs; anything else can't exist, so skip the query (public endpoints take ids from the URL).
+  if (!/^[\w-]{1,64}$/.test(id)) return null;
   const site = await db.prepare('SELECT * FROM sites WHERE id = ?').bind(id).first<Site>();
+  // Bounded: random ids from the public endpoints must not grow this map without limit.
+  if (siteCache.size >= 1000) siteCache.clear();
   siteCache.set(id, { site, at: Date.now() });
   return site;
 }

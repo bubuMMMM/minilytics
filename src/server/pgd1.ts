@@ -2,7 +2,7 @@
  * A tiny D1-compatible wrapper over Postgres, so the Worker code (written for Cloudflare D1)
  * runs unchanged on Vercel + Neon. Translates `?` placeholders and a few SQLite-isms.
  */
-import { Pool, neonConfig, types, type PoolClient } from '@neondatabase/serverless';
+import { Pool, neon, neonConfig, types, type NeonQueryFunction, type PoolClient } from '@neondatabase/serverless';
 import ws from 'ws';
 
 // Neon's driver talks Postgres over WebSockets (port 443), which works everywhere incl. Vercel Functions.
@@ -25,9 +25,13 @@ export function translate(sql: string): string {
 
 type Row = Record<string, unknown>;
 
+interface Querier {
+  query(sql: string, params: unknown[]): Promise<{ rows: unknown[]; rowCount: number | null }>;
+}
+
 class Stmt {
   constructor(
-    private db: PgD1,
+    private db: Querier,
     readonly sql: string,
     readonly params: unknown[] = [],
   ) {}
@@ -75,12 +79,35 @@ export class PgD1 {
   }
 }
 
-let cached: PgD1 | null = null;
-export function getDb(): PgD1 {
+/**
+ * Same API over Neon's HTTP driver: every query is one HTTPS round trip (no WebSocket + Postgres handshake on
+ * cold starts), and `batch()` sends all statements as ONE non-interactive transaction in a single round trip,
+ * instead of BEGIN + N queries + COMMIT on a pooled connection.
+ */
+export class HttpD1 {
+  constructor(private sql: NeonQueryFunction<false, true>) {}
+  query(sql: string, params: unknown[]) {
+    return this.sql.query(translate(sql), params);
+  }
+  prepare(sql: string) {
+    return new Stmt(this, sql);
+  }
+  async batch(stmts: Stmt[]) {
+    if (!stmts.length) return [];
+    const rs = await this.sql.transaction((tx) => stmts.map((st) => tx.query(translate(st.sql), st.params)), { fullResults: true });
+    return rs.map((r) => ({ results: r.rows, success: true as const, meta: { changes: r.rowCount ?? 0 } }));
+  }
+}
+
+let cached: PgD1 | HttpD1 | null = null;
+export function getDb(): PgD1 | HttpD1 {
   if (!cached) {
     const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
     if (!url) throw new Error('DATABASE_URL is not set');
-    cached = new PgD1(new Pool({ connectionString: url, max: 3 }));
+    // MINILYTICS_DB_DRIVER=ws switches back to the WebSocket pool if ever needed.
+    cached = process.env.MINILYTICS_DB_DRIVER === 'ws'
+      ? new PgD1(new Pool({ connectionString: url, max: 3 }))
+      : new HttpD1(neon(url, { fullResults: true }));
   }
   return cached;
 }
