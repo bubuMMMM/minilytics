@@ -76,6 +76,8 @@ export async function verifyToken(secret: string, token: string | undefined): Pr
   return safeEqual(expected, token) ? value : null;
 }
 
-export function passwordsMatch(a: string, b: string): boolean {
-  return safeEqual(a, b);
+/** Constant-time password check that also hides the expected password's length (compares SHA-256 digests). */
+export async function passwordsMatch(a: string, b: string): Promise<boolean> {
+  const [da, db] = await Promise.all([a, b].map((x) => crypto.subtle.digest('SHA-256', enc.encode(x))));
+  return safeEqual(bytesToB64(da), bytesToB64(db));
 }

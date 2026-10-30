@@ -180,3 +180,16 @@ describe('ingestion (PGlite)', () => {
     expect(last).toBe(429);
   }, 30_000);
 });
+
+describe('small hardening', () => {
+  it('compares passwords by digest', async () => {
+    const { passwordsMatch } = await import('../src/worker/lib/crypto');
+    expect(await passwordsMatch('abc', 'abc')).toBe(true);
+    expect(await passwordsMatch('abc', 'abcd')).toBe(false);
+    expect(await passwordsMatch('', 'x')).toBe(false);
+  });
+  it('does not query the DB for malformed public site ids', async () => {
+    const r = await call('/api/public/demo?site=' + encodeURIComponent("x' OR 1=1 --"));
+    expect(r.status).toBe(404);
+  });
+});
