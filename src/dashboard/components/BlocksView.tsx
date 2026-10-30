@@ -68,7 +68,8 @@ export function BlocksView({ kind }: { kind: BlockKind }) {
   const rows = useMemo(() => [...(data?.blocks ?? [])].sort((a, b) => b[sort] - a[sort]), [data, sort]);
   const maxCtr = Math.max(0, ...rows.map((r) => r.ctr));
   const t = data?.totals;
-  const sel = rows.find((r) => rowKey(r) === selected) ?? null;
+  // Deep links may carry just the placement id (?block=watch-reco-end-house) or id~sponsor.
+  const sel = rows.find((r) => rowKey(r) === selected) ?? rows.find((r) => r.id === selected) ?? null;
 
   function exportCsv() {
     if (!data) return;
