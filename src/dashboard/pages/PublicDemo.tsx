@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Thumb, fmtWatch } from '../components/VideosView';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { TrendChart } from '../components/TrendChart';
 import { Link } from '../components/Link';
 import { channelName } from '../lib/format';
 import { Logo } from '../components/Logo';
-import { LiveGlobe } from '../components/LiveGlobe';
+// The WebGL globe is heavy: load it only once its slot nears the viewport.
+const LiveGlobe = lazy(() => import('../components/LiveGlobe').then((m) => ({ default: m.LiveGlobe })));
 import { EngagementPanel } from '../components/EngagementPanel';
 import { MetricTile, SegmentedTabs, StatusPill } from '../components/StudioUI';
 import { UiIcon } from '../components/UiIcon';
@@ -27,7 +28,6 @@ interface LiveData {
 }
 
 const nf = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
-const dateLabel = (value: string) => new Date(value + 'T12:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 const timeLabel = (value: number) => new Date(value).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 const duration = (ms: number) => {
   const s = Math.round(ms / 1000);
@@ -153,10 +153,7 @@ export function PublicDemo() {
               <div className="mt-2 flex flex-wrap items-end gap-3"><span className="text-[clamp(3.4rem,6vw,5.2rem)] font-semibold leading-none tracking-[-.083em] tabular-nums text-[#131e35]">{view?nf(view.current.visitors):'—'}</span>{change!==null&&<span className={'mb-2 rounded-lg px-2 py-1 text-xs font-semibold '+(change>=0?'bg-[#ebfbf5] text-[#169469]':'bg-[#fff2f2] text-[#c3525f]')}>{change>=0?'+':''}{change}%</span>}</div>
             </div>
             <div className="relative mt-6 h-[150px] sm:h-[175px]">
-              {view ? <ResponsiveContainer width="100%" height="100%"><AreaChart data={view.series} margin={{top:8,right:0,left:0,bottom:2}}>
-                <defs><linearGradient id="preview-blue" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#7186f9" stopOpacity=".25"/><stop offset="100%" stopColor="#7186f9" stopOpacity="0"/></linearGradient></defs>
-                <Area type="monotone" dataKey="visitors" stroke="#5065ef" strokeWidth={2.7} fill="url(#preview-blue)" dot={false} activeDot={{r:4}} isAnimationActive={false}/>
-              </AreaChart></ResponsiveContainer> : <div className="ml-loading h-full rounded-xl"/>}
+              {view ? <TrendChart height={150} granularity="day" buckets={view.series.map((d) => d.date)} series={[{ key: 'visitors', label: 'Visiteurs', color: '#4f62ef', values: view.series.map((d) => d.visitors) }]} /> : <div className="ml-loading h-full rounded-xl"/>}
             </div>
             <div className="mt-3 grid grid-cols-3 gap-3 border-t border-[#edf0f7] pt-5">
               {[
@@ -188,12 +185,7 @@ export function PublicDemo() {
           <div className="ml-bento min-w-0 p-5 sm:p-7">
             <div className="flex flex-wrap items-center justify-between gap-4"><div><h3 className="text-[16px] font-semibold tracking-tight">Évolution du trafic</h3><p className="mt-1 text-xs text-[#96a3b6]">Visiteurs uniques par jour · UTC</p></div><span className="inline-flex items-center gap-2 rounded-full bg-[#f1f4ff] px-3 py-1.5 text-xs font-semibold text-[#6071d8]"><i className="h-2 w-2 rounded-full bg-[#5166f1]"/>Visiteurs</span></div>
             <div className="mt-7 h-[265px] sm:h-[320px]">
-              {view?<ResponsiveContainer width="100%" height="100%"><AreaChart data={view.series} margin={{top:8,right:8,left:-23,bottom:0}}>
-                <defs><linearGradient id="analytics-blue" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#5b75ef" stopOpacity=".23"/><stop offset="100%" stopColor="#5b75ef" stopOpacity="0"/></linearGradient></defs>
-                <CartesianGrid stroke="#eef2f8" strokeDasharray="3 5" vertical={false}/><XAxis dataKey="date" tickFormatter={dateLabel} tick={{fontSize:11,fill:'#9caabd'}} axisLine={false} tickLine={false} minTickGap={20}/><YAxis allowDecimals={false} tick={{fontSize:11,fill:'#9caabd'}} axisLine={false} tickLine={false}/>
-                <Tooltip contentStyle={{border:'1px solid #e5eaf3',borderRadius:12,boxShadow:'0 12px 38px rgba(28,44,88,.09)',color:'#233048'}} labelFormatter={v=>dateLabel(String(v))} formatter={value=>[nf(Number(value??0)),'Visiteurs']}/>
-                <Area type="monotone" dataKey="visitors" stroke="#4f62ef" strokeWidth={2.7} fill="url(#analytics-blue)" dot={false} activeDot={{r:5,stroke:'#fff',strokeWidth:2}} isAnimationActive={false}/>
-              </AreaChart></ResponsiveContainer>:<div className="ml-loading h-full rounded-xl"/>}
+              {view ? <TrendChart height={265} granularity="day" buckets={view.series.map((d) => d.date)} series={[{ key: 'visitors', label: 'Visiteurs', color: '#4f62ef', values: view.series.map((d) => d.visitors) }]} /> : <div className="ml-loading h-full rounded-xl"/>}
             </div>
             <div className="mt-3 flex items-center justify-between border-t border-[#edf0f6] pt-4 text-[11px] text-[#9aa7ba]"><span>Données collectées en continu</span><span>{days} jours sélectionnés</span></div>
           </div>
@@ -238,7 +230,7 @@ export function PublicDemo() {
 
       <section id="globe" className="scroll-mt-[104px] pt-20">
         <SectionHeading eyebrow="02 / CARTE EN DIRECT" title="Une audience sans frontières." description="La carte mondiale des connexions réelles, actualisée toutes les 15 secondes." action={<StatusPill active>Globe en direct</StatusPill>}/>
-        <div className="ml-live-globe"><LiveGlobe key={siteId} publicSiteId={siteId||undefined}/></div>
+        <div className="ml-live-globe"><WhenVisible><Suspense fallback={<div className="ml-loading h-full min-h-[280px] rounded-xl"/>}><LiveGlobe key={siteId} publicSiteId={siteId||undefined}/></Suspense></WhenVisible></div>
       </section>
 
       <section id="insights" className="scroll-mt-[104px] pt-20">
@@ -258,4 +250,19 @@ export function PublicDemo() {
       <footer className="mt-11 flex flex-wrap items-center justify-between gap-4 border-t border-[#edf0f6] pt-7 text-xs text-[#9aa6b8]"><Logo small/><span>Minilytics · Analytics sans distraction.</span><span>{view?'Mis à jour à '+timeLabel(view.updatedAt):'Données en cours de chargement'}</span></footer>
     </main>
   </div>;
+}
+
+/** Renders children only once the placeholder is within 300px of the viewport. */
+function WhenVisible({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || show) return;
+    if (!('IntersectionObserver' in window)) { setShow(true); return; }
+    const io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) { setShow(true); io.disconnect(); } }, { rootMargin: '300px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [show]);
+  return <div ref={ref} className="h-full">{show ? children : <div className="ml-loading h-full min-h-[280px] rounded-xl" />}</div>;
 }

@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
-import { navigate } from '../App';
 import { Avatar, DeviceIcon, Favicon, Flag, SourceIcon } from '../components/Icons';
 import { AppHeader, BottomNav } from '../components/AppNav';
-import { UiIcon } from '../components/UiIcon';
 import { LiveDot } from '../components/Sparkline';
 import { api, type Realtime as RT, type Site } from '../lib/api';
 import { countryName, fmtNumber } from '../lib/format';
