@@ -13,7 +13,7 @@
     "dev": "concurrently -k -n api,web \"wrangler dev --port 8787\" \"vite\"",
     "dev:api": "wrangler dev --port 8787",
     "dev:web": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/minify-tracker.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:migrate:local": "wrangler d1 migrations apply minilytics --local",
