@@ -149,7 +149,7 @@ function AudienceBox({ title, tabs, data }: { title: string; tabs: { key: string
   );
 }
 
-const ACTION_LABELS: Record<string, string> = { share: 'Partages', copy_link: 'Liens copiés', playlist_add: 'Ajouts à une playlist', like: 'J’aime', download: 'Téléchargements', open_youtube: 'Ouvert sur YouTube' };
+const ACTION_LABELS: Record<string, string> = { video_click: 'Clics vers la vidéo', link_paste: 'Liens collés', share: 'Partages', copy_link: 'Liens copiés', playlist_add: 'Ajouts à une playlist', like: 'J’aime', download: 'Téléchargements', open_youtube: 'Ouvert sur YouTube' };
 
 function VideoDetailModal({ videoId, onClose }: { videoId: string | null; onClose: () => void }) {
   const { site, q, reloadKey } = useDash();
