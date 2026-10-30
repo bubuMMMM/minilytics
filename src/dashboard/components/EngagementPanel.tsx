@@ -22,10 +22,10 @@ const secs = (ms: number) => {
 const pct = (a: number, b: number) => b ? Math.min(100, Math.round(a / b * 100)) + ' %' : '—';
 
 function Metric({ label, value, caption, icon }: { label: string; value: string; caption: string; icon: 'eye' | 'clock' | 'mouse' | 'target' }) {
-  return <div className="min-w-0 rounded-[17px] border border-line bg-surface p-4 sm:p-5">
-    <div className="flex items-center justify-between gap-2"><span className="text-[11px] font-medium text-ink-3 sm:text-xs">{label}</span><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent"><UiIcon name={icon} size={17}/></span></div>
-    <p className="mt-4 truncate text-[clamp(1.6rem,2.6vw,2.25rem)] font-semibold tracking-[-.06em] tabular-nums text-accent">{value}</p>
-    <p className="mt-2 truncate text-[11px] text-ink-4">{caption}</p>
+  return <div className="min-w-0 rounded-xl border border-line bg-surface p-4 shadow-xs sm:p-5">
+    <div className="flex items-center justify-between gap-2"><span className="text-[12px] font-medium text-ink-3">{label}</span><span className="shrink-0 text-ink-4"><UiIcon name={icon} size={15}/></span></div>
+    <p className="mt-2 truncate text-2xl font-semibold tracking-tight tabular-nums text-ink">{value}</p>
+    <p className="mt-1 truncate text-[12px] text-ink-4">{caption}</p>
   </div>;
 }
 
@@ -81,7 +81,7 @@ export function EngagementPanel({ siteId, publicSiteId, days = 7, query, reloadK
       <section className="ml-bento min-w-0 p-5 sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><h3 className="text-[17px] font-semibold tracking-tight">Jusqu'où scrollent les visiteurs ?</h3><p className="mt-1 text-[12px] text-ink-4">Profondeur maximale atteinte dans une session, par page</p></div>
-          <span className="inline-flex items-center gap-2 rounded-full bg-accent-soft px-3 py-1.5 text-[11px] font-semibold text-accent"><UiIcon name="bar-chart" size={14} /> Scroll depth</span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-line px-2.5 py-1 text-[12px] font-medium text-ink-3"><UiIcon name="bar-chart" size={13} /> Profondeur de scroll</span>
         </div>
         <div className="mt-6">
           <label htmlFor={siteId ? 'ml-scroll-page-private' : 'ml-scroll-page-public'} className="mb-2 block text-[12px] font-semibold text-ink-3">Page à analyser</label>
@@ -99,14 +99,14 @@ export function EngagementPanel({ siteId, publicSiteId, days = 7, query, reloadK
             </div>;
           })}
         </div>
-        <div className="mt-7 rounded-[14px] border border-line bg-well p-4 text-[12px] leading-relaxed text-ink-3">
+        <div className="mt-7 rounded-xl border border-line bg-well p-4 text-[12px] leading-relaxed text-ink-3">
           <span className="mb-1.5 block font-semibold text-ink-3">{selectedRow ? selectedRow.path : 'Vue globale'} · {nf(denominator)} sessions</span>
           {observed ? 'Chaque taux correspond à la part des sessions ayant atteint ce seuil, sur la sélection.' : 'Les seuils seront renseignés au fil des nouveaux scrolls. L’historique antérieur à cette fonctionnalité ne peut pas être reconstitué.'}
         </div>
       </section>
       <section className="ml-bento min-w-0 p-5 sm:p-7">
         <div><h3 className="text-[17px] font-semibold tracking-tight">Engagement par page</h3><p className="mt-1 text-[12px] text-ink-4">Temps actif estimé, lecture et interactions</p></div>
-        <div className="mt-6 grid grid-cols-2 gap-3 rounded-[16px] bg-well p-4">
+        <div className="mt-6 grid grid-cols-2 gap-3 rounded-xl bg-well p-4">
           <div className="border-r border-line pr-2"><p className="text-[11px] text-ink-4">Temps actif / vue</p><p className="mt-2 text-[28px] font-semibold tracking-tight text-ink-2">{focus?.pageviews && focus.activeMs ? secs(focus.activeMs / focus.pageviews) : '—'}</p></div>
           <div className="pl-2"><p className="text-[11px] text-ink-4">Vues de pages</p><p className="mt-2 text-[28px] font-semibold tracking-tight text-ink-2">{focus ? nf(focus.pageviews) : '—'}</p></div>
         </div>

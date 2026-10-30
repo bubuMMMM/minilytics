@@ -62,9 +62,9 @@ export function Thumb({ id, className = '' }: { id: string; className?: string }
 function Kpi({ label, value, hint, icon }: { label: string; value: ReactNode; hint?: ReactNode; icon: Parameters<typeof UiIcon>[0]['name'] }) {
   return (
     <div className="ml-bento p-4 sm:p-5">
-      <div className="flex items-center justify-between"><span className="text-[12px] font-medium text-ink-3">{label}</span><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft text-accent"><UiIcon name={icon} size={16} /></span></div>
-      <div className="tnum mt-3 text-[26px] font-semibold tracking-[-.04em] text-ink">{value}</div>
-      {hint && <div className="mt-1 text-[11px] text-ink-4">{hint}</div>}
+      <div className="flex items-center justify-between"><span className="text-[12px] font-medium text-ink-3">{label}</span><span className="text-ink-4" aria-hidden><UiIcon name={icon} size={15} /></span></div>
+      <div className="tnum mt-2 text-2xl font-semibold tracking-tight text-ink">{value}</div>
+      {hint && <div className="mt-1 text-[12px] text-ink-4">{hint}</div>}
     </div>
   );
 }
@@ -237,7 +237,7 @@ export function VideosView() {
         {!data && loading && <div className="space-y-2">{Array.from({ length: 6 }, (_, i) => <div key={i} className="ml-skeleton h-14" />)}</div>}
         {data && !rows.length && (
           <div className="flex min-h-[200px] flex-col items-center justify-center text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft text-accent"><UiIcon name="play" size={22} /></span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-line text-ink-3"><UiIcon name="play" size={22} /></span>
             <p className="mt-3 text-sm font-medium text-ink-2">Aucune vidéo regardée sur cette période</p>
             <p className="max-w-md text-xs text-ink-4">Les lectures apparaissent ici dès que le lecteur du site envoie <code>minilytics('video', 'start', {'{ id, title }'})</code>.</p>
           </div>
@@ -316,7 +316,7 @@ export function VideosTeaser({ onOpen }: { onOpen: () => void }) {
   return (
     <section className="ml-bento mt-7 p-5" aria-label="Top vidéos">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div><div className="ml-kicker">VIDÉOS / VISIONNAGE</div><h2 className="mt-2 text-[clamp(1.4rem,2.6vw,1.9rem)] font-semibold tracking-[-.04em]">Ce que vos visiteurs regardent<span className="text-accent">.</span></h2>
+        <div><div className="ml-kicker">Visionnage</div><h2 className="mt-1 text-lg font-semibold tracking-tight">Ce que vos visiteurs regardent</h2>
           <p className="mt-1 text-[13px] text-ink-3">{fmtNumber(t.plays)} lecture{t.plays > 1 ? 's' : ''} · {fmtNumber(t.viewers)} spectateur{t.viewers > 1 ? 's' : ''} · {fmtWatch(t.watchSeconds)} de visionnage · {fmtPct(t.completionRate)} de complétion</p></div>
         <button className="btn-dark" onClick={onOpen}>Toutes les vidéos <UiIcon name="arrow-right" size={16} /></button>
       </div>

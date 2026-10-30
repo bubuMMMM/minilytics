@@ -41,7 +41,7 @@ function InsightPanel({ title, subtitle, icon, rows, empty }: { title: string; s
     <article className="ml-bento flex min-w-0 flex-col p-5 sm:p-6">
       <div className="flex items-start justify-between">
         <div><h3 className="text-[15px] font-semibold tracking-tight text-ink">{title}</h3><p className="mt-1 text-xs text-ink-3">{subtitle}</p></div>
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-well text-accent"><UiIcon name={icon} size={18}/></span>
+        <span className="flex h-8 w-8 items-center justify-center rounded-md border border-line text-ink-3"><UiIcon name={icon} size={16}/></span>
       </div>
       <div className="mt-6 flex-1 space-y-5">
         {rows.length ? rows.slice(0, 6).map((row, index) => <div key={row.label + index}>
@@ -57,8 +57,8 @@ function InsightPanel({ title, subtitle, icon, rows, empty }: { title: string; s
 function SectionHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: ReactNode }) {
   return <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
     <div>
-      <span className="ml-mini-label text-accent">{eyebrow}</span>
-      <h2 className="ml-section-head mt-2 text-ink">{title}</h2>
+      <span className="text-[13px] font-medium text-accent">{eyebrow}</span>
+      <h2 className="mt-1 text-xl font-semibold tracking-tight text-ink sm:text-2xl">{title}</h2>
       <p className="mt-2 max-w-[620px] text-[13px] leading-relaxed text-ink-3">{description}</p>
     </div>
     {action}
@@ -115,11 +115,11 @@ export function PublicDemo() {
       <div className="mx-auto flex h-[76px] max-w-[1370px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
         <Link href="/" aria-label="Minilytics, accueil" className="rounded-lg"><Logo /></Link>
         <nav className="hidden items-center gap-8 text-[13px] font-medium text-ink-3 lg:flex" aria-label="Navigation principale">
-          <a href="#analytics" className="hover:text-accent">Tableau de bord</a>
-          <a href="#globe" className="hover:text-accent">Globe</a>
-          <a href="#insights" className="hover:text-accent">Audience</a>
-          <a href="#engagement" className="hover:text-accent">Comportement</a>
-          {vids && vids.videos.length > 0 && <a href="#videos" className="hover:text-accent">Vidéos</a>}
+          <a href="#analytics" className="hover:text-ink">Tableau de bord</a>
+          <a href="#globe" className="hover:text-ink">Globe</a>
+          <a href="#insights" className="hover:text-ink">Audience</a>
+          <a href="#engagement" className="hover:text-ink">Comportement</a>
+          {vids && vids.videos.length > 0 && <a href="#videos" className="hover:text-ink">Vidéos</a>}
         </nav>
         <div className="flex items-center gap-2.5">
           <span className="hidden md:inline-flex"><StatusPill active>Démo en direct</StatusPill></span>
@@ -131,26 +131,25 @@ export function PublicDemo() {
     <main className="mx-auto max-w-[1370px] px-5 pb-14 sm:px-8 lg:px-10">
       <section className="grid items-center gap-10 border-b border-line pb-14 pt-14 lg:grid-cols-[1.08fr_.92fr] lg:gap-14 lg:pb-20 lg:pt-20">
         <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-line bg-well px-3 py-2 text-[11px] font-semibold text-accent"><UiIcon name="sparkles" size={15}/> Démo publique · données réelles</span>
-          <h1 className="mt-7 max-w-[730px] text-[clamp(3rem,6.8vw,5.95rem)] font-semibold leading-[1.025] tracking-[-.073em] text-ink">La démo en direct<br/><span className="text-accent" translate="no">{view?.site.domain ?? sites.find(s=>s.id===siteId)?.domain ?? 'n0.pub'}</span></h1>
-          <p className="mt-6 max-w-[530px] text-[15px] leading-[1.85] text-ink-3 sm:text-[17px]">Les vraies statistiques agrégées du site, actualisées automatiquement : visiteurs, pages, sources, appareils et vidéos. Aucune donnée personnelle, aucun trafic fictif.</p>
+          <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-[13px] text-ink-2 shadow-xs"><span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden /> Démo publique · données réelles</span>
+          <h1 className="mt-6 max-w-[730px] text-4xl font-semibold leading-[1.05] tracking-[-0.03em] text-ink sm:text-5xl">La démo en direct<br/><span className="text-ink-3" translate="no">{view?.site.domain ?? sites.find(s=>s.id===siteId)?.domain ?? 'n0.pub'}</span></h1>
+          <p className="mt-5 max-w-[530px] text-[15px] leading-relaxed text-ink-3 sm:text-[17px]">Les vraies statistiques agrégées du site, actualisées automatiquement : visiteurs, pages, sources, appareils et vidéos. Aucune donnée personnelle, aucun trafic fictif.</p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a href="#analytics" className="btn-dark !h-[49px] !px-5">Explorer les statistiques <UiIcon name="arrow-right" size={17}/></a>
-            <a href="#globe" className="btn !h-[49px] !px-5"><UiIcon name="globe" size={17}/> Voir le globe live</a>
+            <a href="#analytics" className="btn-dark !h-11 !px-5">Explorer les statistiques <UiIcon name="arrow-right" size={17}/></a>
+            <a href="#globe" className="btn !h-11 !px-5"><UiIcon name="globe" size={16}/> Voir le globe live</a>
           </div>
-          <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 text-[12px] font-medium text-ink-3"><span className="inline-flex items-center gap-2"><UiIcon name="check" size={16} className="text-success"/> Des données réelles</span><span className="inline-flex items-center gap-2"><UiIcon name="refresh" size={16} className="text-accent"/> Mis à jour automatiquement</span></div>
+          <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 text-[12px] font-medium text-ink-3"><span className="inline-flex items-center gap-2"><UiIcon name="check" size={16} className="text-success"/> Des données réelles</span><span className="inline-flex items-center gap-2"><UiIcon name="refresh" size={16} className="text-ink-4"/> Mis à jour automatiquement</span></div>
         </div>
 
         <div className="relative min-w-0 lg:pl-4">
-          <div className="absolute -left-4 -right-4 -top-4 -bottom-4 rounded-[32px] bg-well lg:-left-0"/>
-          <div className="ml-bento relative overflow-hidden bg-surface p-5 sm:p-6">
+          <div className="ml-frame p-5 sm:p-6">
             <div className="flex items-center justify-between gap-2 border-b border-line pb-5">
-              <div className="flex items-center gap-2.5"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-soft text-accent"><UiIcon name="activity" size={19}/></span><div><div className="text-[13px] font-semibold">Aperçu en direct</div><p className="text-[11px] text-ink-4">{view?.site.domain ?? sites.find(s=>s.id===siteId)?.domain ?? '—'}</p></div></div>
-              <StatusPill active>LIVE</StatusPill>
+              <div className="flex items-center gap-2.5"><span className="flex h-8 w-8 items-center justify-center rounded-md border border-line text-ink-3"><UiIcon name="activity" size={16}/></span><div><div className="text-[13px] font-semibold">Aperçu en direct</div><p className="text-[11px] text-ink-4">{view?.site.domain ?? sites.find(s=>s.id===siteId)?.domain ?? '—'}</p></div></div>
+              <StatusPill active>En direct</StatusPill>
             </div>
             <div className="mt-7">
               <p className="text-[12px] font-medium text-ink-3">Visiteurs uniques · {days} derniers jours</p>
-              <div className="mt-2 flex flex-wrap items-end gap-3"><span className="text-[clamp(3.4rem,6vw,5.2rem)] font-semibold leading-none tracking-[-.083em] tabular-nums text-ink">{view?nf(view.current.visitors):'—'}</span>{change!==null&&<span className={'mb-2 rounded-lg px-2 py-1 text-xs font-semibold '+(change>=0?'bg-success-soft text-success':'bg-danger-soft text-danger')}>{change>=0?'+':''}{change}%</span>}</div>
+              <div className="mt-2 flex flex-wrap items-end gap-3"><span className="text-3xl sm:text-4xl font-semibold leading-none tracking-tight tabular-nums text-ink">{view?nf(view.current.visitors):'—'}</span>{change!==null&&<span className={'mb-1 text-[13px] font-medium '+(change>=0?'text-success':'text-danger')}>{change>=0?'+':''}{change}%</span>}</div>
             </div>
             <div className="relative mt-6 h-[150px] sm:h-[175px]">
               {view ? <TrendChart height={150} granularity="day" buckets={view.series.map((d) => d.date)} series={[{ key: 'visitors', label: 'Visiteurs', color: 'rgb(var(--accent))', values: view.series.map((d) => d.visitors) }]} /> : <div className="ml-loading h-full rounded-xl"/>}
@@ -160,18 +159,17 @@ export function PublicDemo() {
                 { label: 'En ligne',value:view?.online??null },
                 { label: '24 heures',value:view?.last24h.visitors??null },
                 { label: 'Sessions',value:view?.current.sessions??null },
-              ].map(item=><div key={item.label} className="border-r border-line last:border-none"><p className="text-[11px] text-ink-4">{item.label}</p><p className="mt-1 text-xl font-semibold tracking-[-.04em] tabular-nums">{item.value===null?'—':nf(item.value)}</p></div>)}
+              ].map(item=><div key={item.label} className="border-r border-line last:border-none"><p className="text-[11px] text-ink-4">{item.label}</p><p className="mt-1 text-xl font-semibold tracking-tight tabular-nums">{item.value===null?'—':nf(item.value)}</p></div>)}
             </div>
           </div>
-          <span className="absolute -bottom-5 right-4 hidden items-center gap-2 rounded-xl border border-line bg-surface px-4 py-3 text-[11px] font-semibold text-ink-3 shadow-[0_9px_25px_rgba(28,47,99,.065)] sm:flex"><UiIcon name="shield" size={16} className="text-accent"/> Pas de trafic fictif</span>
-        </div>
+                  </div>
       </section>
 
       <section id="analytics" className="scroll-mt-[104px] pt-16 sm:pt-20">
-        <SectionHeading eyebrow="01 / VUE D’ENSEMBLE" title="Votre tableau de bord" description="Toutes les métriques importantes, en un coup d'œil." action={<StatusPill active>Statistiques réelles</StatusPill>}/>
+        <SectionHeading eyebrow="Vue d’ensemble" title="Votre tableau de bord" description="Toutes les métriques importantes, en un coup d'œil." action={<StatusPill active>Statistiques réelles</StatusPill>}/>
         <div className="ml-bento flex flex-wrap items-center justify-between gap-4 px-4 py-3.5 sm:px-5">
-          <div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent"><UiIcon name="globe" size={20}/></span><div className="min-w-0">{sites.length>1 ? <select aria-label="Site affiché" className="max-w-[260px] truncate rounded-lg border border-line bg-surface px-2 py-1 text-[13px] font-semibold text-ink" value={siteId} onChange={e=>pickSite(e.target.value)}>{sites.map(s=><option key={s.id} value={s.id}>{s.domain}{s.name!==s.domain?' · '+s.name:''}</option>)}</select> : <div className="truncate text-[13px] font-semibold">{view?.site.domain ?? '—'}</div>}<div className="mt-0.5 text-[11px] text-ink-4">Dernière actualisation {view?timeLabel(view.updatedAt):'en cours…'}</div></div></div>
-          <div className="flex items-center gap-2"><SegmentedTabs value={days} options={[{value:7,label:'7 jours'},{value:30,label:'30 jours'}]} onChange={setDays} label="Période analysée"/><button className="btn !h-[40px] !w-[40px] !p-0" aria-label="Rafraîchir les données" onClick={refresh} disabled={busy}><UiIcon name="refresh" size={17} className={busy?'animate-spin':''}/></button></div>
+          <div className="flex min-w-0 items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line text-ink-3"><UiIcon name="globe" size={16}/></span><div className="min-w-0">{sites.length>1 ? <select aria-label="Site affiché" className="max-w-[260px] truncate rounded-lg border border-line bg-surface px-2 py-1 text-[13px] font-semibold text-ink" value={siteId} onChange={e=>pickSite(e.target.value)}>{sites.map(s=><option key={s.id} value={s.id}>{s.domain}{s.name!==s.domain?' · '+s.name:''}</option>)}</select> : <div className="truncate text-[13px] font-semibold">{view?.site.domain ?? '—'}</div>}<div className="mt-0.5 text-[11px] text-ink-4">Dernière actualisation {view?timeLabel(view.updatedAt):'en cours…'}</div></div></div>
+          <div className="flex items-center gap-2"><SegmentedTabs value={days} options={[{value:7,label:'7 jours'},{value:30,label:'30 jours'}]} onChange={setDays} label="Période analysée"/><button className="btn !w-11 !p-0 md:!w-9" aria-label="Rafraîchir les données" onClick={refresh} disabled={busy}><UiIcon name="refresh" size={17} className={busy?'animate-spin':''}/></button></div>
         </div>
         {error && <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger" role="alert"><span>{error}</span><button className="btn" onClick={refresh}>Réessayer</button></div>}
         <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4" aria-busy={busy}>
@@ -182,19 +180,18 @@ export function PublicDemo() {
         </div>
 
         <div className="mt-4 grid items-stretch gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,.82fr)]">
-          <div className="ml-bento min-w-0 p-5 sm:p-7">
+          <div className="ml-bento min-w-0 p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-4"><div><h3 className="text-[16px] font-semibold tracking-tight">Évolution du trafic</h3><p className="mt-1 text-xs text-ink-4">Visiteurs uniques par jour · UTC</p></div><span className="inline-flex items-center gap-2 rounded-full bg-accent-soft px-3 py-1.5 text-xs font-semibold text-accent"><i className="h-2 w-2 rounded-full bg-accent"/>Visiteurs</span></div>
             <div className="mt-7 h-[265px] sm:h-[320px]">
               {view ? <TrendChart height={265} granularity="day" buckets={view.series.map((d) => d.date)} series={[{ key: 'visitors', label: 'Visiteurs', color: 'rgb(var(--accent))', values: view.series.map((d) => d.visitors) }]} /> : <div className="ml-loading h-full rounded-xl"/>}
             </div>
             <div className="mt-3 flex items-center justify-between border-t border-line pt-4 text-[11px] text-ink-4"><span>Données collectées en continu</span><span>{days} jours sélectionnés</span></div>
           </div>
-          <div className="ml-bento min-w-0 p-5 sm:p-7">
-            <div className="flex items-center justify-between"><div><h3 className="text-[16px] font-semibold tracking-tight">Temps réel</h3><p className="mt-1 text-xs text-ink-4">Activité du site</p></div><StatusPill active>EN DIRECT</StatusPill></div>
-            <div className="relative mt-6 overflow-hidden rounded-[16px] border border-line bg-well px-5 py-6">
-              <span className="text-xs font-medium text-ink-3">Visiteurs actifs maintenant</span><p className="mt-1 flex items-center gap-3 text-[58px] font-semibold leading-tight tracking-[-.07em] tabular-nums text-accent"><span className="ml-dot-live"/>{view?nf(view.online):'—'}</p>
+          <div className="ml-bento min-w-0 p-5 sm:p-6">
+            <div className="flex items-center justify-between"><div><h3 className="text-[16px] font-semibold tracking-tight">Temps réel</h3><p className="mt-1 text-xs text-ink-4">Activité du site</p></div><StatusPill active>En direct</StatusPill></div>
+            <div className="relative mt-5 rounded-lg border border-line bg-canvas px-5 py-5">
+              <span className="text-xs font-medium text-ink-3">Visiteurs actifs maintenant</span><p className="mt-1 flex items-center gap-3 text-5xl font-semibold leading-tight tracking-tight tabular-nums text-ink"><span className="h-2 w-2 rounded-full bg-success"/>{view?nf(view.online):'—'}</p>
               <span className="text-[11px] text-ink-4">Sur les 5 dernières minutes</span>
-              <div className="pointer-events-none absolute -bottom-8 -right-4 h-[155px] w-[155px] rounded-full border-[18px] border-line opacity-80"/>
             </div>
             <div className="mt-5 divide-y divide-line">
               {[
@@ -208,7 +205,7 @@ export function PublicDemo() {
       </section>
 
       {vids && vids.siteId === siteId && vids.videos.length > 0 && <section id="videos" className="scroll-mt-[104px] pt-20">
-        <SectionHeading eyebrow="VIDÉOS / VISIONNAGE" title="Les vidéos les plus regardées." description={`${nf(vids.totals.plays)} lectures · ${nf(vids.totals.viewers)} spectateurs · ${fmtWatch(vids.totals.watchSeconds)} de visionnage · ${Math.round(vids.totals.completionRate * 100)} % de complétion, sur ${days} jours. Chiffres agrégés uniquement.`}/>
+        <SectionHeading eyebrow="Vidéos" title="Les vidéos les plus regardées" description={`${nf(vids.totals.plays)} lectures · ${nf(vids.totals.viewers)} spectateurs · ${fmtWatch(vids.totals.watchSeconds)} de visionnage · ${Math.round(vids.totals.completionRate * 100)} % de complétion, sur ${days} jours. Chiffres agrégés uniquement.`}/>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {vids.videos.slice(0, 8).map((v, i) => <div key={v.id} className="ml-bento overflow-hidden p-3">
             <div className="relative"><Thumb id={v.id} className="aspect-video w-full"/><span className="absolute left-2 top-2 rounded-md bg-surface/90 px-2 py-0.5 text-[11px] font-semibold text-ink">#{i + 1}</span></div>
@@ -224,17 +221,17 @@ export function PublicDemo() {
       </section>}
 
       <section id="engagement" className="scroll-mt-[104px] pt-20">
-        <SectionHeading eyebrow="04 / COMPORTEMENT" title="Ce que font vraiment vos visiteurs." description="Profondeur de scroll, temps actif, pages consultées, clics internes et formulaires. Des mesures enregistrées, jamais inventées."/>
+        <SectionHeading eyebrow="Comportement" title="Ce que font vraiment vos visiteurs" description="Profondeur de scroll, temps actif, pages consultées, clics internes et formulaires. Des mesures enregistrées, jamais inventées."/>
         <EngagementPanel key={siteId} days={days} publicSiteId={siteId||undefined}/>
       </section>
 
       <section id="globe" className="scroll-mt-[104px] pt-20">
-        <SectionHeading eyebrow="02 / CARTE EN DIRECT" title="Une audience sans frontières." description="La carte mondiale des connexions réelles, actualisée toutes les 15 secondes." action={<StatusPill active>Globe en direct</StatusPill>}/>
+        <SectionHeading eyebrow="Carte en direct" title="Une audience sans frontières" description="La carte mondiale des connexions réelles, actualisée toutes les 15 secondes." action={<StatusPill active>Globe en direct</StatusPill>}/>
         <div className="ml-live-globe"><WhenVisible><Suspense fallback={<div className="ml-loading h-full min-h-[280px] rounded-xl"/>}><LiveGlobe key={siteId} publicSiteId={siteId||undefined}/></Suspense></WhenVisible></div>
       </section>
 
       <section id="insights" className="scroll-mt-[104px] pt-20">
-        <SectionHeading eyebrow="03 / INSIGHTS" title="Comprendre ce qui fonctionne." description="Les canaux qui apportent du trafic, les pages qui intéressent et les appareils utilisés."/>
+        <SectionHeading eyebrow="Audience" title="Comprendre ce qui fonctionne" description="Les canaux qui apportent du trafic, les pages qui intéressent et les appareils utilisés."/>
         <div className="grid gap-4 md:grid-cols-3">
           <InsightPanel title="Acquisition" subtitle="D'où viennent les visiteurs ?" icon="link" rows={view?.sources??[]} empty="Aucune source à afficher pour l'instant."/>
           <InsightPanel title="Pages populaires" subtitle="Les contenus les plus consultés" icon="eye" rows={view?.pages??[]} empty="Les premières pages s'afficheront ici."/>
@@ -242,10 +239,9 @@ export function PublicDemo() {
         </div>
       </section>
 
-      <section className="relative mt-20 overflow-hidden rounded-[24px] border border-line bg-well p-7 sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-10 lg:p-12">
-        <div className="pointer-events-none absolute -right-20 -top-28 h-[330px] w-[330px] rounded-full border-[65px] border-line opacity-90"/>
-        <div className="relative z-10 max-w-[680px]"><span className="ml-mini-label text-accent">PRENEZ LE CONTRÔLE</span><h2 className="ml-section-head mt-3 max-w-[590px]">Les bonnes décisions commencent avec les bonnes données.</h2><p className="mt-4 max-w-[580px] text-[14px] leading-relaxed text-ink-3">Branchez votre site et suivez en direct vos visites, sources de trafic et conversions.</p></div>
-        <Link href="/signup" className="btn-dark relative z-10 mt-6 h-[50px] shrink-0 px-6 lg:mt-0">Connecter mon site <UiIcon name="arrow-up-right" size={17}/></Link>
+      <section className="relative mt-20 overflow-hidden rounded-xl border border-line bg-surface p-7 shadow-card sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-10 lg:p-12">
+        <div className="relative z-10 max-w-[680px]"><span className="text-[13px] font-medium text-accent">Votre site</span><h2 className="mt-2 max-w-[590px] text-2xl font-semibold tracking-tight sm:text-3xl">Les bonnes décisions commencent avec les bonnes données.</h2><p className="mt-4 max-w-[580px] text-[14px] leading-relaxed text-ink-3">Branchez votre site et suivez en direct vos visites, sources de trafic et conversions.</p></div>
+        <Link href="/signup" className="btn-dark relative z-10 mt-6 !h-11 shrink-0 !px-5 lg:mt-0">Connecter mon site <UiIcon name="arrow-right" size={15}/></Link>
       </section>
       <footer className="mt-11 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-7 text-xs text-ink-4"><Logo small/><span>Minilytics · Analytics sans distraction.</span><span>{view?'Mis à jour à '+timeLabel(view.updatedAt):'Données en cours de chargement'}</span></footer>
     </main>

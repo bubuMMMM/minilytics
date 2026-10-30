@@ -4,6 +4,7 @@ import { Link } from './Link';
 import { Logo } from './Logo';
 import { LiveDot } from './Sparkline';
 import { UiIcon } from './UiIcon';
+import { ThemeToggle } from './ThemeToggle';
 
 export type NavKey = 'overview' | 'social' | 'videos' | 'sponsors' | 'content' | 'sources' | 'realtime' | 'settings' | 'sites';
 type Icon = Parameters<typeof UiIcon>[0]['name'];
@@ -48,11 +49,11 @@ export function AppHeader({ siteId, active, online, title }: { siteId: string; a
   return (
     <>
       <a href="#contenu" className="ml-skip">Aller au contenu</a>
-      <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="mx-auto flex h-[56px] max-w-[1480px] items-center justify-between gap-3 px-4 sm:px-6 md:h-[64px]">
+      <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="mx-auto flex h-[56px] max-w-[1480px] items-center justify-between gap-3 px-4 sm:px-6 md:h-[56px]">
           <Link href="/sites" aria-label="Mes sites" className="flex min-h-[44px] min-w-0 items-center gap-2 rounded-lg">
-            <Logo />
-            {title && <span className="hidden min-w-0 truncate text-[13px] font-semibold text-ink-2 sm:inline md:hidden lg:inline" translate="no">/ {title}</span>}
+            <Logo small />
+            {title && <><svg width="16" height="16" viewBox="0 0 24 24" className="shrink-0 text-line-strong" aria-hidden><path d="M16 3 8 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg><span className="min-w-0 truncate text-[14px] font-medium text-ink" translate="no">{title}</span></>}
           </Link>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <button type="button" className="ml-cmd-btn" onClick={() => setCmd(true)} aria-label={`Rechercher (${SHORTCUT})`}>
@@ -60,10 +61,11 @@ export function AppHeader({ siteId, active, online, title }: { siteId: string; a
               <span className="hidden lg:inline">Rechercher…</span>
               <kbd className="ml-kbd hidden lg:inline-flex">{SHORTCUT}</kbd>
             </button>
-            <Link href="/demo" className="btn hidden md:inline-flex">Démo publique</Link>
-            <Link href="/sites" className="btn hidden md:inline-flex"><UiIcon name="layers" size={16} /> Mes sites</Link>
+            <Link href="/demo" className="btn-ghost hidden lg:inline-flex">Démo</Link>
+            <Link href="/sites" className="btn hidden md:inline-flex">Mes sites</Link>
+            <ThemeToggle />
             {online !== undefined && (
-              <Link href={`/site/${siteId}/realtime`} className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-2 text-[12px] font-semibold text-success md:hidden">
+              <Link href={`/site/${siteId}/realtime`} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-2 text-[12px] font-medium text-ink-2 md:hidden">
                 <LiveDot on={online} /> <span>Direct</span>
               </Link>
             )}
@@ -74,7 +76,7 @@ export function AppHeader({ siteId, active, online, title }: { siteId: string; a
             {ITEMS.map((i) => (
               <li key={i.key}>
                 <Link href={hrefFor(siteId, i)} aria-current={active === i.key ? 'page' : undefined} className="ml-navtab">
-                  {i.key === 'realtime' ? <LiveDot on={!!online} /> : <UiIcon name={i.icon} size={16} />}
+                  {i.key === 'realtime' && <LiveDot on={!!online} />}
                   {i.label}
                 </Link>
               </li>
@@ -105,11 +107,11 @@ export function BottomNav({ siteId, active }: { siteId: string; active: NavKey }
             <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-well" aria-hidden />
             {[...ITEMS.filter((i) => !MOBILE_MAIN.includes(i.key)), { key: 'sites' as NavKey, label: 'Mes sites', short: '', icon: 'layers' as Icon, path: '', keep: false }].map((i) => (
               <Link key={i.key} href={i.key === 'sites' ? '/sites' : hrefFor(siteId, i)} onClick={() => setMore(false)} aria-current={active === i.key ? 'page' : undefined}
-                className={`flex min-h-[52px] items-center gap-3 rounded-xl px-3 text-[15px] font-semibold ${active === i.key ? 'bg-accent-soft text-accent' : 'text-ink-2'}`}>
+                className={`flex min-h-[52px] items-center gap-3 rounded-lg px-3 text-[15px] font-medium ${active === i.key ? 'bg-well text-ink' : 'text-ink-2'}`}>
                 <UiIcon name={i.icon} size={19} /> {i.label}
               </Link>
             ))}
-            <Link href="/demo" onClick={() => setMore(false)} className="flex min-h-[52px] items-center gap-3 rounded-xl px-3 text-[15px] font-semibold text-ink-2"><UiIcon name="eye" size={19} /> Démo publique</Link>
+            <Link href="/demo" onClick={() => setMore(false)} className="flex min-h-[52px] items-center gap-3 rounded-lg px-3 text-[15px] font-medium text-ink-2"><UiIcon name="eye" size={19} /> Démo publique</Link>
           </div>
         </div>
       )}

@@ -124,9 +124,13 @@ export function bucketSql(col: string, g: Granularity, offsetMs: number): string
 export function bucketLabels(range: Range, offsetMs: number): string[] {
   const labels: string[] = [];
   const seen = new Set<string>();
+  // Walk calendar steps between the local start and the local end (inclusive) so the last bucket
+  // (today) is never dropped and a DST change inside the range can't shift labels by a day.
   const step = range.granularity === 'hour' ? HOUR : DAY;
-  for (let t = range.from; t < range.to; t += step) {
-    const d = new Date(t + offsetMs);
+  const start = range.granularity === 'hour' ? range.from + offsetMs : Math.floor((range.from + offsetMs + 3 * HOUR) / DAY) * DAY; // +3h: tolerate a DST offset change since range.from
+  const end = Math.max(range.from, range.to - 1) + offsetMs;
+  for (let t = start; t <= end; t += step) {
+    const d = new Date(t);
     let label: string;
     const iso = d.toISOString();
     if (range.granularity === 'hour') label = iso.slice(0, 13) + ':00';

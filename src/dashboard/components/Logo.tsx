@@ -1,13 +1,12 @@
 export function Logo({ small = false }: { small?: boolean }) {
-  const size = small ? 28 : 32;
+  const size = small ? 22 : 24;
   return (
-    <span className="inline-flex items-center gap-2.5 text-ink">
-      <svg width={size} height={size} viewBox="0 0 40 40" role="img" aria-label="Minilytics" className="shrink-0">
-        <rect width="40" height="40" rx="12" fill="rgb(var(--accent))" />
-        <path d="M8 27.5 15 20l5.8 4.2L32 12" fill="none" stroke="#ffffff" strokeWidth="3.1" strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx="31.8" cy="12.2" r="3" fill="rgb(var(--success))"/>
+    <span className="inline-flex items-center gap-2 text-ink" translate="no">
+      <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="Minilytics" className="shrink-0">
+        <rect width="24" height="24" rx="6" fill="rgb(var(--ink))" />
+        <path d="M6 15.5 9.6 11l2.8 2.6L18 7.5" fill="none" stroke="rgb(var(--canvas))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <span className={'font-semibold tracking-[-.06em] ' + (small ? 'text-lg' : 'text-[22px]')}>minilytics<span className="text-accent">.</span></span>
+      <span className={'font-semibold tracking-[-0.02em] ' + (small ? 'text-[15px]' : 'text-[16px]')}>Minilytics</span>
     </span>
   );
 }

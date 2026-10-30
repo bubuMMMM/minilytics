@@ -97,12 +97,16 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
       <div className="ml-site-bg ml-has-bottom-nav min-h-screen pb-10">
         <AppHeader siteId={site.id} active={view} online={!!overview?.online} title={site.name} />
         <main id="contenu" className="mx-auto max-w-[1480px] px-4 py-6 sm:px-6 lg:py-10">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-4 sm:mb-6">
-            <div className="min-w-0"><div className="ml-kicker"><span className="ml-dot" /> {VIEW_META[view].kicker}</div><h1 className="ml-heading mt-2 text-[clamp(1.9rem,4vw,3.2rem)]" translate={view === 'overview' ? 'no' : undefined}>{VIEW_META[view].title(site.name)}<span className="text-accent">.</span></h1><p className="mt-2 text-[13px] text-ink-3">{VIEW_META[view].sub} · <span className="font-medium text-ink-2" translate="no">{site.domain}</span></p></div>
-            <a href={'/site/' + site.id + '/realtime'} onClick={(e) => { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); navigate('/site/' + site.id + '/realtime'); }} className="hidden items-center gap-2 rounded-full border border-line-strong bg-success-soft px-4 py-2 text-[12px] font-semibold text-success transition-colors hover:border-line-strong hover:bg-success-soft sm:inline-flex"><LiveDot on={!!overview?.online} />{overview ? overview.online + ' en ligne maintenant' : 'Données en temps réel'} <span aria-hidden>→</span></a>
-          </div>
-          <div className="ml-panel z-30 mb-5 flex flex-wrap items-center gap-2 p-2.5 sm:p-3 md:sticky md:top-[112px]">
-            <Toolbar site={site} sites={sites!} q={q} update={update} overview={overview} onRefresh={() => setReloadKey((k) => k + 1)} loading={loading} />
+          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-semibold tracking-tight text-ink sm:text-[26px]" translate={view === 'overview' ? 'no' : undefined}>{VIEW_META[view].title(site.name)}</h1>
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[13px] text-ink-3">{VIEW_META[view].sub}<span aria-hidden className="text-ink-4">·</span><span className="font-mono text-[12px] text-ink-3" translate="no">{site.domain}</span>
+                <a href={'/site/' + site.id + '/realtime'} onClick={(e) => { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); navigate('/site/' + site.id + '/realtime'); }} className="inline-flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 text-[12px] font-medium text-ink-2 transition-colors hover:border-line-strong"><LiveDot on={!!overview?.online} />{overview ? overview.online + ' en ligne' : 'Temps réel'}</a>
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Toolbar site={site} sites={sites!} q={q} update={update} overview={overview} onRefresh={() => setReloadKey((k) => k + 1)} loading={loading} />
+            </div>
           </div>
 
         {Object.keys(q.filters).length > 0 && (
@@ -129,8 +133,8 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
           : view === 'sources' ? <SourcesPanels full />
           : <>
         {overview && overview.current.visitors === 0 && overview.previous.visitors === 0 && !Object.keys(q.filters).length && (
-          <div className="ml-bento mt-5 flex flex-col items-start gap-4 border-dashed bg-well p-5 sm:flex-row sm:items-center">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent"><UiIcon name="sparkles" size={20} /></span>
+          <div className="mt-5 flex flex-col items-start gap-4 rounded-xl border border-dashed border-line-strong p-5 sm:flex-row sm:items-center">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line text-ink-3"><UiIcon name="code" size={18} /></span>
             <div className="flex-1">
               <div className="font-semibold">Aucune visite sur cette période</div>
               <div className="text-[13px] text-ink-3">Installez le script sur {site.domain} ou choisissez une période plus longue — les visites arrivent en quelques secondes.</div>
@@ -146,8 +150,8 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
 
         <section className="mt-7 scroll-mt-[110px]" aria-label="Analyse comportementale">
           <div className="mb-5">
-            <div className="ml-kicker">COMPORTEMENT / ENGAGEMENT</div>
-            <h2 className="mt-2 text-[clamp(1.6rem,3vw,2.25rem)] font-semibold tracking-[-.045em]">Découvrez comment vos pages sont parcourues<span className="text-accent">.</span></h2>
+            <div className="ml-kicker">Engagement</div>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight">Découvrez comment vos pages sont parcourues</h2>
             <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-3">Scroll, temps actif réel, liens cliqués et pages de fin de session — filtrés sur la même période et les mêmes segments que vos statistiques.</p>
           </div>
           <EngagementPanel siteId={siteId} query={q} reloadKey={reloadKey}/>
@@ -182,8 +186,8 @@ function SourcesPanels({ full = false }: { full?: boolean }) {
     <section className="mt-7" aria-labelledby="sources-title">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="ml-kicker">AUDIENCE / ACQUISITION</div>
-          <h2 id="sources-title" className="mt-2 text-[clamp(1.5rem,3vw,2.1rem)] font-semibold tracking-[-.045em]">D’où viennent vos visiteurs<span className="text-accent">.</span></h2>
+          <div className="ml-kicker">Acquisition</div>
+          <h2 id="sources-title" className="mt-1 text-lg font-semibold tracking-tight">D’où viennent vos visiteurs</h2>
           <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-3">Touchez une ligne pour filtrer tout le tableau de bord. Chaque bloc s’exporte en CSV.</p>
         </div>
         {!full && <Link href={`/site/${site.id}/sources${window.location.search}`} className="btn">Toutes les sources <UiIcon name="arrow-right" size={16} /></Link>}

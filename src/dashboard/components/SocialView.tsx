@@ -125,7 +125,7 @@ export function SocialView() {
   return (
     <section className="space-y-5" aria-labelledby="social-title">
       <div>
-        <h2 id="social-title" className="text-[17px] font-semibold tracking-[-.02em]">Réseaux sociaux et 𝕏</h2>
+        <h2 id="social-title" className="text-lg font-semibold tracking-tight">Réseaux sociaux et 𝕏</h2>
         <p className="mt-1 max-w-3xl text-[13px] leading-relaxed text-ink-3">Qui vous envoie du trafic depuis les réseaux, quels liens 𝕏 convertissent, et qui parle de <span translate="no">{site.domain}</span> sur 𝕏.</p>
       </div>
       {error && <div role="alert" className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger">Impossible de charger les données sociales : {error}. Réessayez dans un instant.</div>}

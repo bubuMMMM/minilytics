@@ -191,7 +191,7 @@ export function Panel({ tabs, title }: { tabs: TabDef[]; title?: string }) {
         )}
         {data && data.length === 0 && (
           <div className="flex h-full min-h-[240px] flex-col items-center justify-center text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-well text-xl">📭</div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-well text-xl">📭</div>
             <p className="mt-3 text-sm font-medium text-ink-2">Aucune donnée sur cette période</p>
             <p className="text-xs text-ink-4">Essayez une période plus longue ou retirez les filtres.</p>
           </div>

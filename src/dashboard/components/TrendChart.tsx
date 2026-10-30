@@ -23,8 +23,11 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
   }, [series]);
   const x = (i: number) => (n <= 1 ? W / 2 : P + (i * (W - 2 * P)) / (n - 1));
   const y = (v: number, axis = 'left') => H - 24 - (v / max[axis]) * (H - 44);
-  const path = (vals: number[], axis?: string) => vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v, axis).toFixed(1)}`).join(' ');
+  const path = (vals: number[], axis?: string) => smooth(vals.map((v, i) => [x(i), y(v, axis)] as [number, number]));
   const step = Math.max(1, Math.ceil(n / 7));
+  const ticks: number[] = [];
+  for (let i = 0; i < n; i += step) ticks.push(i);
+  if (n > 1 && ticks[ticks.length - 1] !== n - 1) { if (n - 1 - ticks[ticks.length - 1] < step / 2 && ticks.length > 1) ticks.pop(); ticks.push(n - 1); }
 
   function onMove(clientX: number) {
     const r = box.current?.getBoundingClientRect();
@@ -60,21 +63,21 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
               </linearGradient>
             ))}
           </defs>
-          {[0.25, 0.5, 0.75, 1].map((f) => <line key={f} x1="0" x2={W} y1={H - 24 - f * (H - 44)} y2={H - 24 - f * (H - 44)} stroke="rgb(var(--ink-4))" strokeDasharray="4 6" vectorEffect="non-scaling-stroke" />)}
-          <line x1="0" x2={W} y1={H - 24} y2={H - 24} stroke="rgb(var(--ink-4))" vectorEffect="non-scaling-stroke" />
+          {[0.25, 0.5, 0.75, 1].map((f) => <line key={f} x1="0" x2={W} y1={H - 24 - f * (H - 44)} y2={H - 24 - f * (H - 44)} stroke="rgb(var(--line))" vectorEffect="non-scaling-stroke" />)}
+          <line x1="0" x2={W} y1={H - 24} y2={H - 24} stroke="rgb(var(--line-strong))" vectorEffect="non-scaling-stroke" />
           {series.map((s, k) => (
             <g key={s.key}>
               {k === 0 && n > 1 && <path d={`${path(s.values, s.axis)} L${x(n - 1)},${H - 24} L${x(0)},${H - 24} Z`} fill={`url(#${gid}-${s.key})`} />}
-              <path d={path(s.values, s.axis)} fill="none" stroke={s.color} strokeWidth={k === 0 ? 2.25 : 1.75} strokeDasharray={k === 0 ? undefined : '0'} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+              <path d={path(s.values, s.axis)} fill="none" stroke={s.color} strokeWidth={k === 0 ? 2 : 1.5} strokeDasharray={k === 0 ? undefined : '4 4'} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
             </g>
           ))}
-          {h !== null && <line x1={x(h)} x2={x(h)} y1="8" y2={H - 24} stroke="rgb(var(--ink-4))" vectorEffect="non-scaling-stroke" />}
+          {h !== null && <line x1={x(h)} x2={x(h)} y1="8" y2={H - 24} stroke="rgb(var(--line-strong))" vectorEffect="non-scaling-stroke" />}
         </svg>
         {h !== null && series.map((s) => (
-          <span key={s.key} className="pointer-events-none absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white" style={{ left: `${(x(h) / W) * 100}%`, top: y(s.values[h] ?? 0, s.axis), background: s.color, boxShadow: '0 0 0 1px rgba(23,39,75,.08)' }} />
+          <span key={s.key} className="pointer-events-none absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface" style={{ left: `${(x(h) / W) * 100}%`, top: y(s.values[h] ?? 0, s.axis), background: s.color }} />
         ))}
         {h !== null && (
-          <div className="pointer-events-none absolute top-0 z-10 min-w-[150px] -translate-x-1/2 rounded-xl border border-line bg-surface/95 px-3 py-2 text-[12px] shadow-[0_8px_24px_rgba(23,39,75,.12)] backdrop-blur"
+          <div className="pointer-events-none absolute top-0 z-10 min-w-[150px] -translate-x-1/2 rounded-lg border border-line bg-surface px-3 py-2 text-[12px] shadow-pop"
             style={{ left: `clamp(80px, ${(x(h) / W) * 100}%, calc(100% - 80px))` }} aria-live="polite">
             <div className="mb-1 font-semibold text-ink">{bucketLabel(buckets[h], granularity, true)}</div>
             {series.map((s) => (
@@ -86,13 +89,13 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
           </div>
         )}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-5">
-          {buckets.map((b, i) => i % step === 0 && (
-            <span key={b} className="absolute -translate-x-1/2 whitespace-nowrap text-[10px] text-ink-4" style={{ left: `${(x(i) / W) * 100}%` }}>{bucketLabel(b, granularity)}</span>
+          {ticks.map((i) => (
+            <span key={buckets[i]} className={`absolute whitespace-nowrap text-[11px] text-ink-4 ${i === 0 && n > 1 ? '' : i === n - 1 && n > 1 ? '-translate-x-full' : '-translate-x-1/2'}`} style={{ left: n > 1 && i === 0 ? 0 : n > 1 && i === n - 1 ? '100%' : `${(x(i) / W) * 100}%` }}>{bucketLabel(buckets[i], granularity)}</span>
           ))}
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-4 text-[12px] text-ink-3">
-        {series.map((s) => <span key={s.key} className="flex items-center gap-1.5"><span className="h-2 w-4 rounded-full" style={{ background: s.color }} />{s.label}{s.axis === 'right' ? ' (échelle de droite)' : ''}</span>)}
+        {series.map((s) => <span key={s.key} className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: s.color }} />{s.label}{s.axis === 'right' ? ' (échelle de droite)' : ''}</span>)}
       </div>
       <table className="sr-only">
         <caption>Données du graphique</caption>
@@ -101,4 +104,27 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
       </table>
     </div>
   );
+}
+
+/** Monotone cubic (Fritsch–Carlson) path: smooth curve that never overshoots below zero. */
+function smooth(p: [number, number][]): string {
+  const n = p.length;
+  if (!n) return '';
+  if (n < 3) return p.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const d: number[] = [], m: number[] = [];
+  for (let i = 0; i < n - 1; i++) d.push((p[i + 1][1] - p[i][1]) / (p[i + 1][0] - p[i][0] || 1));
+  m.push(d[0]);
+  for (let i = 1; i < n - 1; i++) m.push(d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2);
+  m.push(d[n - 2]);
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+    const a = m[i] / d[i], b = m[i + 1] / d[i], t = a * a + b * b;
+    if (t > 9) { const k = 3 / Math.sqrt(t); m[i] = k * a * d[i]; m[i + 1] = k * b * d[i]; }
+  }
+  let out = `M${p[0][0].toFixed(1)},${p[0][1].toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = (p[i + 1][0] - p[i][0]) / 3;
+    out += ` C${(p[i][0] + h).toFixed(1)},${(p[i][1] + m[i] * h).toFixed(1)} ${(p[i + 1][0] - h).toFixed(1)},${(p[i + 1][1] - m[i + 1] * h).toFixed(1)} ${p[i + 1][0].toFixed(1)},${p[i + 1][1].toFixed(1)}`;
+  }
+  return out;
 }

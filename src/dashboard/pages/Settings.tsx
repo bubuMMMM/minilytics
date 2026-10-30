@@ -8,7 +8,7 @@ import { api, type Site } from '../lib/api';
 function Section({ title, desc, children }: { title: string; desc?: ReactNode; children: ReactNode }) {
   return (
     <section className="card min-w-0 p-4 sm:p-6">
-      <h2 className="text-[17px] font-semibold sm:text-lg">{title}</h2>
+      <h2 className="text-[15px] font-semibold">{title}</h2>
       {desc && <p className="mt-1 text-sm text-ink-3">{desc}</p>}
       <div className="mt-4">{children}</div>
     </section>
@@ -21,7 +21,7 @@ function Code({ children }: { children: string }) {
     <div className="relative min-w-0">
       <code className="code !p-4 !pr-20 !text-[12px] sm:!p-5 sm:!text-[13px]">{children}</code>
       <button
-        className="absolute right-2 top-2 min-h-[36px] rounded-lg bg-surface/15 px-3 py-1 text-xs font-semibold text-white hover:bg-surface/25"
+        className="absolute right-2 top-2 min-h-[32px] rounded-md border border-line bg-surface px-2.5 text-[12px] font-medium text-ink-2 shadow-xs hover:text-ink"
         onClick={() => {
           navigator.clipboard.writeText(children);
           setCopied(true);
@@ -67,11 +67,11 @@ export function Settings({ siteId }: { siteId: string }) {
   return (
     <div className="ml-site-bg ml-has-bottom-nav min-h-screen">
     <AppHeader siteId={site.id} active="settings" title={site.name} />
-    <div className="mx-auto max-w-3xl space-y-5 px-4 py-6 sm:py-12">
+    <main id="contenu" className="mx-auto max-w-3xl space-y-5 px-4 py-6 sm:px-6 lg:py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><div className="ml-kicker">RÉGLAGES / INSTALLATION</div><h1 className="mt-2 text-[clamp(1.7rem,5vw,2.4rem)] font-semibold tracking-[-.045em]">Réglages<span className="text-accent">.</span></h1></div>
-        <div className="flex min-w-0 items-center gap-2 font-semibold">
-          <Favicon domain={site.domain} size={22} /> <span className="truncate">{site.name}</span>
+        <div><h1 className="text-2xl font-semibold tracking-tight sm:text-[26px]">Réglages</h1><p className="mt-1 text-[13px] text-ink-3">Installation du script, objectifs, paiements et préférences.</p></div>
+        <div className="flex min-w-0 items-center gap-2 text-[13px] text-ink-3">
+          <Favicon domain={site.domain} size={16} /> <span className="truncate font-mono text-[12px]" translate="no">{site.domain}</span>
         </div>
       </div>
 
@@ -310,7 +310,7 @@ curl -X POST ${origin}/api/v1/goals \\
           Supprimer le site et toutes ses données
         </button>
       </Section>
-    </div>
+    </main>
     <BottomNav siteId={site.id} active="settings" />
     </div>
   );
@@ -322,10 +322,10 @@ function AiSetup({ site, origin }: { site: Site; origin: string }) {
   const [open, setOpen] = useState(false);
   const prompt = buildAiPrompt(site, origin);
   return (
-    <section className="card border-accent/30 bg-gradient-to-br from-well to-surface p-4 sm:p-6">
+    <section className="card p-4 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">✨ Installer avec une IA</h2>
+          <h2 className="flex items-center gap-2 text-[15px] font-semibold"><span className="rounded-full border border-line px-2 py-px text-[11px] font-medium text-ink-3">Rapide</span>Installer avec une IA</h2>
           <p className="mt-1 max-w-lg text-sm text-ink-2">
             Copiez ce prompt dans Claude Code, Cursor ou toute IA de code ouverte dans votre projet. Elle installe le script, branche l’attribution Dodo Payments, identifie les utilisateurs et ajoute les objectifs de boutons, avec les vraies valeurs de ce site. Elle ne vous demande que ce qu’elle ne trouve pas dans votre code.
           </p>

@@ -81,6 +81,15 @@ describe('time ranges', () => {
     expect(r.from).toBe(startOfDay(now, 'UTC') - 29 * 86_400_000);
     expect(bucketLabels(r, 0)).toHaveLength(30);
   });
+  it('daily labels end with today and survive a DST change (Europe/Paris)', () => {
+    const t = Date.UTC(2026, 9, 30, 17, 0); // 30 Oct 2026, after the 25 Oct DST switch
+    const off = 3_600_000; // UTC+1 now
+    const r = { from: Date.UTC(2026, 8, 30, 22, 0), to: t, granularity: 'day' as const }; // 1 Oct 00:00 Paris (UTC+2)
+    const l = bucketLabels(r as any, off);
+    expect(l[0]).toBe('2026-10-01');
+    expect(l[l.length - 1]).toBe('2026-10-30');
+    expect(l).toHaveLength(30);
+  });
   it('custom ranges include the whole last day', () => {
     const r = resolveRange({ period: 'custom', from: '2026-10-01', to: '2026-10-07' }, 'UTC', 0, now);
     expect(r.to - r.from).toBe(7 * 86_400_000);

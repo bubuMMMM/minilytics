@@ -112,23 +112,21 @@ export function Realtime({ siteId }: { siteId: string }) {
   return (
     <div className="ml-site-bg ml-has-bottom-nav min-h-screen pb-12">
       <AppHeader siteId={siteId} active="realtime" online={!!rt?.online} title={site?.name} />
-      <main className="mx-auto max-w-[1480px] animate-fadein px-4 py-6 sm:px-6 sm:py-9 lg:py-12">
+      <main id="contenu" className="mx-auto max-w-[1480px] animate-fadein px-4 py-6 sm:px-6 lg:py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="ml-kicker"><span className="ml-dot" /> TEMPS RÉEL / {site?.domain ?? '…'}</div>
-          <h1 className="ml-heading mt-3 text-[clamp(2.3rem,4.4vw,3.7rem)]">En direct<span className="text-accent">.</span></h1>
-          <p className="mt-3 text-[13px] text-ink-3">Ce qui se passe sur votre site en ce moment · actualisé toutes les {POLL_MS / 1000} s</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink sm:text-[26px]">En direct</h1>
+          <p className="mt-1 text-[13px] text-ink-3">Ce qui se passe sur votre site en ce moment · actualisé toutes les {POLL_MS / 1000} s</p>
         </div>
-        {site && <span className="flex items-center gap-2 rounded-full border border-line bg-well px-3 py-1.5 text-[12px] font-semibold text-ink-2"><Favicon domain={site.domain} size={16} /> {site.name}</span>}
+        {site && <span className="flex items-center gap-2 text-[13px] font-medium text-ink-2"><Favicon domain={site.domain} size={16} /> <span className="font-mono text-[12px] text-ink-3" translate="no">{site.domain}</span></span>}
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <div className="ml-bento relative overflow-hidden p-6 lg:col-span-1">
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-success/10 blur-2xl" />
           <div className="flex items-center gap-2 text-sm font-medium text-ink-3">
             <LiveDot on={!!rt?.online} /> Visiteurs en ligne
           </div>
-          <div className="tnum mt-3 text-[64px] font-semibold leading-none tracking-[-.06em] text-ink">{rt ? fmtNumber(rt.online) : <span className="skeleton inline-block h-14 w-20" />}</div>
+          <div className="tnum mt-3 text-6xl font-semibold leading-none tracking-tight text-ink">{rt ? fmtNumber(rt.online) : <span className="skeleton inline-block h-14 w-20" />}</div>
           <p className="mt-2 text-xs text-ink-4">Actifs sur les 5 dernières minutes</p>
           <div className="mt-6 grid grid-cols-2 gap-3 border-t border-line pt-4">
             <div>

@@ -69,6 +69,19 @@ function drawLine(ctx: CanvasRenderingContext2D, coords: Point[], angle: number)
   ctx.stroke();
 }
 
+/** Theme colours read from the CSS tokens (canvas can't use CSS variables directly). Cached ~1 s. */
+let palCache: { at: number; v: Record<string, string> } | null = null;
+function pal(): Record<string, string> {
+  const now = Date.now();
+  if (palCache && now - palCache.at < 1000) return palCache.v;
+  const cs = getComputedStyle(document.documentElement);
+  const v: Record<string, string> = {};
+  for (const k of ['canvas', 'surface', 'well', 'line', 'line-strong', 'ink-3', 'ink-4', 'accent']) v[k] = (cs.getPropertyValue('--' + k).trim() || '128 128 128').split(/\s+/).join(',');
+  palCache = { at: now, v };
+  return v;
+}
+const rgba = (t: string, a = 1) => `rgba(${t},${a})`;
+
 function drawGlobe(
   ctx: CanvasRenderingContext2D,
   world: GlobeCountry[],
@@ -80,25 +93,26 @@ function drawGlobe(
 ) {
   const { x, y, radius, width, height } = SIZE;
   ctx.clearRect(0, 0, width, height);
+  const P = pal();
   const glow = ctx.createRadialGradient(x, y, radius * 0.4, x, y, radius * 1.36);
-  glow.addColorStop(0, 'rgba(72,93,241,0.07)');
-  glow.addColorStop(0.63, 'rgba(72,93,241,0.06)');
-  glow.addColorStop(1, 'rgba(72,93,241,0)');
+  glow.addColorStop(0, rgba(P.accent, .06));
+  glow.addColorStop(0.63, rgba(P.accent, .03));
+  glow.addColorStop(1, rgba(P.accent, 0));
   ctx.fillStyle = glow;
   ctx.fillRect(x - radius * 1.45, y - radius * 1.45, radius * 2.9, radius * 2.9);
 
   const ocean = ctx.createRadialGradient(x - radius * .35, y - radius * .45, radius * .1, x, y, radius);
-  ocean.addColorStop(0, '#f6faff');
-  ocean.addColorStop(.65, '#edf4ff');
-  ocean.addColorStop(1, '#dee8f8');
+  ocean.addColorStop(0, rgba(P.surface));
+  ocean.addColorStop(.65, rgba(P.well));
+  ocean.addColorStop(1, rgba(P.line));
   ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2);
   ctx.fillStyle = ocean; ctx.fill();
-  ctx.strokeStyle = 'rgba(106,132,185,.45)'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.strokeStyle = rgba(P['line-strong']); ctx.lineWidth = 1; ctx.stroke();
 
   ctx.save();
   ctx.beginPath(); ctx.arc(x, y, radius - 0.9, 0, Math.PI * 2); ctx.clip();
 
-  ctx.strokeStyle = 'rgba(110,134,173,0.22)'; ctx.lineWidth = 0.9;
+  ctx.strokeStyle = rgba(P['line-strong'], .5); ctx.lineWidth = 0.8;
   for (let latitude = -60; latitude <= 60; latitude += 30) {
     const coords: Point[] = [];
     for (let lon = -180; lon <= 180; lon += 3) coords.push([lon, latitude]);
@@ -111,9 +125,9 @@ function drawGlobe(
   }
 
   // Actual Natural Earth country outlines, projected orthographically in the browser.
-  ctx.strokeStyle = 'rgba(91,116,160,0.55)';
+  ctx.strokeStyle = rgba(P['ink-4'], .55);
   ctx.lineWidth = 0.8;
-  ctx.fillStyle = '#bdcce5';
+  ctx.fillStyle = rgba(P['line-strong']);
   for (const feature of world) {
     for (const ring of feature.rings) {
       let started = false;
@@ -148,7 +162,7 @@ function drawGlobe(
       const mx = (pin.x + source.x) / 2;
       const my = (pin.y + source.y) / 2 - 22;
       ctx.beginPath(); ctx.moveTo(pin.x, pin.y); ctx.quadraticCurveTo(mx, my, source.x, source.y);
-      ctx.lineWidth = .95; ctx.strokeStyle = 'rgba(77,99,233,.3)'; ctx.stroke();
+      ctx.lineWidth = .95; ctx.strokeStyle = rgba(P.accent, .35); ctx.stroke();
     }
   }
 
@@ -158,18 +172,18 @@ function drawGlobe(
     const radiusPin = pin.radius - 9;
     const alpha = .42 + .35 * Math.sin(elapsed / 520 + pin.x);
     ctx.beginPath(); ctx.arc(pin.x, pin.y, radiusPin + (isLive ? 6 + 5 * Math.abs(Math.sin(elapsed / 1100)) : 3), 0, 2 * Math.PI);
-    ctx.strokeStyle = isLive ? 'rgba(77,99,233,' + alpha + ')' : 'rgba(100,164,189,.34)';
+    ctx.strokeStyle = isLive ? rgba(P.accent, alpha) : rgba(P['ink-3'], .3);
     ctx.lineWidth = isLive ? 2 : 1; ctx.stroke();
     ctx.beginPath(); ctx.arc(pin.x, pin.y, radiusPin + (highlight ? 3 : 0), 0, Math.PI * 2);
-    ctx.fillStyle = isLive ? '#4f63ec' : '#64a9b3'; ctx.fill();
+    ctx.fillStyle = isLive ? rgba(P.accent) : rgba(P['ink-3']); ctx.fill();
     ctx.beginPath(); ctx.arc(pin.x, pin.y, 2, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.fillStyle = rgba(P.surface); ctx.fill();
   }
   ctx.restore();
 
   // Crisp latitude marks and a subtle horizon light.
   ctx.beginPath(); ctx.arc(x, y, radius, -.5 * Math.PI, .5 * Math.PI);
-  ctx.strokeStyle = 'rgba(88,115,164,.50)'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = rgba(P['line-strong']); ctx.lineWidth = 1; ctx.stroke();
 }
 
 export function LiveGlobe({ siteId, publicSiteId }: { siteId?: string; publicSiteId?: string }) {
@@ -247,17 +261,16 @@ export function LiveGlobe({ siteId, publicSiteId }: { siteId?: string; publicSit
   };
 
   return (
-    <section className="relative mt-5 overflow-hidden rounded-[26px] border border-line bg-surface text-ink shadow-[0_18px_50px_rgba(36,54,91,.045)]" aria-label="Globe des visiteurs en direct">
-      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 32% 54%, #f5f8ff 0%, transparent 64%)' }} />
-      <div className="relative flex flex-wrap items-start justify-between gap-4 px-5 pt-6 sm:px-8 sm:pt-8">
+    <section className="ml-bento relative mt-8 overflow-hidden text-ink" aria-label="Globe des visiteurs en direct">
+      <div className="relative flex flex-wrap items-start justify-between gap-4 px-4 pt-4 sm:px-5 sm:pt-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.16em] text-accent"><span className="h-2 w-2 animate-pulse rounded-full bg-success" /> LIVE / MONDE</div>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Vos visiteurs, partout dans le monde.</h2>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-3">Visualise d'où viennent tes visiteurs. Les points représentent les pays, pas une position GPS précise.</p>
+          <div className="ml-kicker">Carte en direct</div>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight">Vos visiteurs dans le monde</h2>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-3">D’où viennent vos visiteurs. Chaque point est un pays, jamais une position précise.</p>
         </div>
-        <div className="rounded-2xl border border-line bg-well px-5 py-3 text-right">
-          <div className="text-[11px] uppercase tracking-[.12em] text-ink-3">Visiteurs actifs · 5 min</div>
-          <div className="mt-1 flex items-center justify-end gap-2 text-3xl font-semibold tabular-nums"><span className="h-2.5 w-2.5 rounded-full bg-success shadow-[0_0_0_4px_rgba(27,185,129,.12)]" />{data ? formatter.format(data.online) : '—'}</div>
+        <div className="text-right">
+          <div className="text-[12px] text-ink-3">Actifs · 5 min</div>
+          <div className="mt-0.5 flex items-center justify-end gap-2 text-2xl font-semibold tabular-nums"><span className="h-2 w-2 rounded-full bg-success" />{data ? formatter.format(data.online) : '—'}</div>
         </div>
       </div>
       <div className="relative grid items-center gap-1 lg:grid-cols-[minmax(0,1.7fr)_minmax(240px,.7fr)]">

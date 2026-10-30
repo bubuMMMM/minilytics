@@ -8,11 +8,11 @@ export function SegmentedTabs<T extends string | number>({ value, options, onCha
   label: string;
 }) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-xl border border-line bg-well p-1" role="group" aria-label={label}>
+    <div className="inline-flex items-center gap-0.5 rounded-lg border border-line bg-well p-0.5" role="group" aria-label={label}>
       {options.map((option) => (
         <button key={option.value} type="button" aria-pressed={value === option.value}
-          className={'rounded-[9px] px-3.5 py-2 text-[12px] font-semibold transition-all duration-200 sm:px-4 ' +
-            (value === option.value ? 'bg-surface text-accent shadow-[0_1px_5px_rgba(25,47,110,.12)]' : 'text-ink-3 hover:text-ink-2')}
+          className={'min-h-[36px] rounded-md px-3 text-[13px] font-medium transition-colors md:min-h-[30px] ' +
+            (value === option.value ? 'bg-surface text-ink shadow-xs' : 'text-ink-3 hover:text-ink')}
           onClick={() => onChange(option.value)}>
           {option.label}
         </button>
@@ -23,9 +23,9 @@ export function SegmentedTabs<T extends string | number>({ value, options, onCha
 
 export function StatusPill({ children, active = false }: { children: ReactNode; active?: boolean }) {
   return (
-    <span className={'inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-semibold ' +
-      (active ? 'border-line bg-success-soft text-success' : 'border-line bg-well text-ink-3')}>
-      <span className={active ? 'ml-dot-live' : 'h-1.5 w-1.5 rounded-full bg-line-strong'} />
+    <span className={'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line px-2.5 py-0.5 text-[12px] font-medium ' +
+      (active ? 'text-ink-2' : 'text-ink-3')}>
+      <span className={'h-1.5 w-1.5 rounded-full ' + (active ? 'bg-success' : 'bg-line-strong')} />
       {children}
     </span>
   );
@@ -42,26 +42,20 @@ export function MetricTile({ label, value, caption, icon, number, focus = false,
 }) {
   const max = Math.max(1, ...(series || []));
   return (
-    <article className={'ml-bento ml-bento-interactive group relative flex min-h-[160px] min-w-0 flex-col overflow-hidden p-5 sm:min-h-[182px] sm:p-6 ' +
-      (focus ? 'border-accent/30 bg-well' : '')}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0"><div className="text-[12px] font-semibold text-ink-3">{label}</div></div>
-        <div className={'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ' + (focus ? 'bg-accent-soft text-accent' : 'bg-well text-ink-3')}>
-          <UiIcon name={icon} size={18}/>
-        </div>
+    <article className="ml-bento flex min-w-0 flex-col p-4 sm:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="truncate text-[12px] font-medium text-ink-3">{label}</span>
+        <span className="shrink-0 text-ink-4" data-n={number} data-focus={focus || undefined}><UiIcon name={icon} size={15}/></span>
       </div>
-      <div className="mt-3 flex items-end justify-between gap-2">
-        <div className="min-w-0 truncate text-[clamp(1.7rem,3vw,2.65rem)] font-semibold leading-none tracking-[-.063em] tabular-nums text-ink">{value}</div>
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <div className="min-w-0 truncate text-2xl font-semibold leading-tight tracking-tight tabular-nums text-ink">{value}</div>
         {series && series.length > 1 &&
-          <div className="flex h-[38px] w-[80px] shrink-0 items-end gap-[3px] sm:w-[105px]" aria-hidden="true">
+          <div className="flex h-[28px] w-[72px] shrink-0 items-end gap-[2px] sm:w-[96px]" aria-hidden="true">
             {series.slice(-12).map((n,i) =>
-              <span key={i} className={'min-w-[2px] flex-1 rounded-t-[3px] ' + (focus ? 'bg-accent' : 'bg-accent')}
-                style={{height: Math.max(3, n / max * 100) + '%'}} />)}
+              <span key={i} className="min-w-[2px] flex-1 rounded-t-[2px] bg-accent/70" style={{height: Math.max(4, n / max * 100) + '%'}} />)}
           </div>}
       </div>
-      <div className="mt-auto flex items-center justify-between gap-2 border-t border-line pt-3.5 text-[11px] text-ink-4">
-        <span className="truncate">{caption}</span><span className="font-mono text-ink-4">{number}</span>
-      </div>
+      <div className="mt-1 truncate text-[12px] text-ink-4">{caption}</div>
     </article>
   );
 }

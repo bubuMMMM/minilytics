@@ -83,7 +83,7 @@ export function BlocksView({ kind }: { kind: BlockKind }) {
     <section aria-labelledby="blocks-title">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div className="max-w-2xl">
-          <h2 id="blocks-title" className="text-[17px] font-semibold tracking-[-.02em]">{copy.title}</h2>
+          <h2 id="blocks-title" className="text-lg font-semibold tracking-tight">{copy.title}</h2>
           <p className="mt-1 text-[13px] leading-relaxed text-ink-3">{copy.intro}</p>
         </div>
         <button type="button" className="btn" onClick={exportCsv} disabled={!rows.length}><UiIcon name="download" size={16} /> Exporter en CSV</button>
@@ -235,7 +235,7 @@ export function BlocksView({ kind }: { kind: BlockKind }) {
               <h3 className="mb-3 text-[15px] font-semibold">Par sponsor</h3>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {data.sponsors.map((s) => (
-                  <div key={s.sponsor ?? 'libre'} className="rounded-2xl border border-line p-4">
+                  <div key={s.sponsor ?? 'libre'} className="rounded-xl border border-line p-4">
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate font-semibold" translate="no">{s.sponsor ?? 'Emplacements libres'}</span>
                       <span className="text-[12px] text-ink-3">{s.placements} emplacement{s.placements > 1 ? 's' : ''}</span>

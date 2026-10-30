@@ -97,12 +97,12 @@ export function Toolbar({
   const canForward = overview ? overview.range.to < Date.now() - 60_000 : false;
 
   return (
-    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:w-auto sm:flex-wrap">
-      <Dropdown
+    <div className="flex w-full items-center gap-2 sm:w-auto sm:flex-wrap">
+      <div className="hidden md:block"><Dropdown
         button={
-          <button className="btn h-11 w-full min-w-0 justify-start px-3 text-base sm:w-auto sm:px-4">
-            <Favicon domain={site.domain} size={22} />
-            <span className="min-w-0 max-w-[180px] flex-1 truncate text-left font-semibold">{site.name}</span>
+          <button className="btn w-full min-w-0 justify-start px-2.5 sm:w-auto">
+            <Favicon domain={site.domain} size={16} />
+            <span className="min-w-0 max-w-[180px] flex-1 truncate text-left font-medium">{site.name}</span>
             <Chevron />
           </button>
         }
@@ -123,23 +123,23 @@ export function Toolbar({
             ))}
             <div className="my-1 border-t border-line" />
             <button className={itemCls(false)} onClick={() => navigate(`/site/${site.id}/settings`)}>
-              ⚙️ Réglages et installation
+              Réglages et installation
             </button>
             <button className={itemCls(false)} onClick={() => navigate('/sites')}>
-              ＋ Tous les sites
+              Tous les sites
             </button>
           </>
         )}
-      </Dropdown>
+      </Dropdown></div>
 
-      <div className="col-start-1 row-start-2 flex h-11 min-w-0 items-stretch rounded-xl border border-line bg-surface shadow-card sm:col-auto sm:row-auto">
-        <button className="w-11 shrink-0 rounded-l-xl text-xl text-ink-3 hover:bg-well" onClick={() => shift(-1)} aria-label="Période précédente">
+      <div className="flex h-11 min-w-0 flex-1 items-stretch sm:flex-none rounded-lg border border-line bg-surface shadow-xs md:h-9 sm:col-auto sm:row-auto">
+        <button className="w-10 shrink-0 rounded-l-lg text-lg text-ink-3 hover:bg-well hover:text-ink md:w-8" onClick={() => shift(-1)} aria-label="Période précédente">
           ‹
         </button>
         <Dropdown
           grow
           button={
-            <button className="flex h-full w-full min-w-0 items-center justify-center gap-2 whitespace-nowrap border-x border-line px-3 text-[15px] font-medium hover:bg-well sm:px-4 sm:text-base">
+            <button className="flex h-full w-full min-w-0 items-center justify-center gap-2 whitespace-nowrap border-x border-line px-3 text-[13px] font-medium hover:bg-well">
               {label} <Chevron />
             </button>
           }
@@ -177,7 +177,7 @@ export function Toolbar({
           )}
         </Dropdown>
         <button
-          className="w-11 shrink-0 rounded-r-xl text-xl text-ink-3 hover:bg-well disabled:opacity-30"
+          className="w-10 shrink-0 rounded-r-lg text-lg text-ink-3 hover:bg-well hover:text-ink disabled:opacity-30 md:w-8"
           onClick={() => shift(1)}
           disabled={!canForward}
           aria-label="Période suivante"
@@ -189,7 +189,7 @@ export function Toolbar({
       <Dropdown
         align="right"
         button={
-          <button className="btn h-11 whitespace-nowrap px-3 text-[15px] sm:px-4 sm:text-base">
+          <button className="btn whitespace-nowrap px-3">
             {GRANULARITIES.find((g) => g.value === (q.granularity ?? overview?.range.granularity))?.label ?? 'Par jour'} <Chevron />
           </button>
         }
@@ -210,7 +210,7 @@ export function Toolbar({
         }
       </Dropdown>
 
-      <button className="btn h-11 w-11 px-0" onClick={onRefresh} aria-label="Actualiser">
+      <button className="btn w-11 px-0 md:w-9" onClick={onRefresh} aria-label="Actualiser">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={loading ? 'animate-spin' : ''}>
           <path d="M21 12a9 9 0 1 1-3-6.7L21 8" />
           <path d="M21 3v5h-5" />

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Logo } from '../components/Logo';
 import { UiIcon } from '../components/UiIcon';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 export function Login({ onLogin }: { onLogin: () => void }) {
   const [password, setPassword] = useState('');
@@ -28,48 +29,35 @@ export function Login({ onLogin }: { onLogin: () => void }) {
   }
 
   return (
-    <div className="ml-site-bg flex min-h-screen flex-col bg-surface">
-      <header className="border-b border-line">
-        <div className="mx-auto flex h-[80px] max-w-[1380px] items-center justify-between px-5 sm:px-8 lg:px-12">
-          <a href="/" aria-label="Retour à l’accueil" className="rounded-lg"><Logo /></a>
-          <a href="/demo" className="btn !px-3 sm:!px-4">Voir la démo <UiIcon name="arrow-up-right" size={16}/></a>
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-canvas">
+      <div className="ml-grid-bg pointer-events-none absolute inset-x-0 top-0 h-[460px]" aria-hidden />
+      <header className="relative">
+        <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between px-4 sm:px-6">
+          <a href="/" aria-label="Retour à l’accueil" className="flex min-h-[44px] items-center rounded-md"><Logo /></a>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <a href="/demo" className="btn-ghost !text-[13px]">Voir la démo</a>
+          </div>
         </div>
       </header>
-      <main className="mx-auto grid w-full max-w-[1280px] flex-1 items-center gap-12 px-5 py-12 sm:px-8 lg:grid-cols-[1.02fr_.98fr] lg:gap-20 lg:py-20">
-        <div className="hidden overflow-hidden rounded-[28px] bg-well p-10 text-ink shadow-none border border-accent/30 lg:block">
-          <div className="ml-kicker !text-accent"><span className="ml-dot" /> ACCÈS À VOS DONNÉES</div>
-          <h1 className="ml-heading mt-7 text-[clamp(2.7rem,4vw,4.3rem)]">Ce qui compte,<br/>en un <span className="text-accent">coup d'œil.</span></h1>
-          <p className="mt-6 max-w-[420px] text-[15px] leading-[1.8] text-ink-3">Vos sites, vos visiteurs et vos conversions, au même endroit. Sans bruit. Sans chiffres inventés.</p>
-          <div className="relative mt-12 overflow-hidden rounded-[24px] border border-line bg-surface p-7">
-            <div className="ml-hero-signal pointer-events-none absolute -right-24 -top-24 h-[360px] w-[360px] opacity-70" />
-            <div className="relative grid grid-cols-2 gap-4">
-              {[
-                { icon: 'activity' as const, title: 'Temps réel', caption: 'Le trafic en direct' },
-                { icon: 'globe' as const, title: 'Globe en direct', caption: 'Audience dans le monde' },
-                { icon: 'bar-chart' as const, title: 'Statistiques', caption: 'Les signaux essentiels' },
-                { icon: 'shield' as const, title: 'Données privées', caption: 'Accès protégé' },
-              ].map(item => <div key={item.title} className="rounded-[17px] border border-line bg-surface p-4"><span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent"><UiIcon name={item.icon} size={19}/></span><p className="mt-4 text-[13px] font-semibold">{item.title}</p><p className="mt-1.5 text-[11px] text-ink-3">{item.caption}</p></div>)}
-            </div>
-          </div>
-          <p className="mt-7 text-xs text-ink-3">Une plateforme légère, pensée pour comprendre, pas pour compliquer.</p>
-        </div>
-
-        <div className="mx-auto w-full max-w-[440px] py-6">
-          <div className="ml-kicker"><span className="ml-dot" /> ESPACE PRIVÉ</div>
-          <h2 className="ml-heading mt-5 text-[clamp(2.7rem,5vw,3.8rem)]">Heureux de<br/>vous revoir<span className="text-accent">.</span></h2>
-          <p className="mt-5 max-w-[350px] text-[14px] leading-relaxed text-ink-3">Connectez-vous pour retrouver vos projets et vos analyses.</p>
-          <form onSubmit={submit} className="mt-10 space-y-4" aria-busy={busy}>
-            <div>
-              <label className="label" htmlFor="pw">Mot de passe</label>
-              <div className="relative">
-                <input id="pw" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required className="input !h-[55px] !pr-16" name="password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus={autoFocus} />
-                <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-ink-3 hover:bg-well hover:text-ink-2" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?'Masquer le mot de passe':'Afficher le mot de passe'}><UiIcon name="eye" size={19}/></button>
+      <main className="relative flex flex-1 items-start justify-center px-4 pb-16 pt-10 sm:items-center sm:pt-0">
+        <div className="w-full max-w-[400px]">
+          <div className="rounded-xl border border-line bg-surface p-6 shadow-card sm:p-8">
+            <h1 className="text-xl font-semibold tracking-tight">Connexion</h1>
+            <p className="mt-1 text-[14px] text-ink-3">Accédez à vos sites et à leurs statistiques.</p>
+            <form onSubmit={submit} className="mt-6 space-y-4" aria-busy={busy}>
+              <div>
+                <label className="label" htmlFor="pw">Mot de passe</label>
+                <div className="relative">
+                  <input id="pw" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required className="input !h-11 !pr-12" name="password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus={autoFocus} spellCheck={false} />
+                  <button type="button" className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-r-lg text-ink-4 hover:text-ink" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?'Masquer le mot de passe':'Afficher le mot de passe'} aria-pressed={showPassword}><UiIcon name="eye" size={16}/></button>
+                </div>
               </div>
-            </div>
-            {error && <div className="rounded-xl border border-danger/40 bg-danger-soft p-3 text-[13px] text-danger" role="alert">{error}</div>}
-            <button className="btn-dark !h-[55px] w-full" disabled={busy}>{busy ? 'Connexion en cours…' : 'Accéder à mes statistiques'} <UiIcon name="arrow-right" size={17}/></button>
-          </form>
-          <div className="mt-9 flex items-center gap-3 border-t border-line pt-6 text-[12px] text-ink-3"><UiIcon name="shield" size={17} className="text-accent"/> Vos données sont protégées par votre espace privé.</div>
+              {error && <div className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2.5 text-[13px] text-danger" role="alert">{error}</div>}
+              <button className="btn-dark !h-11 w-full" disabled={busy}>{busy ? 'Connexion…' : 'Se connecter'}</button>
+            </form>
+          </div>
+          <p className="mt-5 text-center text-[13px] text-ink-3">Pas encore de compte ? <a href="/signup" className="font-medium text-ink underline-offset-4 hover:underline">Créer un compte</a></p>
         </div>
       </main>
     </div>

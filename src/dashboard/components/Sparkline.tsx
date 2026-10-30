@@ -21,27 +21,27 @@ export function Sparkline({ data, className = 'text-visitors', height = 36, widt
 }
 
 export function Trend({ cur, prev, invert = false }: { cur: number; prev: number; invert?: boolean }) {
-  if (!prev) return <span className="pill bg-well text-ink-4">—</span>;
+  if (!prev) return null;
   const pct = (cur - prev) / prev;
   if (!Number.isFinite(pct)) return null;
   const up = pct >= 0;
   const good = invert ? !up : up;
   const flat = Math.abs(pct) < 0.005;
+  const v = Math.abs(pct) < 0.1 ? Math.abs(pct * 100).toFixed(1).replace('.', ',') : String(Math.round(Math.abs(pct * 100)));
   return (
-    <span
-      className={`pill ${flat ? 'bg-well text-ink-3' : good ? 'bg-success/10 text-success dark:text-success' : 'bg-rose-500/10 text-danger dark:text-danger'}`}
-      title="vs période précédente"
-    >
-      {flat ? '•' : up ? '▲' : '▼'} {Math.abs(pct) < 0.1 ? Math.abs(pct * 100).toFixed(1) : Math.round(Math.abs(pct * 100))}%
+    <span className={`tnum inline-flex items-center gap-0.5 text-[12px] font-medium ${flat ? 'text-ink-3' : good ? 'text-success' : 'text-danger'}`} title="vs période précédente">
+      {!flat && <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden className={up ? '' : 'rotate-180'}><path d="M5 2 8.5 7h-7L5 2Z" fill="currentColor" /></svg>}
+      {flat ? '0' : (up ? '+' : '−') + v}&nbsp;%
+      <span className="sr-only">par rapport à la période précédente</span>
     </span>
   );
 }
 
 export function LiveDot({ on = true }: { on?: boolean }) {
   return (
-    <span className="relative inline-flex h-2.5 w-2.5">
+    <span className="relative inline-flex h-2 w-2">
       {on && <span className="absolute inline-flex h-full w-full animate-ping2 rounded-full bg-success opacity-60" />}
-      <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${on ? 'bg-success' : 'bg-line-strong'}`} />
+      <span className={`relative inline-flex h-2 w-2 rounded-full ${on ? 'bg-success' : 'bg-line-strong'}`} />
     </span>
   );
 }
