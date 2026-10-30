@@ -24,6 +24,12 @@ describe('classify', () => {
     expect(classify({ referrerDomain: 'google.com', utmMedium: 'cpc' }).channel).toBe('Paid');
     expect(classify({ referrerDomain: null, utmSource: 'buttondown', utmMedium: 'email' }).channel).toBe('Email');
   });
+  it('keeps an unknown explicit tag as the source but the channel of the referring platform', () => {
+    expect(classify({ referrerDomain: 't.co', utmSource: 'launch-tweet' })).toMatchObject({ source: 'launch-tweet', channel: 'Organic Social' });
+    expect(classify({ referrerDomain: 'google.com', ref: 'my-newsletter-42' })).toMatchObject({ source: 'my-newsletter-42', channel: 'Organic Search' });
+    expect(classify({ referrerDomain: 'x.com', utmSource: 'x' })).toMatchObject({ source: 'X', channel: 'Organic Social' });
+    expect(classify({ referrerDomain: androidAppDomain('com.instagram.android') })).toMatchObject({ source: 'Instagram' });
+  });
   it('falls back to Direct', () => {
     expect(classify({ referrerDomain: null })).toMatchObject({ source: 'Direct', channel: 'Direct' });
   });

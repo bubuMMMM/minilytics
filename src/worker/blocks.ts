@@ -132,7 +132,7 @@ export async function blocksReport(ctx: Ctx, kind: BlockKind | null, limit = 200
   const sc = blockScope(ctx, { kind });
   const b = bucketSql('e.ts', range.granularity, ctx.offset);
   const lim = Math.max(1, Math.min(500, limit));
-  const [totals, perBlock, pages, hrefs, series, perSponsor, perPage] = await db.batch([
+  const [totals, perBlock, pages, hrefs, series, perSponsor, perPage, anomalies] = await db.batch([
     db.prepare(`SELECT ${METRICS} FROM ${sc.from} WHERE ${sc.where}`).bind(...sc.params),
     db
       .prepare(
@@ -169,6 +169,16 @@ export async function blocksReport(ctx: Ctx, kind: BlockKind | null, limit = 200
          FROM ${sc.from} WHERE ${sc.where} GROUP BY e.path ORDER BY impressions DESC LIMIT 100`,
       )
       .bind(...sc.params),
+    // Anomalous sessions: many clicks, clicks without any impression, or far more clicks than impressions.
+    db
+      .prepare(
+        `SELECT COUNT(*) AS sessions, COALESCE(SUM(c), 0) AS clicks, COALESCE(SUM(i), 0) AS impressions FROM (
+           SELECT e.session_id, SUM(CASE WHEN e.type = 'block_click' THEN 1 ELSE 0 END) AS c,
+             SUM(CASE WHEN e.type = 'block_view' THEN 1 ELSE 0 END) AS i
+           FROM ${sc.from} WHERE ${sc.where} GROUP BY e.session_id
+         ) a WHERE c >= ${ANOMALY_CLICKS} OR (c > 0 AND i = 0) OR (c >= 5 AND c > 3 * i)`,
+      )
+      .bind(...sc.params),
   ]);
   type P = { id: string; sponsor: string | null; path?: string; props?: string; n: number };
   const pageOf = modeBy(pages.results as P[], (r) => rowKey(r.id, r.sponsor), (r) => r.path, (r) => Number(r.n));
@@ -190,7 +200,14 @@ export async function blocksReport(ctx: Ctx, kind: BlockKind | null, limit = 200
     sponsors: (perSponsor.results as any[]).map((r) => ({ sponsor: r.sponsor, ...metrics(r), placements: Number(r.placements) || 0 })),
     pages: (perPage.results as any[]).map((r) => ({ page: r.page ?? null, ...metrics(r), blocks: Number(r.blocks) || 0 })),
     series: seriesOf(range, ctx.offset, series.results as any[]),
+    anomalies: anomalyOf((anomalies.results as any[])[0]),
   };
+}
+
+/** A session with this many block clicks in the period is flagged as anomalous (ingest caps at 20 per block). */
+export const ANOMALY_CLICKS = 10;
+function anomalyOf(r: any) {
+  return { sessions: Number(r?.sessions) || 0, clicks: Number(r?.clicks) || 0, impressions: Number(r?.impressions) || 0 };
 }
 
 const DIMS: Record<string, string> = {
