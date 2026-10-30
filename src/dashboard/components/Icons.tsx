@@ -37,7 +37,7 @@ export function LinkIcon({ size = 16 }: { size?: number }) {
 }
 
 export function SourceIcon({ source, domain, size }: { source: string | null; domain?: string | null; size?: number }) {
-  if (!source || source === 'Direct/None') return <Favicon size={size} />;
+  if (!source || source === 'Direct/None' || source === 'Direct') return <Favicon size={size} />;
   return <Favicon domain={domainForSource(source) ?? domain ?? (source.includes('.') ? source : null)} size={size} />;
 }
 

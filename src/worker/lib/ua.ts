@@ -54,3 +54,35 @@ export function parseUA(ua: string, screenWidth?: number): ParsedUA {
   if (device === 'Desktop' && screenWidth && screenWidth < 600) device = 'Mobile';
   return { browser, os, device };
 }
+
+export interface UADetails {
+  browserVersion: string | null;
+  osVersion: string | null;
+  model: string | null;
+}
+
+/** Major browser version, OS version and device model. UA client hints (`ch`) win when present. */
+export function uaDetails(ua: string, ch?: { m?: unknown; pv?: unknown; bv?: unknown } | null): UADetails {
+  const str = (v: unknown, n: number) => (typeof v === 'string' && /^[\w .()+-]{1,60}$/.test(v) ? v.trim().slice(0, n) || null : null);
+  const bvMatch =
+    /(?:Edg(?:A|iOS)?|OPR|SamsungBrowser|YaBrowser|Firefox|FxiOS|CriOS|Chrome|Instagram|FBAV)\/(\d+)/.exec(ua) ?? /Version\/(\d+)/.exec(ua);
+  let osVersion: string | null = null;
+  let m: RegExpExecArray | null;
+  if ((m = /(?:iPhone|CPU) OS (\d+)[_.](\d+)/.exec(ua))) osVersion = `${m[1]}.${m[2]}`;
+  else if ((m = /Android (\d+(?:\.\d+)?)/.exec(ua))) osVersion = m[1];
+  else if ((m = /Mac OS X (\d+)[_.](\d+)/.exec(ua))) osVersion = `${m[1]}.${m[2]}`;
+  else if ((m = /Windows NT (\d+\.\d+)/.exec(ua))) osVersion = m[1];
+  let model: string | null = null;
+  if (/iPhone/.test(ua)) model = 'iPhone';
+  else if (/iPad/.test(ua)) model = 'iPad';
+  else if ((m = /Android [\d.]+; (?:[a-z]{2}-[a-z]{2}; )?([^;)]+?)(?: Build\/|\))/i.exec(ua)) && !/^K$/.test(m[1])) model = m[1].trim();
+  const chModel = str(ch?.m, 40);
+  const chPv = str(ch?.pv, 20);
+  const chBv = str(ch?.bv, 10);
+  return {
+    browserVersion: chBv ?? bvMatch?.[1] ?? null,
+    // Windows 11 reports platformVersion ≥ 13 through client hints only.
+    osVersion: chPv ?? osVersion,
+    model: (chModel ?? model)?.slice(0, 40) ?? null,
+  };
+}

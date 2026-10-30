@@ -25,7 +25,7 @@ describe('classify', () => {
     expect(classify({ referrerDomain: null, utmSource: 'buttondown', utmMedium: 'email' }).channel).toBe('Email');
   });
   it('falls back to Direct', () => {
-    expect(classify({ referrerDomain: null })).toMatchObject({ source: 'Direct/None', channel: 'Direct' });
+    expect(classify({ referrerDomain: null })).toMatchObject({ source: 'Direct', channel: 'Direct' });
   });
   it('does not confuse mail.google.com with Google search', () => {
     expect(classify({ referrerDomain: 'mail.google.com' })).toMatchObject({ source: 'Gmail', channel: 'Email' });
@@ -153,5 +153,38 @@ describe('video and action events', () => {
     expect(normalizeLanguage('fr-fr')).toBe('fr-FR');
     expect(normalizeLanguage('EN')).toBe('en');
     expect(normalizeLanguage('???')).toBeNull();
+  });
+});
+
+import { androidAppDomain } from '../src/shared/sources';
+import { blockEvents } from '../src/worker/collect';
+import { uaDetails } from '../src/worker/lib/ua';
+
+describe('precision tracking', () => {
+  it('maps android-app referrers and in-app browsers to their network', () => {
+    expect(classify({ referrerDomain: androidAppDomain('com.twitter.android') })).toMatchObject({ source: 'X', channel: 'Organic Social' });
+    expect(classify({ referrerDomain: androidAppDomain('com.google.android.gm') })).toMatchObject({ source: 'Gmail', channel: 'Email' });
+    expect(classify({ referrerDomain: null, inAppBrowser: 'Instagram' })).toMatchObject({ source: 'Instagram' });
+    expect(classify({ referrerDomain: null, inAppBrowser: 'TikTok' })).toMatchObject({ source: 'TikTok' });
+    expect(classify({ referrerDomain: 't.co' }).source).toBe('X');
+  });
+  it('parses versions and models', () => {
+    const android = 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36';
+    expect(uaDetails(android)).toEqual({ browserVersion: '129', osVersion: '14', model: 'SM-S918B' });
+    const ios = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1';
+    expect(uaDetails(ios)).toEqual({ browserVersion: '18', osVersion: '18.1', model: 'iPhone' });
+    expect(uaDetails(android, { m: 'Pixel 9', pv: '15.0.0', bv: '130' })).toEqual({ browserVersion: '130', osVersion: '15.0.0', model: 'Pixel 9' });
+  });
+  it('validates block impressions and clicks', () => {
+    const views = blockEvents({ n: 'view', p: { items: [
+      { id: 'trending-sponsor-2', k: 'sponsor', s: 'Bidouilleurs', h: 'https://bidouilleurs.co/x?y=1' },
+      { id: 'trending-sponsor-2', k: 'sponsor', s: 'Bidouilleurs' },
+      { id: 'home-trending', i: 'dQw4w9WgXcQ', pos: 3 },
+      { id: 'bad id!' },
+    ] } });
+    expect(views).toHaveLength(2);
+    expect(views[0]).toMatchObject({ kind: 'sponsor', sponsor: 'Bidouilleurs', href: 'https://bidouilleurs.co/x' });
+    expect(views[1]).toMatchObject({ kind: 'content', item: 'dQw4w9WgXcQ', pos: 3 });
+    expect(blockEvents({ n: 'click', p: { id: 'watch-sidebar', k: 'sponsor', h: 'javascript:alert(1)' } })[0].href).toBeNull();
   });
 });

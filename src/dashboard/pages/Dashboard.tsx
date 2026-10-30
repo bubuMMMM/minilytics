@@ -3,7 +3,7 @@ import { navigate } from '../App';
 import { GoalsPanel } from '../components/GoalsPanel';
 import { LiveGlobe } from '../components/LiveGlobe';
 import { EngagementPanel } from '../components/EngagementPanel';
-import { Logo } from '../components/Logo';
+import { AppHeader, BottomNav } from '../components/AppNav';
 import { LiveDot } from '../components/Sparkline';
 import { UiIcon } from '../components/UiIcon';
 import { OverviewCard } from '../components/OverviewCard';
@@ -81,13 +81,8 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
 
   return (
     <DashContext.Provider value={dash}>
-      <div className="ml-site-bg min-h-screen pb-10">
-        <header className="border-b border-[#e8edf5] bg-[#ffffff]/85">
-          <div className="mx-auto flex h-[76px] max-w-[1480px] items-center justify-between gap-3 px-4 sm:px-6">
-            <button aria-label="Retour aux sites" onClick={() => navigate('/sites')}><Logo /></button>
-            <div className="flex items-center gap-2"><button className="btn hidden sm:inline-flex" onClick={() => navigate('/')}>Voir la démo <UiIcon name="external" size={16}/></button><button className={view === 'videos' ? 'btn-dark' : 'btn'} onClick={() => navigate('/site/' + site.id + (view === 'videos' ? '' : '/videos') + window.location.search)}><UiIcon name={view === 'videos' ? 'bar-chart' : 'play'} size={16}/><span className="hidden sm:inline">{view === 'videos' ? 'Vue d’ensemble' : 'Vidéos'}</span></button><button className="btn" onClick={() => navigate('/site/' + site.id + '/realtime')}><LiveDot on={!!overview?.online} /><span className="hidden sm:inline">Temps réel</span></button><button className="btn" onClick={() => navigate('/sites')}><UiIcon name="layers" size={16}/><span className="hidden sm:inline">Mes sites</span></button><button className="btn-dark" onClick={() => navigate('/site/' + site.id + '/settings')}><UiIcon name="shield" size={16}/><span className="hidden sm:inline">Réglages</span></button></div>
-          </div>
-        </header>
+      <div className="ml-site-bg ml-has-bottom-nav min-h-screen pb-10">
+        <AppHeader siteId={site.id} active={view === 'videos' ? 'videos' : 'overview'} online={!!overview?.online} title={site.name} />
         <div className="mx-auto max-w-[1480px] px-4 py-9 sm:px-6 lg:py-12">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div><div className="ml-kicker"><span className="ml-dot" /> {view === 'videos' ? 'ANALYSE / VIDÉOS' : 'ANALYSE / VOTRE SITE'}</div><h1 className="ml-heading mt-3 text-[clamp(2.3rem,4.4vw,3.7rem)]">{view === 'videos' ? 'Vidéos · ' + site.name : site.name}<span className="text-[#4f62ef]">.</span></h1><p className="mt-3 text-[13px] text-[#8290a3]">Les performances et connexions de <span className="font-medium text-[#56657e]">{site.domain}</span></p></div>
@@ -215,6 +210,7 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
         </p>
         </div>
       </div>
+      <BottomNav siteId={site.id} active={view === 'videos' ? 'videos' : 'overview'} />
       <VisitorModal key={visitor ?? 'none'} visitorId={visitor} onClose={() => setVisitor(null)} />
     </DashContext.Provider>
   );

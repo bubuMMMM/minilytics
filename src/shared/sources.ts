@@ -50,6 +50,10 @@ export const KNOWN_SOURCES: KnownSource[] = [
   { name: 'Dev.to', domain: 'dev.to', channel: 'Referral', match: /^(dev\.to|devto)$/ },
   { name: 'Indie Hackers', domain: 'indiehackers.com', channel: 'Referral', match: /^((.*\.)?indiehackers\.com|indiehackers)$/ },
   { name: 'GitHub', domain: 'github.com', channel: 'Referral', match: /^((.*\.)?github\.com|github)$/ },
+  { name: 'WhatsApp', domain: 'whatsapp.com', channel: 'Organic Social', match: /^((.*\.)?(whatsapp\.com|wa\.me)|whatsapp|wa)$/ },
+  { name: 'Telegram', domain: 'telegram.org', channel: 'Organic Social', match: /^((.*\.)?(telegram\.org|t\.me)|telegram)$/ },
+  { name: 'Discord', domain: 'discord.com', channel: 'Organic Social', match: /^((.*\.)?discord\.(com|gg)|discord)$/ },
+  { name: 'Snapchat', domain: 'snapchat.com', channel: 'Organic Social', match: /^((.*\.)?snapchat\.com|snapchat|snap)$/ },
   { name: 'Gmail', domain: 'mail.google.com', channel: 'Email', match: /^(mail\.google\.com|gmail)$/ },
   { name: 'Outlook', domain: 'outlook.com', channel: 'Email', match: /^((.*\.)?(outlook\.(com|live\.com)|outlook\.office\.com))$/ },
   { name: 'Newsletter', domain: '', channel: 'Email', match: /^(newsletter|email|mail)$/ },
@@ -79,13 +83,47 @@ export interface Attribution {
  * Decide where a visit came from. An explicit `ref` / `utm_source` wins over the HTTP referrer,
  * because that's how you tag a specific tweet or article ("?ref=launch-tweet").
  */
+const ANDROID_APPS: Record<string, string> = {
+  'com.google.android.gm': 'mail.google.com',
+  'com.google.android.googlequicksearchbox': 'google.com',
+  'com.google.android.apps.searchlite': 'google.com',
+  'com.google.android.youtube': 'youtube.com',
+  'com.twitter.android': 'x.com',
+  'com.instagram.android': 'instagram.com',
+  'com.facebook.katana': 'facebook.com',
+  'com.facebook.lite': 'facebook.com',
+  'com.facebook.orca': 'facebook.com',
+  'com.zhiliaoapp.musically': 'tiktok.com',
+  'com.ss.android.ugc.trill': 'tiktok.com',
+  'com.reddit.frontpage': 'reddit.com',
+  'com.linkedin.android': 'linkedin.com',
+  'com.pinterest': 'pinterest.com',
+  'com.instagram.barcelona': 'threads.net',
+  'xyz.blueskyweb.app': 'bsky.app',
+  'com.microsoft.office.outlook': 'outlook.com',
+  'org.telegram.messenger': 'telegram.org',
+  'com.whatsapp': 'whatsapp.com',
+  'com.discord': 'discord.com',
+  'com.snapchat.android': 'snapchat.com',
+};
+/** Map an Android package (android-app:// referrer) to the web domain of that app. */
+export function androidAppDomain(pkg: string): string {
+  return ANDROID_APPS[pkg.toLowerCase()] ?? pkg.toLowerCase();
+}
+
+/** In-app browsers (parsed from the user agent) usually strip the referrer: they still tell us the source. */
+const IN_APP: Record<string, string> = { Instagram: 'instagram.com', Facebook: 'facebook.com', Twitter: 'x.com', TikTok: 'tiktok.com', LinkedIn: 'linkedin.com', Threads: 'threads.net', Snapchat: 'snapchat.com' };
+
 export function classify(input: {
   referrerDomain: string | null;
   utmSource?: string | null;
   utmMedium?: string | null;
   ref?: string | null;
+  inAppBrowser?: string | null;
 }): Attribution {
-  const { referrerDomain, utmSource, utmMedium, ref } = input;
+  const { utmSource, utmMedium, ref } = input;
+  let referrerDomain = input.referrerDomain;
+  if (!referrerDomain && input.inAppBrowser && IN_APP[input.inAppBrowser]) referrerDomain = IN_APP[input.inAppBrowser];
   const tag = utmSource || ref || null;
   const known = findKnownSource(tag) ?? findKnownSource(referrerDomain);
 
@@ -93,7 +131,7 @@ export function classify(input: {
   if (known) source = known.name;
   else if (tag) source = tag;
   else if (referrerDomain) source = referrerDomain;
-  else source = 'Direct/None';
+  else source = 'Direct';
 
   let channel: Channel;
   if (utmMedium && PAID_MEDIUM.test(utmMedium)) channel = 'Paid';

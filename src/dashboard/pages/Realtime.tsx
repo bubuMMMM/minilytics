@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { navigate } from '../App';
 import { Avatar, DeviceIcon, Favicon, Flag, SourceIcon } from '../components/Icons';
-import { Logo } from '../components/Logo';
+import { AppHeader, BottomNav } from '../components/AppNav';
 import { UiIcon } from '../components/UiIcon';
 import { LiveDot } from '../components/Sparkline';
 import { api, type Realtime as RT, type Site } from '../lib/api';
@@ -92,17 +92,9 @@ export function Realtime({ siteId }: { siteId: string }) {
   const pv30 = rt ? rt.recent.filter((e) => e.type === 'pageview').length : 0;
 
   return (
-    <div className="ml-site-bg min-h-screen pb-12">
-      <header className="border-b border-[#e8edf5] bg-[#ffffff]/85">
-        <div className="mx-auto flex h-[76px] max-w-[1480px] items-center justify-between gap-3 px-4 sm:px-6">
-          <button aria-label="Retour aux sites" onClick={() => navigate('/sites')}><Logo /></button>
-          <div className="flex items-center gap-2">
-            <button className="btn" onClick={() => navigate('/site/' + siteId)}><UiIcon name="bar-chart" size={16}/><span className="hidden sm:inline">Tableau de bord</span></button>
-            <button className="btn-dark" onClick={() => navigate('/site/' + siteId + '/settings')}><UiIcon name="shield" size={16}/><span className="hidden sm:inline">Réglages</span></button>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-[1480px] animate-fadein px-4 py-9 sm:px-6 lg:py-12">
+    <div className="ml-site-bg ml-has-bottom-nav min-h-screen pb-12">
+      <AppHeader siteId={siteId} active="realtime" online={!!rt?.online} title={site?.name} />
+      <main className="mx-auto max-w-[1480px] animate-fadein px-4 py-6 sm:px-6 sm:py-9 lg:py-12">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="ml-kicker"><span className="ml-dot" /> TEMPS RÉEL / {site?.domain ?? '…'}</div>
@@ -141,14 +133,14 @@ export function Realtime({ siteId }: { siteId: string }) {
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <List title="Pages actives" rows={rt?.pages ?? []} render={(l) => <span className="truncate font-mono text-[13px]">{l ?? '(none)'}</span>} />
+        <List title="Pages actives" rows={rt?.pages ?? []} render={(l) => <span className="truncate font-mono text-[13px]">{l ?? '(aucune)'}</span>} />
         <List
           title="Sources principales"
           rows={rt?.sources ?? []}
           render={(l) => (
             <>
               <SourceIcon source={l} />
-              <span className="truncate">{l ?? 'Direct/None'}</span>
+              <span className="truncate">{l ?? 'Direct'}</span>
             </>
           )}
         />
@@ -178,6 +170,7 @@ export function Realtime({ siteId }: { siteId: string }) {
         </div>
       </div>
       </main>
+      <BottomNav siteId={siteId} active="realtime" />
     </div>
   );
 }

@@ -5,25 +5,25 @@ import { dayInTz } from '../lib/format';
 import { Favicon } from './Icons';
 
 export const PERIODS: { value: string; label: string }[] = [
-  { value: 'today', label: 'Today' },
-  { value: 'yesterday', label: 'Yesterday' },
-  { value: '24h', label: 'Last 24 hours' },
-  { value: '48h', label: 'Last 2 days' },
-  { value: '7d', label: 'Last 7 days' },
-  { value: '30d', label: 'Last 30 days' },
-  { value: '90d', label: 'Last 90 days' },
-  { value: '12m', label: 'Last 12 months' },
-  { value: 'all', label: 'All time' },
+  { value: 'today', label: 'Aujourd’hui' },
+  { value: 'yesterday', label: 'Hier' },
+  { value: '24h', label: '24 dernières heures' },
+  { value: '48h', label: '2 derniers jours' },
+  { value: '7d', label: '7 derniers jours' },
+  { value: '30d', label: '30 derniers jours' },
+  { value: '90d', label: '90 derniers jours' },
+  { value: '12m', label: '12 derniers mois' },
+  { value: 'all', label: 'Depuis le début' },
 ];
 
 const GRANULARITIES = [
-  { value: 'hour', label: 'Hourly' },
-  { value: 'day', label: 'Daily' },
-  { value: 'week', label: 'Weekly' },
-  { value: 'month', label: 'Monthly' },
+  { value: 'hour', label: 'Par heure' },
+  { value: 'day', label: 'Par jour' },
+  { value: 'week', label: 'Par semaine' },
+  { value: 'month', label: 'Par mois' },
 ];
 
-export function Dropdown({ button, children, align = 'left' }: { button: ReactNode; children: (close: () => void) => ReactNode; align?: 'left' | 'right' }) {
+export function Dropdown({ button, children, align = 'left', grow = false }: { button: ReactNode; children: (close: () => void) => ReactNode; align?: 'left' | 'right'; grow?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -33,18 +33,20 @@ export function Dropdown({ button, children, align = 'left' }: { button: ReactNo
     return () => document.removeEventListener('mousedown', on);
   }, [open]);
   return (
-    <div className="relative flex" ref={ref}>
-      <div className="flex" onClick={() => setOpen((o) => !o)}>
+    <div className={`relative flex min-w-0 ${grow ? 'flex-1' : ''}`} ref={ref}>
+      <div className="flex w-full min-w-0" onClick={() => setOpen((o) => !o)}>
         {button}
       </div>
       {open && (
-        <div className={`card absolute top-full z-40 mt-2 min-w-[200px] overflow-hidden p-1 ${align === 'right' ? 'right-0' : 'left-0'}`}>
+        <div className={`card absolute top-full z-40 mt-2 max-h-[70dvh] w-[min(320px,calc(100vw-2rem))] min-w-[200px] overflow-y-auto p-1 sm:w-auto ${align === 'right' ? 'right-0' : 'left-0'}`}>
           {children(() => setOpen(false))}
         </div>
       )}
     </div>
   );
 }
+
+const fmtShort = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 
 const Chevron = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-stone-400">
@@ -53,7 +55,7 @@ const Chevron = () => (
 );
 
 function itemCls(active: boolean) {
-  return `flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-stone-100 ${active ? 'font-medium text-ink' : 'text-stone-600'}`;
+  return `flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left sm:min-h-0 text-sm hover:bg-stone-100 ${active ? 'font-medium text-ink' : 'text-stone-600'}`;
 }
 
 export function Toolbar({
@@ -79,9 +81,9 @@ export function Toolbar({
   const label =
     q.period === 'custom'
       ? q.from === q.to
-        ? new Date(q.from + 'T00:00:00Z').toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
-        : `${q.from} → ${q.to}`
-      : PERIODS.find((p) => p.value === q.period)?.label ?? 'Last 30 days';
+        ? new Date(q.from + 'T00:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+        : `${fmtShort(q.from ?? "")} → ${fmtShort(q.to ?? "")}`
+      : PERIODS.find((p) => p.value === q.period)?.label ?? '30 derniers jours';
 
   function shift(dir: -1 | 1) {
     if (!overview) return;
@@ -95,12 +97,12 @@ export function Toolbar({
   const canForward = overview ? overview.range.to < Date.now() - 60_000 : false;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:w-auto sm:flex-wrap">
       <Dropdown
         button={
-          <button className="btn h-11 px-4 text-base">
+          <button className="btn h-11 w-full min-w-0 justify-start px-3 text-base sm:w-auto sm:px-4">
             <Favicon domain={site.domain} size={22} />
-            <span className="max-w-[180px] truncate font-semibold">{site.name}</span>
+            <span className="min-w-0 max-w-[180px] flex-1 truncate text-left font-semibold">{site.name}</span>
             <Chevron />
           </button>
         }
@@ -121,22 +123,23 @@ export function Toolbar({
             ))}
             <div className="my-1 border-t border-stone-100" />
             <button className={itemCls(false)} onClick={() => navigate(`/site/${site.id}/settings`)}>
-              ⚙️ Site settings & install
+              ⚙️ Réglages et installation
             </button>
             <button className={itemCls(false)} onClick={() => navigate('/sites')}>
-              ＋ All websites
+              ＋ Tous les sites
             </button>
           </>
         )}
       </Dropdown>
 
-      <div className="flex h-11 items-stretch rounded-xl border border-stone-200 bg-white shadow-card">
-        <button className="rounded-l-xl px-3 text-xl text-stone-500 hover:bg-stone-50" onClick={() => shift(-1)} aria-label="Previous period">
+      <div className="col-span-2 row-start-2 flex h-11 min-w-0 items-stretch rounded-xl border border-stone-200 bg-white shadow-card sm:col-auto sm:row-auto">
+        <button className="w-11 shrink-0 rounded-l-xl text-xl text-stone-500 hover:bg-stone-50" onClick={() => shift(-1)} aria-label="Période précédente">
           ‹
         </button>
         <Dropdown
+          grow
           button={
-            <button className="flex h-full items-center gap-2 border-x border-stone-200 px-4 text-base font-medium hover:bg-stone-50">
+            <button className="flex h-full w-full min-w-0 items-center justify-center gap-2 whitespace-nowrap border-x border-stone-200 px-3 text-[15px] font-medium hover:bg-stone-50 sm:px-4 sm:text-base">
               {label} <Chevron />
             </button>
           }
@@ -165,28 +168,29 @@ export function Toolbar({
                   update({ period: 'custom', from, to: to < from ? from : to, granularity: undefined });
                 }}
               >
-                <div className="text-xs font-medium text-stone-500">Custom range</div>
-                <input type="date" className="input py-1.5" value={from} onChange={(e) => setFrom(e.target.value)} />
-                <input type="date" className="input py-1.5" value={to} onChange={(e) => setTo(e.target.value)} />
-                <button className="btn-dark w-full py-1.5">Apply</button>
+                <div className="text-xs font-medium text-stone-500">Période personnalisée</div>
+                <input type="date" aria-label="Du" className="input py-1.5" value={from} onChange={(e) => setFrom(e.target.value)} />
+                <input type="date" aria-label="Au" className="input py-1.5" value={to} onChange={(e) => setTo(e.target.value)} />
+                <button className="btn-dark w-full py-1.5">Appliquer</button>
               </form>
             </>
           )}
         </Dropdown>
         <button
-          className="rounded-r-xl px-3 text-xl text-stone-500 hover:bg-stone-50 disabled:opacity-30"
+          className="w-11 shrink-0 rounded-r-xl text-xl text-stone-500 hover:bg-stone-50 disabled:opacity-30"
           onClick={() => shift(1)}
           disabled={!canForward}
-          aria-label="Next period"
+          aria-label="Période suivante"
         >
           ›
         </button>
       </div>
 
       <Dropdown
+        align="right"
         button={
-          <button className="btn h-11 px-4 text-base">
-            {GRANULARITIES.find((g) => g.value === (q.granularity ?? overview?.range.granularity))?.label ?? 'Daily'} <Chevron />
+          <button className="btn h-11 whitespace-nowrap px-3 text-[15px] sm:px-4 sm:text-base">
+            {GRANULARITIES.find((g) => g.value === (q.granularity ?? overview?.range.granularity))?.label ?? 'Par jour'} <Chevron />
           </button>
         }
       >
@@ -206,7 +210,7 @@ export function Toolbar({
         }
       </Dropdown>
 
-      <button className="btn h-11 w-11 px-0" onClick={onRefresh} aria-label="Refresh">
+      <button className="btn h-11 w-11 px-0" onClick={onRefresh} aria-label="Actualiser">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={loading ? 'animate-spin' : ''}>
           <path d="M21 12a9 9 0 1 1-3-6.7L21 8" />
           <path d="M21 3v5h-5" />

@@ -1,13 +1,13 @@
 import type { Context } from 'hono';
-import { classify } from '../shared/sources.js';
+import { androidAppDomain, classify } from '../shared/sources.js';
 import { getSite, type AppEnv, type Site } from './env.js';
 import { DEMO_SITE_ID, ensureDemoSite } from './demo.js';
-import { isBot, parseUA } from './lib/ua.js';
+import { isBot, parseUA, uaDetails } from './lib/ua.js';
 import { creditedSessionSql } from './payments.js';
 
-const TYPES = new Set(['pageview', 'goal', 'outbound', 'ping', 'identify', 'scroll', 'engagement', 'click', 'form', 'video', 'action']);
+const TYPES = new Set(['pageview', 'goal', 'outbound', 'ping', 'identify', 'scroll', 'engagement', 'click', 'form', 'video', 'action', 'block']);
 /** Video player lifecycle events. `watch` carries seconds actually played since the last report. */
-export const VIDEO_ACTIONS = new Set(['start', 'play', 'pause', 'seek', 'progress', 'complete', 'watch', 'error']);
+export const VIDEO_ACTIONS = new Set(['start', 'play', 'pause', 'seek', 'progress', 'complete', 'watch', 'error', 'quality', 'fullscreen', 'mute', 'rate', 'rewatch']);
 export const VIDEO_MILESTONES = [10, 25, 50, 75, 90, 100];
 const MAX_WATCH_DELTA_S = 120;
 const MAX_PING_MS = 10 * 60_000;
@@ -24,6 +24,11 @@ interface Payload {
   p?: Record<string, unknown>;
   d?: number;
   lang?: string;
+  tz?: string;
+  cn?: string;
+  ch?: { m?: string; pv?: string; bv?: string };
+  /** Milliseconds this event waited in the browser's retry queue. */
+  age?: number;
 }
 
 const clip = (s: unknown, n = 255): string | null =>
@@ -93,7 +98,9 @@ export async function handleEvent(c: Context<AppEnv>) {
   // Only accept data for the site's own domain, so nobody can pollute your stats from elsewhere.
   if (!/^https?:$/.test(url.protocol) || !belongsTo(url.hostname, site.domain)) return c.body(null, 403);
 
-  await ingest(c.env.DB, site, body, url, ua, geoOf(c), Date.now());
+  const age = Number(body.age);
+  const now = Date.now() - (Number.isFinite(age) && age > 0 ? Math.min(age, 86_400_000) : 0);
+  await ingest(c.env.DB, site, body, url, ua, geoOf(c), now);
   return c.body(null, 202);
 }
 
@@ -190,7 +197,7 @@ export async function ingest(
     const target = clip(body.n, 500);
     if (!target) return;
     stmts.push(
-      db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
+      db.prepare('UPDATE sessions SET last_seen_at = ?, interactions = interactions + 1 WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
       insertEvent(db, site.id, sid, vid, now, 'outbound', target, path, null),
     );
   } else if (t === 'scroll') {
@@ -205,7 +212,7 @@ export async function ingest(
     const ms = Number(body.n);
     if (!Number.isSafeInteger(ms) || ms < 1000 || ms > 60000) return;
     stmts.push(
-      db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
+      db.prepare('UPDATE sessions SET last_seen_at = ?, engaged_ms = engaged_ms + ? WHERE site_id = ? AND id = ?').bind(now, ms, site.id, sid),
       insertEvent(db, site.id, sid, vid, now, 'engagement', String(ms), path, null),
     );
   } else if (t === 'click') {
@@ -213,24 +220,26 @@ export async function ingest(
     const target = clip(body.n, 200);
     if (!target || !target.startsWith('/') || target.startsWith('//') || target.includes('?') || target.includes('#')) return;
     stmts.push(
-      db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
+      db.prepare('UPDATE sessions SET last_seen_at = ?, interactions = interactions + 1 WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
       insertEvent(db, site.id, sid, vid, now, 'click', normalizePath(target), path, null),
     );
   } else if (t === 'form') {
     // Form submission names are explicitly chosen by the website owner.
     if (!body.n || !/^[a-zA-Z0-9_-]{1,64}$/.test(body.n)) return;
     stmts.push(
-      db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
+      db.prepare('UPDATE sessions SET last_seen_at = ?, interactions = interactions + 1 WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
       insertEvent(db, site.id, sid, vid, now, 'form', body.n, path, null),
     );
   } else if (t === 'video') {
     const ev = videoEvent(body);
     if (!ev) return;
     stmts.push(
-      db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
+      db
+        .prepare(`UPDATE sessions SET last_seen_at = ?, interactions = interactions + ${ev.action === 'start' ? 1 : 0} WHERE site_id = ? AND id = ?`)
+        .bind(now, site.id, sid),
       db
         .prepare('INSERT INTO events (site_id, session_id, visitor_id, ts, type, name, path, props, video_id, value, label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-        .bind(site.id, sid, vid, now, 'video', ev.action, path, null, ev.id, ev.value, null),
+        .bind(site.id, sid, vid, now, 'video', ev.action, path, ev.props, ev.id, ev.value, ev.play),
     );
     if (ev.title || ev.channel || ev.duration) {
       stmts.push(
@@ -249,13 +258,67 @@ export async function ingest(
     const ev = actionEvent(body);
     if (!ev) return;
     stmts.push(
-      db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
+      db.prepare('UPDATE sessions SET last_seen_at = ?, interactions = interactions + 1 WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
       db
         .prepare('INSERT INTO events (site_id, session_id, visitor_id, ts, type, name, path, props, video_id, value, label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
         .bind(site.id, sid, vid, now, 'action', ev.name, path, ev.props, ev.videoId, null, ev.label),
     );
+  } else if (t === 'block') {
+    const ev = blockEvents(body);
+    if (!ev.length) return;
+    const click = body.n === 'click';
+    stmts.push(
+      db
+        .prepare(`UPDATE sessions SET last_seen_at = ?, interactions = interactions + ${click ? 1 : 0} WHERE site_id = ? AND id = ?`)
+        .bind(now, site.id, sid),
+    );
+    for (const b of ev) {
+      stmts.push(
+        db
+          .prepare(
+            'INSERT INTO events (site_id, session_id, visitor_id, ts, type, name, path, props, video_id, value, label, kind) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          )
+          .bind(site.id, sid, vid, now, click ? 'block_click' : 'block_view', b.id, path, b.href ? JSON.stringify({ href: b.href }) : null, b.item, b.pos, b.sponsor, b.kind),
+      );
+    }
   }
   await db.batch(stmts);
+}
+
+const BLOCK_ID = /^[\w:.\-/]{1,80}$/;
+/** Validate block events: n = 'view' with p.items[] (≤ 25), or n = 'click' with a single block in p. */
+export function blockEvents(body: Pick<Payload, 'n' | 'p'>) {
+  const p = (body.p && typeof body.p === 'object' && !Array.isArray(body.p) ? body.p : {}) as Record<string, unknown>;
+  const list = body.n === 'view' ? (Array.isArray(p.items) ? p.items.slice(0, 25) : []) : body.n === 'click' ? [p] : [];
+  const out: { id: string; kind: 'sponsor' | 'content'; sponsor: string | null; href: string | null; item: string | null; pos: number | null }[] = [];
+  const seen = new Set<string>();
+  for (const raw of list) {
+    if (!raw || typeof raw !== 'object') continue;
+    const r = raw as Record<string, unknown>;
+    const id = typeof r.id === 'string' ? r.id.trim() : '';
+    if (!BLOCK_ID.test(id)) continue;
+    const item = typeof r.i === 'string' && /^[\w:.\-/]{1,120}$/.test(r.i) ? r.i : null;
+    const key = id + '|' + (item ?? '');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    let href: string | null = null;
+    if (typeof r.h === 'string') {
+      try {
+        const u = new URL(r.h, 'https://x.invalid');
+        if (/^https?:$/.test(u.protocol)) href = u.hostname === 'x.invalid' ? u.pathname.slice(0, 300) : (u.origin + u.pathname).slice(0, 300);
+      } catch {}
+    }
+    const pos = Math.round(Number(r.pos));
+    out.push({
+      id,
+      kind: r.k === 'sponsor' ? 'sponsor' : 'content',
+      sponsor: clip(r.s, 120),
+      href,
+      item,
+      pos: Number.isFinite(pos) && pos > 0 && pos < 10000 ? pos : null,
+    });
+  }
+  return out;
 }
 
 /** Validate a video event: { n: action, p: { id, title?, channel?, duration?, pct?, s? } }. */
@@ -274,15 +337,26 @@ export function videoEvent(body: Pick<Payload, 'n' | 'p'>) {
     const secs = Math.round(Number(p.s));
     if (!Number.isFinite(secs) || secs < 1 || secs > MAX_WATCH_DELTA_S) return null;
     value = secs;
-  } else if (p.t !== undefined) {
+  } else if (p.t !== undefined && !['fullscreen', 'mute', 'rate'].includes(action)) {
     const pos = Math.round(Number(p.t));
     value = Number.isFinite(pos) && pos >= 0 && pos < 86400 * 2 ? pos : null;
   }
+  else if (action === 'fullscreen' || action === 'mute') value = p.on ? 1 : 0;
+  else if (action === 'rate') {
+    const r = Number(p.rate);
+    if (!Number.isFinite(r) || r <= 0 || r > 16) return null;
+    value = Math.round(r * 100);
+  }
+  const play = typeof p.play === 'string' && /^[\w-]{4,40}$/.test(p.play) ? p.play : null;
+  const quality = action === 'quality' ? clip(p.quality, 24) : null;
+  if (action === 'quality' && !quality) return null;
   const dur = Math.round(Number(p.duration));
   return {
     action,
     id,
     value,
+    play,
+    props: quality ? JSON.stringify({ quality }) : null,
     title: clip(p.title, 200),
     channel: clip(p.channel, 120),
     duration: Number.isFinite(dur) && dur > 0 && dur < 86400 * 2 ? dur : null,
@@ -378,7 +452,12 @@ function newSession(
 ): D1PreparedStatement[] {
   let referrer: string | null = null;
   let referrerDomain: string | null = null;
-  if (body.r) {
+  const app = body.r ? /^android-app:\/\/([\w.]+)/.exec(body.r) : null;
+  if (app) {
+    // android-app://com.google.android.gm: the Android app that opened the link.
+    referrerDomain = androidAppDomain(app[1]);
+    referrer = app[1];
+  } else if (body.r) {
     try {
       const r = new URL(body.r);
       // Navigation between your own pages/subdomains is not a referral.
@@ -394,15 +473,18 @@ function newSession(
   }
   const q = url.searchParams;
   const utm = {
-    source: clip(q.get('utm_source'), 100),
-    medium: clip(q.get('utm_medium'), 100),
+    source: clip(q.get('utm_source'), 100)?.toLowerCase() ?? null,
+    medium: clip(q.get('utm_medium'), 100)?.toLowerCase() ?? null,
     campaign: clip(q.get('utm_campaign'), 200),
     term: clip(q.get('utm_term'), 200),
     content: clip(q.get('utm_content'), 200),
   };
   const ref = clip(q.get('ref') ?? q.get('via'), 100);
-  const { source, channel } = classify({ referrerDomain, utmSource: utm.source, utmMedium: utm.medium, ref });
   const { browser, os, device } = parseUA(ua, Number(body.sw) || undefined);
+  const { source, channel } = classify({ referrerDomain, utmSource: utm.source, utmMedium: utm.medium, ref, inAppBrowser: browser });
+  const det = uaDetails(ua, body.ch);
+  const tz = typeof body.tz === 'string' && /^[A-Za-z_]+(?:\/[A-Za-z0-9_+\-]+){0,2}$/.test(body.tz) ? body.tz.slice(0, 64) : null;
+  const conn = typeof body.cn === 'string' && /^(slow-2g|2g|3g|4g)$/.test(body.cn) ? body.cn : null;
   const pageviews = body.t === 'pageview' ? 1 : 0;
 
   return [
@@ -411,8 +493,8 @@ function newSession(
       .prepare(
         `INSERT OR IGNORE INTO sessions (site_id, id, visitor_id, started_at, last_seen_at, pageviews, hostname, entry_page, exit_page,
           referrer, referrer_domain, source, channel, utm_source, utm_medium, utm_campaign, utm_term, utm_content, ref,
-          country, region, city, browser, os, device, language, screen, is_new)
-         VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+          country, region, city, browser, os, device, language, screen, browser_version, os_version, device_model, timezone, connection, is_new)
+         VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
            CASE WHEN EXISTS (SELECT 1 FROM sessions s2 WHERE s2.site_id = ? AND s2.visitor_id = ? AND s2.id <> ?) THEN 0 ELSE 1 END)`,
       )
       .bind(
@@ -442,6 +524,11 @@ function newSession(
         device,
         normalizeLanguage(body.lang),
         screenBucket(body.sw),
+        det.browserVersion,
+        det.osVersion,
+        det.model,
+        tz,
+        conn,
         site.id,
         body.vid,
         body.sid,

@@ -80,3 +80,22 @@ body { font-feature-settings: 'tnum' 1; -webkit-font-smoothing: antialiased; tex
 .tnum { font-variant-numeric: tabular-nums; }
 .skeleton { position:relative; overflow:hidden; background:#edf1fa; border-radius:.5rem; }
 .skeleton::after { content:''; position:absolute; inset:0; transform:translateX(-100%); animation:ml-sweep 1.45s ease-in-out infinite; background:linear-gradient(90deg,transparent,rgba(255,255,255,.8),transparent); }
+
+/* ---------- Mobile & touch ---------- */
+/* Grid/flex children must be allowed to shrink, or one wide row widens the whole page. */
+.grid > * { min-width: 0; }
+.tabs { max-width: 100%; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { white-space: nowrap; flex-shrink: 0; }
+.ml-scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+html { -webkit-text-size-adjust: 100%; }
+body { overflow-x: clip; }
+@media (pointer: coarse), (max-width: 767px) {
+  .btn, .btn-dark { min-height: 44px; }
+  .btn-ghost { min-height: 40px; padding-left: .75rem; padding-right: .75rem; }
+  .tab { min-height: 40px; padding-left: .85rem; padding-right: .85rem; }
+  .input, select.input { min-height: 44px; font-size: 16px; } /* 16px stops iOS zoom on focus */
+}
+@media (max-width: 767px) {
+  .ml-has-bottom-nav { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+}
