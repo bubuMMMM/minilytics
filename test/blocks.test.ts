@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll } from 'vitest';
 import { ingest } from '../src/worker/collect';
 import { blockDetail, blocksCsv, blocksReport, bucketStart, metrics, publicBlocks } from '../src/worker/blocks';
-import { overview } from '../src/worker/stats';
+import { breakdown, overview } from '../src/worker/stats';
 import { videoDetail, videoReport } from '../src/worker/videos';
 import { resolveRange, tzOffset } from '../src/worker/lib/time';
 import type { Site } from '../src/worker/env';
@@ -132,5 +132,14 @@ describe('video precision (Postgres)', () => {
     expect(det.qualities).toEqual([{ label: 'hd1080', count: 1 }]);
     expect(det.speeds).toEqual([{ rate: 1.5, count: 1 }]);
     expect(det.pages[0]).toMatchObject({ label: '/watch', plays: 2 });
+  });
+});
+
+describe('breakdowns on Postgres (events.label/name columns vs alias)', () => {
+  it('page, goal and exit_link group by the real column', async () => {
+    const pages = await breakdown(ctx() as any, 'page', 10);
+    expect(pages.find((r: any) => r.label === '/trending')).toMatchObject({ visitors: 2 });
+    await expect(breakdown(ctx() as any, 'goal', 10)).resolves.toBeInstanceOf(Array);
+    await expect(breakdown(ctx() as any, 'exit_link', 10)).resolves.toBeInstanceOf(Array);
   });
 });

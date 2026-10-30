@@ -304,7 +304,7 @@ export async function breakdown(ctx: Ctx, dim: string, limit = 100): Promise<Bre
       db
         .prepare(
           `SELECT e.path AS label, COUNT(DISTINCT e.visitor_id) AS visitors, COUNT(*) AS pageviews ${base}
-           GROUP BY label ORDER BY visitors DESC LIMIT ${lim}`,
+           GROUP BY e.path ORDER BY visitors DESC LIMIT ${lim}`,
         )
         .bind(...params),
       // Revenue from customers who viewed the page during the period.
@@ -348,7 +348,7 @@ export async function breakdown(ctx: Ctx, dim: string, limit = 100): Promise<Bre
       db
         .prepare(
           `SELECT e.name AS label, COUNT(DISTINCT e.visitor_id) AS visitors, COUNT(*) AS pageviews ${base}
-           GROUP BY label ORDER BY visitors DESC LIMIT ${lim}`,
+           GROUP BY e.name ORDER BY visitors DESC LIMIT ${lim}`,
         )
         .bind(...params),
       db
