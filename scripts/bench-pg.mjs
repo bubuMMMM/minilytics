@@ -1,4 +1,4 @@
-// Benchmark: seeds 200k sessions / 1M events in PGlite, times dashboard queries before/after 0006 indexes. `node scripts/bench-pg.mjs`
+// Benchmark: seeds 200k sessions / 1M events in PGlite, times dashboard queries before/after 0007 indexes. `node scripts/bench-pg.mjs`
 import { readdirSync, readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 const dir = new URL('../migrations-pg', import.meta.url).pathname;
@@ -47,7 +47,7 @@ async function run(label) {
 const before = await run('BEFORE');
 const ins = async () => { const s = performance.now(); for (let i = 0; i < 2000; i++) await pg.query(`INSERT INTO events (site_id,session_id,visitor_id,ts,type,name,path) VALUES ('s1','x','v1',$1,'pageview',null,'/')`, [now + i]); return performance.now() - s; };
 const insBefore = await ins();
-await pg.exec(readFileSync(`${dir}/0006_perf_indexes.sql`, 'utf8') + '; ANALYZE;');
+await pg.exec(readFileSync(`${dir}/0007_perf_indexes.sql`, 'utf8') + '; ANALYZE;');
 const after = await run('AFTER');
 const insAfter = await ins();
 console.log('\n| requête | avant (ms) | après (ms) | plan après |');
