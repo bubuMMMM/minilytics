@@ -22,6 +22,12 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    proxy: { '/api': 'http://localhost:8787' },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8787',
+        // The API's CSRF check compares Origin with Host / X-Forwarded-Host: pass the browser's host so dev writes work.
+        configure: (proxy) => proxy.on('proxyReq', (req, incoming) => { if (incoming.headers.host) req.setHeader('x-forwarded-host', incoming.headers.host); }),
+      },
+    },
   },
 });

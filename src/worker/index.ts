@@ -28,6 +28,7 @@ import { registerConnectors, syncGithub, syncReddit } from './connectors.js';
 import { revenuePrediction, revenueSummary } from './revenue.js';
 import { toSiteCurrency } from './payments.js';
 import { readSettings } from './settings.js';
+import { registerWaitlist } from './waitlist.js';
 
 const app = new Hono<AppEnv>();
 
@@ -184,6 +185,7 @@ registerPlatform(app);
 // ---------- login, sessions, team (src/worker/auth.ts)
 
 registerAuth(app);
+registerWaitlist(app);
 app.use('/api/sites', requireAuth);
 app.use('/api/sites/*', requireAuth);
 

@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /site/
+Disallow: /sites
+Disallow: /admin
+Disallow: /team
+Disallow: /login
+Disallow: /share/
+Disallow: /invite/
+
+Sitemap: https://minilytics-six.vercel.app/sitemap.xml

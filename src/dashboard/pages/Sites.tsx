@@ -1,4 +1,5 @@
 import { AccountHeader } from '../components/AppNav';
+import { WaitlistCard } from '../components/WaitlistCard';
 import { useEffect, useRef, useState } from 'react';
 import { navigate } from '../App';
 import { Favicon } from '../components/Icons';
@@ -105,6 +106,7 @@ export function Sites() {
 
           {sites && sites.length > 0 && visibleSites?.length === 0 && <p className="col-span-full py-10 text-sm text-ink-3">Aucun site ne correspond à « {search} ».</p>}
         </div>
+        {isOwner && <WaitlistCard />}
       </main>
       <AddSite open={adding} onClose={() => setAdding(false)}/>
     </div>

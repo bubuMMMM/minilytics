@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { loadMe } from './lib/me';
-import { Landing, Signup } from './pages/Landing';
+import { Landing } from './pages/Landing';
+import { Signup } from './pages/Signup';
+import { NotFound } from './pages/NotFound';
 import { Login } from './pages/Login';
 
 // Route-level code splitting: the landing page never downloads the charts, globe or dashboard.
@@ -65,9 +67,16 @@ export function App() {
   if (share) return <Suspense fallback={<Loading />}><SharePage key={share[1]} token={share[1]} view={share[2]} /></Suspense>;
   const invite = /^\/invite\/([\w-]{20,100})$/.exec(path);
   if (invite) return <Suspense fallback={<Loading />}><Invite token={invite[1]} onJoined={() => loadMe(true).then(() => { setAuth(true); navigate('/sites'); })} /></Suspense>;
+  // Anything that isn't an app route is a public 404, not a login wall.
+  if (!isAppPath(path)) return <NotFound />;
   if (auth === null) return <Loading />;
   if (!auth) return <Login onLogin={() => loadMe(true).then(() => { setAuth(true); navigate(path === '/login' ? '/sites' : path + window.location.search); })} />;
   return <Suspense fallback={<Loading />}>{route(path)}</Suspense>;
+}
+
+const APP_PATHS = new Set(['/admin', '/sites', '/login', '/team']);
+export function isAppPath(path: string): boolean {
+  return APP_PATHS.has(path) || /^\/site\/[\w-]+(?:\/[\w-]+){0,2}$/.test(path);
 }
 
 function route(path: string) {

@@ -84,7 +84,7 @@ const PLANS: { name: string; price: string; features: string[]; note?: string; h
     name: 'Starter',
     price: '9',
     features: ['10k événements par mois', '1 site', '1 membre d’équipe', '3 ans de conservation des données', '100K requêtes de bots IA', 'API, CLI & MCP', 'Mentions sur les réseaux sociaux', 'Attribution des liens 𝕏'],
-    note: '0,00 € à payer aujourd’hui. Aucune carte requise.',
+    note: 'Réservez votre place : 0,00 € aujourd’hui, aucune carte requise.',
   },
   {
     name: 'Growth',
@@ -102,7 +102,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Les robots sont-ils comptés ?', a: 'Non. Les robots connus, les aperçus de liens et les navigateurs automatisés (headless, WebDriver) sont filtrés côté navigateur et côté serveur.' },
   { q: 'Comment savoir quel post 𝕏 m’amène des visiteurs ?', a: 'X ne transmet que « t.co » comme référent. Créez un lien traçable dans la vue Réseaux sociaux : chaque visite est attribuée à son post. Avec votre clé de l’API X, les posts qui citent votre domaine s’affichent aussi.' },
   { q: 'Puis-je m’exclure de mes propres statistiques ?', a: 'Oui : ouvrez votre site une fois avec ?ml_ignore=true dans l’adresse. Revenez avec ?ml_ignore=false pour annuler.' },
-  { q: 'Dois-je payer pour commencer ?', a: 'Non : 0,00 € à payer aujourd’hui et aucune carte requise pour démarrer avec Starter.' },
+  { q: 'Dois-je payer pour commencer ?', a: 'Non. Les inscriptions ouvrent progressivement : réservez votre place sur la liste d’attente, sans carte bancaire. Vous recevrez un e-mail à l’ouverture, et la démo publique est accessible dès maintenant.' },
 ];
 
 const fmtDur = (ms: number) => { const s = Math.round(ms / 1000); return s >= 60 ? `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')}` : `${s} s`; };
@@ -204,7 +204,7 @@ const SHOWCASE = [
   { key: 'map', kicker: 'Carte', title: 'Le monde de vos visiteurs, en direct', text: 'Globe interactif, replay des 30 dernières minutes ou des 24 dernières heures, flux en direct avec drapeau, source et page d’entrée. Et des pays à débloquer.', cta: ['/demo/map', 'Ouvrir la carte de démo'] },
   { key: 'bots', kicker: 'Bots IA', title: 'Qui, parmi les IA, lit votre site', text: 'GPTBot, ClaudeBot, Perplexity… : passages par robot et par page, transmis par votre serveur, séparés des vraies visites venues de ChatGPT ou Claude.', cta: ['#fonctionnalites', 'Voir toutes les fonctions'] },
   { key: 'share', kicker: 'Partage', title: 'Un tableau de bord public, sur vos règles', text: 'Liens en lecture seule avec mot de passe et expiration. Vous choisissez les vues, masquez les revenus ou les villes : tout est appliqué côté serveur.', cta: ['/demo', 'Voir la démo publique'] },
-  { key: 'widgets', kicker: 'Widgets', title: 'Vos chiffres, sur votre site', text: 'Compteur en ligne, graphique, top pages, carte ou badge SVG à intégrer en une ligne. Thème, couleur et langue au choix, mis à jour toutes les 30 secondes.', cta: ['/signup', 'Commencer gratuitement'] },
+  { key: 'widgets', kicker: 'Widgets', title: 'Vos chiffres, sur votre site', text: 'Compteur en ligne, graphique, top pages, carte ou badge SVG à intégrer en une ligne. Thème, couleur et langue au choix, mis à jour toutes les 30 secondes.', cta: ['/signup', 'Réserver mon accès'] },
 ] as const;
 
 /** Real product captures of the features that set Minilytics apart (light / dark variants). */
@@ -262,7 +262,7 @@ export function Landing() {
         {menu && (
           <nav id="landing-menu" aria-label="Sections de la page" className="border-t border-line px-4 pb-4 pt-2 md:hidden">
             {[...nav, ['/demo', 'Démo'], ['/login', 'Se connecter']].map(([h, l]) => <a key={h} href={h} onClick={() => setMenu(false)} className="flex min-h-[48px] items-center rounded-lg px-3 text-[15px] font-medium text-ink-2 hover:bg-well">{l}</a>)}
-            <Link href="/signup" onClick={() => setMenu(false)} className="btn-dark mt-2 w-full !min-h-[48px]">Commencer gratuitement</Link>
+            <Link href="/signup" onClick={() => setMenu(false)} className="btn-dark mt-2 w-full !min-h-[48px]">Réserver mon accès</Link>
           </nav>
         )}
       </header>
@@ -283,10 +283,10 @@ export function Landing() {
                 Sources, pages, revenus, carte du monde et robots d’IA sur un seul tableau de bord, en français. Une balise à coller, les premières visites en quelques secondes.
               </p>
               <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-                <Link href="/signup" className="btn-dark !h-12 !px-6 !text-[15px]">Commencer gratuitement</Link>
+                <Link href="/signup" className="btn-dark !h-12 !px-6 !text-[15px]">Réserver mon accès</Link>
                 <Link href="/demo" className="btn !h-12 !px-6 !text-[15px]">Voir la démo <UiIcon name="arrow-right" size={16} /></Link>
               </div>
-              <p className="mt-4 text-[13px] text-ink-4">0,00 € à payer aujourd’hui · Aucune carte requise</p>
+              <p className="mt-4 text-[13px] text-ink-4">Liste d’attente gratuite · Aucune carte requise</p>
             </div>
             <div className="relative mx-auto mt-14 max-w-[1040px] sm:mt-16">
               <ProductPreview />
@@ -353,7 +353,7 @@ export function Landing() {
 
         {/* Pricing */}
         <section id="tarifs" aria-labelledby="p-title" className="mx-auto max-w-[1200px] scroll-mt-20 px-4 py-20 sm:px-6 lg:py-28">
-          <SectionHead center id="p-title" eyebrow="Tarifs" title="Des prix simples, en euros." text="Prix mensuels, sans engagement. « Bientôt » signale ce qui n’est pas encore disponible." />
+          <SectionHead center id="p-title" eyebrow="Tarifs" title="Des prix simples, en euros." text="Prix mensuels, sans engagement. Réservez votre place dès aujourd’hui, vous ne payez qu’à l’ouverture." />
           <div className="mx-auto mt-12 grid max-w-[860px] gap-4 md:grid-cols-2">
             {PLANS.map((p) => (
               <article key={p.name} className={`relative flex flex-col rounded-xl border bg-surface p-6 sm:p-8 ${p.highlight ? 'border-ink shadow-pop' : 'border-line shadow-card'}`} aria-labelledby={`plan-${p.name}`}>
@@ -365,7 +365,7 @@ export function Landing() {
                   <span className="tnum text-5xl font-semibold tracking-tight">{p.price}&nbsp;€</span>
                   <span className="text-[14px] text-ink-3">/ mois</span>
                 </div>
-                <Link href="/signup" className={`${p.highlight ? 'btn-dark' : 'btn'} mt-6 w-full !h-11`}>Choisir {p.name}</Link>
+                <Link href={`/signup?plan=${p.name.toLowerCase()}`} className={`${p.highlight ? 'btn-dark' : 'btn'} mt-6 w-full !h-11`}>Choisir {p.name}</Link>
                 {p.note && <p className="mt-2.5 text-center text-[12px] text-ink-3">{p.note}</p>}
                 <ul className="mt-6 flex-1 space-y-2.5 border-t border-line pt-6 text-[14px] text-ink-2">
                   {p.features.map((f) => (
@@ -405,7 +405,7 @@ export function Landing() {
             <h2 className="max-w-xl text-3xl font-semibold tracking-tight [text-wrap:balance] sm:text-4xl">Voyez ce qui marche vraiment sur votre site.</h2>
             <p className="mt-3 text-[15px] text-ink-3">Une balise à coller, c’est tout.</p>
             <div className="mt-8 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
-              <Link href="/signup" className="btn-dark !h-12 !px-6 !text-[15px]">Commencer gratuitement</Link>
+              <Link href="/signup" className="btn-dark !h-12 !px-6 !text-[15px]">Réserver mon accès</Link>
               <Link href="/demo" className="btn !h-12 !px-6 !text-[15px]">Voir la démo</Link>
             </div>
           </div>
@@ -428,7 +428,7 @@ export function Landing() {
           <nav aria-label="Compte" className="flex flex-col gap-2.5">
             <span className="font-medium text-ink">Compte</span>
             <Link href="/login" className="text-ink-3 hover:text-ink">Se connecter</Link>
-            <Link href="/signup" className="text-ink-3 hover:text-ink">Créer un compte</Link>
+            <Link href="/signup" className="text-ink-3 hover:text-ink">Liste d’attente</Link>
             <a href="https://github.com/bubuMMMM/minilytics" className="text-ink-3 hover:text-ink" rel="noopener noreferrer">Code source</a>
           </nav>
         </div>
@@ -437,23 +437,3 @@ export function Landing() {
   );
 }
 
-/** /signup placeholder: no payment integration yet. */
-export function Signup() {
-  useEffect(() => { document.title = 'Créer un compte — Minilytics'; }, []);
-  return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-canvas px-4 py-12 text-center">
-      <div className="ml-grid-bg pointer-events-none absolute inset-x-0 top-0 h-[420px]" aria-hidden />
-      <Link href="/" aria-label="Minilytics, accueil" className="relative"><Logo /></Link>
-      <div className="relative mt-8 w-full max-w-[440px] rounded-xl border border-line bg-surface p-8 shadow-card">
-      <span className="inline-flex items-center rounded-full border border-line px-2.5 py-0.5 text-[12px] font-medium text-ink-3">Bientôt</span>
-      <h1 className="mt-4 text-2xl font-semibold tracking-tight">Les inscriptions ouvrent bientôt</h1>
-      <p className="mt-3 text-[14px] leading-relaxed text-ink-3">La création de compte en libre-service n’est pas encore disponible. En attendant, explorez la démo en direct ou connectez-vous si vous avez déjà un accès.</p>
-      <div className="mt-6 flex w-full flex-col gap-2.5 sm:flex-row">
-        <Link href="/demo" className="btn-dark flex-1 !h-11">Voir la démo</Link>
-        <Link href="/login" className="btn flex-1 !h-11">Se connecter</Link>
-      </div>
-      </div>
-      <Link href="/" className="relative mt-6 inline-flex min-h-[44px] items-center text-[13px] text-ink-3 hover:text-ink">← Retour à l’accueil</Link>
-    </div>
-  );
-}
