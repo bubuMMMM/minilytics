@@ -35,3 +35,14 @@
 - Mes sites : carte « Connecter un site » en double supprimée (le bouton « Ajouter un site » reste, et l’état vide pour 0 site).
 - Graphique Bots IA : catégories en lignes pleines (option `peers` de TrendChart) ; pointillés réservés aux comparaisons. Kickers en accent, espacement 40 px entre grandes sections de l’aperçu.
 - Vérif prod : 23 pages × 1440/390 × clair/sombre, 0 erreur console, 0 débordement ; share_links 0, widget_tokens 0.
+
+## DEPLOYED 2685847 — 7 nov. 2026 (Europe/Paris) → https://minilytics-six.vercel.app — Liste d'attente, 404, partage social
+- /signup n'est plus une impasse : formulaire liste d'attente (src/dashboard/pages/Signup.tsx), offre présélectionnée via `?plan=starter|growth` (boutons Tarifs), domaine facultatif, source (utm_source/ref/référent) enregistrée, objectif `liste_attente` envoyé au tracker. Écran de confirmation → démo.
+- API (src/worker/waitlist.ts) : `POST /api/public/waitlist` (même origine, honeypot `company`, 5 envois valides / 10 min par IP, doublon accepté sans le dire) ; propriétaire seul : `GET /api/waitlist`, `GET /api/waitlist.csv` (anti-injection de formules), `DELETE /api/waitlist/:id`. Table créée au premier appel (CREATE TABLE IF NOT EXISTS) ; aussi dans migrations/0013 et migrations-pg/0014. Tests : test/waitlist.test.ts.
+- Mes sites (propriétaire) : carte « Liste d'attente » (total, cette semaine, par offre, 5 derniers + tout afficher, retrait, export CSV).
+- CTA landing : « Commencer gratuitement » → « Réserver mon accès » ; « 0,00 € aujourd'hui » → « Liste d'attente gratuite » ; FAQ « Dois-je payer » et sous-titre Tarifs mis à jour.
+- URL publiques inconnues → page 404 (noindex) au lieu du mur de connexion (`isAppPath` dans App.tsx).
+- SEO/partage : Open Graph + carte X (`summary_large_image`, public/og.png 1200×630), canonical, JSON-LD SoftwareApplication (offres 9/19 €), apple-touch-icon, `<noscript>`, public/robots.txt (dashboard/API/partages exclus) et public/sitemap.xml.
+- Dev : le proxy Vite transmet `x-forwarded-host`, les écritures (POST) passent le contrôle CSRF en local.
+- Vérif : 166 tests, typecheck, build ; signup/404/Mes sites en 1440/390 clair/sombre, 0 débordement ; prod : robots.txt, balises OG sur /signup, /api/waitlist → 401 sans session.
+- À faire : brancher un e-mail de bienvenue (Resend est déjà là pour les rapports) ; passer le canonical/og:url sur le domaine final quand il existe.
