@@ -340,7 +340,7 @@ export function registerShare(app: Hono<AppEnv>) {
 
   app.get('/api/share/:token/og.png', async (c) => {
     const link = await loadLink(c, c.req.param('token'));
-    if (!link || expired(link)) return c.body('not found', 404, { 'content-type': 'text/plain' });
+    if (!link || expired(link)) return c.body('not found', 404, { 'content-type': 'text/plain', 'cache-control': 'public, max-age=0, must-revalidate' });
     const site = await c.env.DB.prepare('SELECT name, domain FROM sites WHERE id = ?').bind(link.site_id).first() as { name: string; domain: string } | null;
     const title = link.label || site?.name || 'Tableau partagé';
     const png = await renderOgPng({
@@ -359,7 +359,7 @@ export function registerShare(app: Hono<AppEnv>) {
     if (!link || expired(link)) {
       return new Response('<!doctype html><meta charset="utf-8"><title>Lien introuvable</title><meta name="robots" content="noindex"><p>Ce lien de partage n’existe pas, a expiré ou a été révoqué.</p>', {
         status: !link ? 404 : 410,
-        headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=30', 'x-robots-tag': 'noindex, nofollow' },
+        headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=0, must-revalidate', 'x-robots-tag': 'noindex, nofollow' },
       });
     }
     const site = await c.env.DB.prepare('SELECT name, domain FROM sites WHERE id = ?').bind(link.site_id).first() as { name: string; domain: string } | null;
@@ -375,7 +375,7 @@ export function registerShare(app: Hono<AppEnv>) {
       status: 200,
       headers: {
         'content-type': 'text/html; charset=utf-8',
-        'cache-control': 'public, max-age=60',
+        'cache-control': 'private, no-store',
         'x-robots-tag': 'noindex, nofollow',
       },
     });

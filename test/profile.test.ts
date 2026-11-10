@@ -102,6 +102,8 @@ describe('profile pages', () => {
     expect((await call('/api/public/page/bulent/widget/0')).status).toBe(404);
     expect((await call('/api/public/page/bulent/og.svg')).status).toBe(404);
     expect((await call('/api/public/page/bulent/og.png')).status).toBe(404);
+    expect((await json(await authed('/api/me/page', { method: 'DELETE' }))).body.ok).toBe(true);
+    expect((await json(await authed('/api/me/page'))).body.page).toBeNull();
   });
   it('rejects a widget for a site the owner does not have', async () => {
     const r = await json(await authed('/api/me/page', { method: 'PUT', json: {

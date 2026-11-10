@@ -19,7 +19,7 @@ export interface OgCard {
 
 export const OG_PNG_HEADERS = {
   'Content-Type': 'image/png',
-  'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
+  'Cache-Control': 'public, max-age=60, s-maxage=0, must-revalidate',
 } as const;
 
 type Font = { name: string; data: Buffer; weight: 400 | 600; style: 'normal' };

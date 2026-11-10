@@ -250,7 +250,7 @@ async function htmlFor(page: ProfilePage, origin: string, status = 200) {
     status,
     headers: {
       'content-type': 'text/html; charset=utf-8',
-      'cache-control': page.published ? 'public, max-age=60' : 'private, no-store',
+      'cache-control': 'private, no-store',
       'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'",
       'x-content-type-options': 'nosniff',
       'referrer-policy': 'strict-origin-when-cross-origin',
@@ -320,6 +320,12 @@ export function registerProfile(app: Hono<AppEnv>) {
     return c.json({ page: await getByUser(c.env.DB, p.userId) });
   });
 
+  app.delete('/api/me/page', async (c) => {
+    const p = c.get('principal');
+    await c.env.DB.prepare('DELETE FROM profile_pages WHERE user_id = ?').bind(p.userId).run();
+    return c.json({ ok: true });
+  });
+
   const publicPage = async (db: D1Database, slug: string) => {
     const s = parseSlug(slug);
     if (!s) return null;
@@ -330,8 +336,8 @@ export function registerProfile(app: Hono<AppEnv>) {
 
   app.get('/api/public/page/:slug', async (c) => {
     const page = await publicPage(c.env.DB, c.req.param('slug'));
-    if (!page) return c.json({ error: 'Page introuvable' }, 404, { 'Cache-Control': 'public, max-age=30', 'X-Robots-Tag': 'noindex' });
-    c.header('Cache-Control', 'public, max-age=60');
+    if (!page) return c.json({ error: 'Page introuvable' }, 404, { 'Cache-Control': 'public, max-age=0, must-revalidate', 'X-Robots-Tag': 'noindex' });
+    c.header('Cache-Control', 'public, max-age=30, must-revalidate');
     return c.json(publicView(page));
   });
 
@@ -368,15 +374,15 @@ export function registerProfile(app: Hono<AppEnv>) {
 
   app.get('/api/public/page/:slug/og.svg', async (c) => {
     const page = await publicPage(c.env.DB, c.req.param('slug'));
-    if (!page) return c.body('not found', 404, { 'content-type': 'text/plain' });
+    if (!page) return c.body('not found', 404, { 'content-type': 'text/plain', 'cache-control': 'public, max-age=0, must-revalidate' });
     return c.body(ogSvg(page), 200, {
       'Content-Type': 'image/svg+xml; charset=utf-8',
-      'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
+      'Cache-Control': 'public, max-age=60, s-maxage=0, must-revalidate',
     });
   });
   app.get('/api/public/page/:slug/og.png', async (c) => {
     const page = await publicPage(c.env.DB, c.req.param('slug'));
-    if (!page) return c.body('not found', 404, { 'content-type': 'text/plain' });
+    if (!page) return c.body('not found', 404, { 'content-type': 'text/plain', 'cache-control': 'public, max-age=0, must-revalidate' });
     const png = await renderOgPng({
       title: page.title,
       subtitle: page.bio || 'Page publique Minilytics',
@@ -393,7 +399,7 @@ export function registerProfile(app: Hono<AppEnv>) {
     if (!page) {
       return new Response('<!doctype html><meta charset="utf-8"><title>Page introuvable</title><meta name="robots" content="noindex"><p>Cette page n’existe pas ou n’est plus publiée.</p>', {
         status: 404,
-        headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=30', 'x-robots-tag': 'noindex' },
+        headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=0, must-revalidate', 'x-robots-tag': 'noindex' },
       });
     }
     return htmlFor(page, origin);
