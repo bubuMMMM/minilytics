@@ -16,6 +16,8 @@ const Team = lazy(() => import('./pages/Team').then((m) => ({ default: m.Team })
 const SharePage = lazy(() => import('./share/SharePage').then((m) => ({ default: m.SharePage })));
 const Invite = lazy(() => import('./pages/Team').then((m) => ({ default: m.Invite })));
 const ApiDocs = lazy(() => import('./pages/ApiDocs').then((m) => ({ default: m.ApiDocs })));
+const PublicProfile = lazy(() => import('./pages/PublicProfile').then((m) => ({ default: m.PublicProfile })));
+const ProfileSettings = lazy(() => import('./pages/ProfileSettings').then((m) => ({ default: m.ProfileSettings })));
 
 
 export function navigate(to: string) {
@@ -65,6 +67,8 @@ export function App() {
   // Read-only shared dashboards: no login, the link (and its optional password) is the credential.
   const share = /^\/share\/([\w-]{20,80})(?:\/(\w+))?$/.exec(path);
   if (share) return <Suspense fallback={<Loading />}><SharePage key={share[1]} token={share[1]} view={share[2]} /></Suspense>;
+  const profile = /^\/u\/([a-z0-9][a-z0-9-]{1,30})$/.exec(path);
+  if (profile) return <Suspense fallback={<Loading />}><PublicProfile slug={profile[1]} /></Suspense>;
   const invite = /^\/invite\/([\w-]{20,100})$/.exec(path);
   if (invite) return <Suspense fallback={<Loading />}><Invite token={invite[1]} onJoined={() => loadMe(true).then(() => { setAuth(true); navigate('/sites'); })} /></Suspense>;
   // Anything that isn't an app route is a public 404, not a login wall.
@@ -74,7 +78,7 @@ export function App() {
   return <Suspense fallback={<Loading />}>{route(path)}</Suspense>;
 }
 
-const APP_PATHS = new Set(['/admin', '/sites', '/login', '/team']);
+const APP_PATHS = new Set(['/admin', '/sites', '/login', '/team', '/page']);
 export function isAppPath(path: string): boolean {
   return APP_PATHS.has(path) || /^\/site\/[\w-]+(?:\/[\w-]+){0,2}$/.test(path);
 }
@@ -82,6 +86,7 @@ export function isAppPath(path: string): boolean {
 function route(path: string) {
   if (path === '/admin' || path === '/sites' || path === '/login') return <Sites />;
   if (path === '/team') return <Team />;
+  if (path === '/page') return <ProfileSettings />;
   const m = /^\/site\/([\w-]+)(?:\/([\w-]+))?(?:\/([\w-]+))?$/.exec(path);
   if (!m) return <Sites />;
   const [, id, sub, section] = m;

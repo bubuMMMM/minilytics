@@ -13,9 +13,11 @@ import { DOT_ALPHA, DOT_CODES, DOT_H, DOT_LAT0, DOT_ROWS, DOT_STEP, DOT_W } from
 import { COUNTRY_ROWS } from '../dashboard/map/countries.gen.js';
 
 export const WIDGET_TYPES = ['live', 'counter', 'chart', 'pages', 'map'] as const;
+export const WIDGET_STYLES = ['classic', 'minimal', 'editorial', 'glass', 'gradient', 'compact'] as const;
 type WType = (typeof WIDGET_TYPES)[number];
+export type WidgetStyle = (typeof WIDGET_STYLES)[number];
 type Locale = 'fr' | 'en';
-export interface WidgetOpts { type: WType; theme: 'light' | 'dark' | 'auto'; accent: string; size: 'sm' | 'md' | 'lg'; period: string; transparent: boolean; locale: Locale; logo: boolean; wid: string }
+export interface WidgetOpts { type: WType; theme: 'light' | 'dark' | 'auto'; accent: string; size: 'sm' | 'md' | 'lg'; period: string; transparent: boolean; locale: Locale; logo: boolean; wid: string; style: WidgetStyle }
 
 export function widgetOpts(q: Record<string, string | undefined>): WidgetOpts {
   const pick = <T extends string>(v: string | undefined, all: readonly T[], d: T): T => ((all as readonly string[]).includes(v ?? '') ? (v as T) : d);
@@ -30,6 +32,7 @@ export function widgetOpts(q: Record<string, string | undefined>): WidgetOpts {
     locale: pick(q.locale, ['fr', 'en'] as const, 'fr'),
     logo: !(q.logo === '0' || q.logo === 'false'),
     wid: /^[\w-]{1,40}$/.test(q.wid ?? '') ? q.wid! : '',
+    style: pick(q.style, WIDGET_STYLES, 'classic'),
   };
 }
 
@@ -114,9 +117,54 @@ export function areaSvg(series: { visitors: number }[], accent: string, h = 64) 
   return `<svg class="chart" viewBox="0 0 ${W} ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${accent}" stop-opacity=".28"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#g)"/><path d="${d}" fill="none" stroke="${accent}" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>`;
 }
 
+
+const STYLE_CSS: Record<WidgetStyle, string> = {
+  classic: '',
+  minimal: `.card{background:transparent;border:0;box-shadow:none;padding:calc(8px*var(--s)) 0;border-radius:0}
+.pill{background:transparent;border:0;padding:0;gap:calc(10px*var(--s));font-weight:600}
+.kicker{letter-spacing:.04em;text-transform:uppercase;font-size:calc(10px*var(--s))}
+.big{font-size:calc(40px*var(--s));font-weight:650;letter-spacing:-.05em;margin:0}
+.foot{border:0;padding-top:6px;margin-top:8px}
+.list li{padding-left:0;padding-right:0;border-radius:0}.bar{border-radius:0;opacity:.16}`,
+  editorial: `html,body{font-family:Iowan Old Style,Palatino Linotype,Palatino,Charter,Georgia,ui-serif,serif}
+.card{border:0;border-bottom:2px solid var(--accent);border-radius:0;box-shadow:none;padding:calc(20px*var(--s)) 0;background:transparent}
+.pill{background:transparent;border:0;border-bottom:2px solid var(--accent);border-radius:0;padding:calc(4px*var(--s)) 0 calc(10px*var(--s));font-family:inherit;font-style:italic;font-weight:600}
+.kicker{font-style:italic;letter-spacing:.02em;color:var(--ink2)}
+.big{font-weight:700;letter-spacing:-.04em;font-size:calc(36px*var(--s))}
+.list li{border-radius:0;border-bottom:1px solid var(--line);padding-left:0;padding-right:0}.bar{opacity:.1;border-radius:0}
+.foot{border-top:1px solid var(--ink);padding-top:8px;font-style:italic}
+.lbl{font-family:inherit;font-style:italic}`,
+  glass: `.card,.pill{background:color-mix(in srgb,var(--bg) 62%,transparent);border:1px solid color-mix(in srgb,var(--ink) 10%,transparent);box-shadow:0 8px 32px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.28);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4)}
+.card{border-radius:calc(22px*var(--s));padding:calc(18px*var(--s))}
+.pill{padding:calc(8px*var(--s)) calc(14px*var(--s))}
+.list li{background:color-mix(in srgb,var(--well) 70%,transparent);border-radius:10px}
+.foot{border-color:color-mix(in srgb,var(--ink) 10%,transparent)}`,
+  gradient: `.card,.pill{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#09090b));border:0;box-shadow:0 10px 28px color-mix(in srgb,var(--accent) 35%,transparent);color:#fff}
+.card{border-radius:calc(18px*var(--s))}
+.kicker,.muted,.foot,.pill .brand,.site,.delta{color:rgba(255,255,255,.78)}
+.big,.lbl,.num,.pill{color:#fff}
+.delta{background:rgba(255,255,255,.16);color:#fff}
+.pulse,.pulse::after{background:#fff}
+.bar{background:#fff;opacity:.22}
+.map .d{fill:rgba(255,255,255,.28)}
+.foot{border-top-color:rgba(255,255,255,.2)}
+.foot .brand svg{color:#fff}
+.brand svg rect{fill:#fff}.brand svg path{stroke:var(--accent)}`,
+  compact: `.card{padding:calc(10px*var(--s)) calc(12px*var(--s));border-radius:calc(10px*var(--s))}
+.pill{padding:calc(4px*var(--s)) calc(8px*var(--s));font-size:calc(12px*var(--s));gap:6px}
+.kicker{font-size:calc(10px*var(--s))}
+.big{font-size:calc(22px*var(--s));margin:0}
+.chart{height:calc(40px*var(--s));margin-top:6px}
+.list{margin-top:4px;gap:1px}
+.list li{padding:calc(2px*var(--s)) 6px;font-size:calc(12px*var(--s))}
+.foot{margin-top:6px;padding-top:6px}
+.muted{font-size:calc(11px*var(--s))}
+.map{margin-top:4px}`,
+};
+
 const LOGO = `<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><path d="M6 15.5l3.5-4 3 2.5L18 8" fill="none" stroke="var(--bg-solid)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-export function renderWidget(o: WidgetOpts, d: WidgetData, origin: string, token: string): { html: string; nonce: string } {
+export function renderWidget(o: WidgetOpts, d: WidgetData, origin: string, token: string, dataUrl?: string): { html: string; nonce: string } {
   const t = T[o.locale];
   const nonce = crypto.randomUUID().replace(/-/g, '');
   const scale = o.size === 'sm' ? 0.86 : o.size === 'lg' ? 1.18 : 1;
@@ -177,14 +225,14 @@ a{color:inherit;text-decoration:none}
 .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:calc(11px*var(--s));color:var(--ink3)}
 .brand{display:inline-flex;align-items:center;gap:6px;color:var(--ink2)}
 .foot .brand svg{color:var(--ink)}
-.site{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}`;
+.site{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}` + (STYLE_CSS[o.style] || '');
   const live = o.type === 'live' || o.type === 'map' || o.type === 'counter' || o.type === 'chart';
   const js = `(function(){var W=${JSON.stringify(o.wid)},L=${JSON.stringify(o.locale)};
 function size(){if(!W||parent===window)return;var b=document.body.firstElementChild;var r=b.getBoundingClientRect();parent.postMessage({minilytics:'widget',id:W,h:Math.ceil(r.height+4),w:Math.ceil(r.width+4)},'*')}
 size();addEventListener('load',size);if(window.ResizeObserver)new ResizeObserver(size).observe(document.body);
 ${live ? `var nf=new Intl.NumberFormat(L==='fr'?'fr-FR':'en-US');
 function on(n){return L==='fr'?(n<=1?n+' personne en ligne':n+' personnes en ligne'):(n===1?'1 person online':n+' people online')}
-setInterval(function(){if(document.visibilityState!=='visible')return;fetch(${JSON.stringify(`/api/widget/${token}/data?period=${encodeURIComponent(d.period)}`)}).then(function(r){return r.ok?r.json():null}).then(function(x){if(!x)return;
+setInterval(function(){if(document.visibilityState!=='visible')return;fetch(${JSON.stringify((dataUrl ?? `/api/widget/${token}/data`) + "?period=" + encodeURIComponent(d.period))}).then(function(r){return r.ok?r.json():null}).then(function(x){if(!x)return;
 document.querySelectorAll('[data-v]').forEach(function(e){var k=e.getAttribute('data-v');if(k==='online-label')e.textContent=on(x.online);else if(k==='online')e.textContent=nf.format(x.online);else if(k==='visitors')e.textContent=nf.format(x.visitors)});size()}).catch(function(){})},30000);` : ''}})();`;
   const title = o.type === 'live' ? t.online(d.online) : `${d.site.name} · ${per}`;
   const html = `<!doctype html><html lang="${o.locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${esc(title)}</title><style nonce="${nonce}">${css}</style></head><body>${inner}<script nonce="${nonce}">${js}</script></body></html>`;

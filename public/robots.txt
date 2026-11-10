@@ -6,6 +6,7 @@ Disallow: /sites
 Disallow: /admin
 Disallow: /team
 Disallow: /login
+Disallow: /page
 Disallow: /share/
 Disallow: /invite/
 

@@ -52,6 +52,7 @@ export function CommandMenu({ siteId, open, onClose }: { siteId?: string; open: 
       { id: 'a-theme', group: 'Actions', label: document.documentElement.classList.contains('dark') ? 'Passer en thème clair' : 'Passer en thème sombre', icon: 'sun', run: () => applyTheme(!document.documentElement.classList.contains('dark')) },
       { id: 'sites', group: 'Général', label: 'Mes sites', icon: 'layers', run: () => navigate('/sites') },
       { id: 'team', group: 'Général', label: 'Équipe et sécurité', hint: 'Membres, invitations, sessions', icon: 'users', run: () => navigate('/team') },
+      { id: 'page', group: 'Général', label: 'Ma page publique', hint: 'Profil partageable, widgets', icon: 'user', run: () => navigate('/page') },
       { id: 'api', group: 'Général', label: 'Documentation API', hint: 'REST v1, OpenAPI, MCP, CLI', icon: 'book', run: () => navigate('/api-docs') },
       { id: 'demo', group: 'Général', label: 'Démo publique', icon: 'eye', run: () => navigate('/demo') },
     );

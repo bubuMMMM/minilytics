@@ -224,7 +224,7 @@ export function BottomNav({ siteId, active }: { siteId: string; active: NavKey }
 }
 
 /** Header for account-level pages (Mes sites, Équipe): same height, search and actions as the site shell. */
-export function AccountHeader({ current, width = 'max-w-[1200px]' }: { current: 'sites' | 'team'; width?: string }) {
+export function AccountHeader({ current, width = 'max-w-[1200px]' }: { current: 'sites' | 'team' | 'page'; width?: string }) {
   const [cmd, setCmd] = useState(false);
   const me = useMe();
   const toggle = useCallback((fn: (o: boolean) => boolean) => setCmd(fn), []);
@@ -248,6 +248,7 @@ export function AccountHeader({ current, width = 'max-w-[1200px]' }: { current: 
             <button type="button" className="ml-cmd-btn" onClick={() => setCmd(true)} aria-label={`Rechercher (${SHORTCUT})`}><UiIcon name="search" size={16} /><kbd className="ml-kbd hidden lg:inline-flex">{SHORTCUT}</kbd></button>
             {tab('/sites', 'sites', 'Mes sites', 'layers')}
             {tab('/team', 'team', me?.role === 'owner' || !me ? 'Équipe' : 'Mon compte', 'users')}
+            {me?.role === 'owner' || !me ? <Link href="/page" aria-current={current === 'page' ? 'page' : undefined} className={`btn-ghost !text-[13px] ${current === 'page' ? '!bg-well !text-ink' : ''}`}><UiIcon name="user" size={15} /><span className="hidden sm:inline">Ma page</span></Link> : null}
             <Link href="/demo" className="btn-ghost hidden !text-[13px] md:inline-flex"><UiIcon name="eye" size={15} />Démo</Link>
             <ThemeToggle />
             <button type="button" className="btn-ghost !text-[13px]" onClick={logout} aria-label="Se déconnecter"><UiIcon name="logout" size={15} /><span className="hidden lg:inline">Déconnexion</span></button>

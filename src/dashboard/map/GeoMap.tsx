@@ -5,7 +5,7 @@ import type { Feature, MultiPolygon, Polygon } from 'geojson';
 export type Mode = 'globe' | 'flat';
 export interface CountryFeature { iso2: string; feature: Feature<Polygon | MultiPolygon>; center: [number, number]; span: number }
 export interface MapPoint { key: string; lon: number; lat: number; value: number; label: string; country: string }
-export interface LivePoint { key: string; lon: number; lat: number; value: number }
+export interface LivePoint { key: string; lon: number; lat: number; value: number; highlight?: boolean }
 export interface GeoMapHandle {
   flyTo(lon: number, lat: number, k: number): void;
   flyToCountry(iso2: string): void;
@@ -26,6 +26,8 @@ interface Props {
   onSelectCountry(iso2: string | null): void;
   onSelectPoint?(p: MapPoint): void;
   onHover?(info: { iso2: string; x: number; y: number } | null): void;
+  onHoverLive?(info: { key: string; x: number; y: number } | null): void;
+  onSelectLive?(key: string): void;
   onZoom?(k: number): void;
   label: string;
 }
@@ -254,16 +256,19 @@ export const GeoMap = forwardRef<GeoMapHandle, Props>(function GeoMap(props, ref
         ctx.lineWidth = 1.5; ctx.strokeStyle = `rgba(${c.surface},1)`; ctx.stroke();
         if (k >= 2.5) labels.push({ x: xy[0], y: xy[1], r, t: pt.label });
       }
-      // Live visitors: pulsing rings.
+      // Live visitors: pulsing rings (highlighted card gets a larger accent ring).
       for (const lv of pr.live) {
         if (!visible(lv.lon, lv.lat)) continue;
         const xy = proj([lv.lon, lv.lat]);
         if (!xy) continue;
-        const ph = ((now / 1600) + (lv.lon + 180) / 360) % 1;
-        ctx.beginPath(); ctx.arc(xy[0], xy[1], 4 + ph * 18, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(${c.success},${0.7 * (1 - ph)})`; ctx.lineWidth = 2; ctx.stroke();
-        ctx.beginPath(); ctx.arc(xy[0], xy[1], 4, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${c.success},1)`; ctx.fill();
+        const hi = !!lv.highlight;
+        const ph = ((now / (hi ? 1400 : 1600)) + (lv.lon + 180) / 360) % 1;
+        const core = hi ? 6.5 : 4;
+        ctx.beginPath(); ctx.arc(xy[0], xy[1], core + ph * (hi ? 26 : 18), 0, Math.PI * 2);
+        ctx.strokeStyle = hi ? `rgba(${c.accent},${0.85 * (1 - ph)})` : `rgba(${c.success},${0.7 * (1 - ph)})`;
+        ctx.lineWidth = hi ? 2.5 : 2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(xy[0], xy[1], core, 0, Math.PI * 2);
+        ctx.fillStyle = hi ? `rgba(${c.accent},1)` : `rgba(${c.success},1)`; ctx.fill();
         ctx.lineWidth = 1.5; ctx.strokeStyle = `rgba(${c.surface},1)`; ctx.stroke();
       }
       // New-country celebration: three expanding rings.
@@ -364,9 +369,25 @@ export const GeoMap = forwardRef<GeoMapHandle, Props>(function GeoMap(props, ref
       for (const f of p.current.countries) if (geoContains(f.feature, ll as [number, number])) return f.iso2;
       return null;
     }
+    function hitLive(x: number, y: number): string | null {
+      const proj = projection();
+      const pr = p.current;
+      let best: { key: string; d: number } | null = null;
+      for (const lv of pr.live) {
+        if (pr.mode === 'globe' && geoDistance([view.current.lon, view.current.lat], [lv.lon, lv.lat]) > Math.PI / 2) continue;
+        const xy = proj([lv.lon, lv.lat]);
+        if (!xy) continue;
+        const d = Math.hypot(xy[0] - x, xy[1] - y);
+        const r = lv.highlight ? 16 : 12;
+        if (d < r && (!best || d < best.d)) best = { key: lv.key, d };
+      }
+      return best?.key ?? null;
+    }
     function click(x: number, y: number) {
       const proj = projection();
       const pr = p.current;
+      const liveKey = hitLive(x, y);
+      if (liveKey && pr.onSelectLive) { pr.onSelectLive(liveKey); return; }
       for (const pt of pr.points) {
         if (pr.mode === 'globe' && geoDistance([view.current.lon, view.current.lat], [pt.lon, pt.lat]) > Math.PI / 2) continue;
         const xy = proj([pt.lon, pt.lat]);
@@ -378,12 +399,20 @@ export const GeoMap = forwardRef<GeoMapHandle, Props>(function GeoMap(props, ref
     function hover(x: number, y: number) {
       cancelAnimationFrame(hoverRaf);
       hoverRaf = requestAnimationFrame(() => {
+        const liveKey = hitLive(x, y);
+        if (liveKey) {
+          p.current.onHoverLive?.({ key: liveKey, x, y });
+          p.current.onHover?.(null);
+          el.style.cursor = 'pointer';
+          return;
+        }
+        p.current.onHoverLive?.(null);
         const iso = pick(x, y);
         p.current.onHover?.(iso ? { iso2: iso, x, y } : null);
         el.style.cursor = iso ? 'pointer' : 'grab';
       });
     }
-    const leave = () => p.current.onHover?.(null);
+    const leave = () => { p.current.onHover?.(null); p.current.onHoverLive?.(null); };
     const dbl = (e: MouseEvent) => { const [x, y] = local(e); flyTo(...(projection().invert?.([x, y]) ?? [view.current.lon, view.current.lat]) as [number, number], view.current.k * 2, 500); };
     el.addEventListener('pointerdown', down);
     el.addEventListener('pointermove', move);

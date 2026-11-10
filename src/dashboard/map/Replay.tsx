@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api';
-import { Avatar, DeviceIcon, SourceIcon } from '../components/Icons';
-import { fmtAgo } from '../lib/format';
-import { countryName, flag } from './geo';
+import { VisitorCard } from '../components/VisitorCard';
 
 export interface Visit {
   id: string; t: number; lastSeen: number; visitorId: string; country: string | null; region: string | null; city: string | null;
   lat: number | null; lon: number | null; source: string | null; channel: string | null; referrer: string | null; page: string | null;
-  device: string | null; browser: string | null; os: string | null; pageviews: number; duration: number; name: string | null; email: string | null;
+  current?: string | null; device: string | null; browser: string | null; os: string | null; pageviews: number; duration: number;
+  goals?: number; revenue?: number; currency?: string | null; identified?: boolean;
+  name?: string | null; email?: string | null;
 }
 export interface ReplayData { window: '30m' | '24h'; from: number; to: number; visits: Visit[] }
 export type Win = '30m' | '24h';
@@ -133,39 +133,55 @@ export function ReplayBar({ r, tz }: { r: Replay; tz: string }) {
   );
 }
 
-/** Live feed of visits (newest first), with avatar, flag, place, source and entry page. */
-export function Feed({ visits, tz, now, onPick, emptyText, replaying }: { visits: Visit[]; tz: string; now: number; onPick: (v: Visit) => void; emptyText: string; replaying: boolean }) {
-  const f = timeFmt(tz);
-  if (!visits.length) return <p className="py-10 text-center text-[13px] text-ink-3">{emptyText}</p>;
+/** Live / recent visitors as cards. Tracks enter/leave so new visitors animate in and departures fade. */
+export function Feed({ visits, tz, now, onPick, emptyText, replaying, selectedId, online }: {
+  visits: Visit[]; tz: string; now: number; onPick: (v: Visit) => void; emptyText: string; replaying: boolean;
+  selectedId?: string | null; online?: number;
+}) {
+  const prevIds = useRef<Set<string>>(new Set());
+  const prevRows = useRef<Map<string, Visit>>(new Map());
+  const [leaving, setLeaving] = useState<Visit[]>([]);
+  const [entered, setEntered] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    const next = new Set(visits.map((v) => v.id));
+    const gone = [...prevIds.current].filter((id) => !next.has(id)).map((id) => prevRows.current.get(id)).filter((v): v is Visit => !!v);
+    const fresh = prevIds.current.size ? visits.filter((v) => !prevIds.current.has(v.id)).map((v) => v.id) : [];
+    prevIds.current = next;
+    prevRows.current = new Map(visits.map((v) => [v.id, v]));
+    if (gone.length) setLeaving(gone);
+    if (fresh.length) {
+      setEntered(new Set(fresh));
+      const t = setTimeout(() => setEntered(new Set()), 400);
+      return () => clearTimeout(t);
+    }
+  }, [visits]);
+  useEffect(() => {
+    if (!leaving.length) return;
+    const t = setTimeout(() => setLeaving([]), 220);
+    return () => clearTimeout(t);
+  }, [leaving]);
+  useEffect(() => {
+    if (!selectedId) return;
+    document.querySelector('.ml-vcard[aria-current="true"]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [selectedId]);
+  const shown = [...visits, ...leaving.filter((v) => !visits.some((x) => x.id === v.id))];
+  if (!shown.length) return <p className="py-10 text-center text-[13px] text-ink-3">{emptyText}</p>;
   return (
-    <ol className="space-y-1" aria-live={replaying ? 'off' : 'polite'}>
-      {visits.slice(0, 80).map((v, i) => {
-        const who = v.name || v.email;
-        const place = [v.city, v.country ? countryName(v.country) : null].filter(Boolean).join(', ') || 'Lieu inconnu';
-        const src = !v.source || v.source === 'Direct/None' ? 'Accès direct' : v.source;
-        return (
+    <div>
+      {online != null && !replaying && (
+        <div className="mb-3 flex items-center gap-2 text-[13px] text-ink-3">
+          <span className="relative flex h-2 w-2"><span className="absolute inset-0 animate-ping rounded-full bg-success/60" /><span className="relative h-2 w-2 rounded-full bg-success" /></span>
+          <span><b className="tnum font-semibold text-ink">{online}</b> {online > 1 ? 'personnes en ligne' : 'personne en ligne'}</span>
+        </div>
+      )}
+      <ul className="space-y-2" aria-live={replaying ? 'off' : 'polite'}>
+        {shown.slice(0, 80).map((v) => (
           <li key={v.id}>
-            <button type="button" onClick={() => onPick(v)} className={`flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-well ${i === 0 ? 'ml-feed-in' : ''}`}>
-              <span className="relative">
-                <Avatar id={v.visitorId} size={34} name={v.name} email={v.email} />
-                {v.country && <span className="absolute -bottom-1 -right-1 rounded-full bg-surface px-px text-[13px] leading-none" aria-hidden>{flag(v.country)}</span>}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-baseline justify-between gap-2">
-                  <span className="truncate text-[13px] font-medium text-ink">{who ? who : place}</span>
-                  <span className="tnum shrink-0 text-[11px] text-ink-4" title={f.format(v.t)}>{replaying ? f.format(v.t) : now - v.t < 60_000 ? 'à l’instant' : `il y a ${fmtAgo(now - v.t)}`}</span>
-                </span>
-                <span className="mt-0.5 flex items-center gap-1.5 truncate text-[12px] text-ink-3">
-                  {who && <span className="truncate">{place} ·</span>}
-                  <SourceIcon source={v.source} domain={v.referrer} /><span className="truncate">{src}</span>
-                  {v.page && <><span aria-hidden>→</span><span className="truncate font-mono text-[11px]">{v.page}</span></>}
-                  <DeviceIcon name={v.device} size={12} />
-                </span>
-              </span>
-            </button>
+            <VisitorCard visit={v} tz={tz} now={now} selected={selectedId === v.id} onPick={onPick}
+              entering={entered.has(v.id)} leaving={leaving.some((x) => x.id === v.id)} />
           </li>
-        );
-      })}
-    </ol>
+        ))}
+      </ul>
+    </div>
   );
 }

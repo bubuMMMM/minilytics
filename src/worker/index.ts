@@ -22,6 +22,7 @@ import { registerImports } from './imports.js';
 import { registerShare } from './share.js';
 import { registerWidgets } from './widgets.js';
 import { registerReplay } from './replay.js';
+import { registerProfile } from './profile.js';
 import { registerAlerts, runDailyAlerts } from './alerts.js';
 import { currentPlan, registerPlatform } from './platform.js';
 import { registerConnectors, syncGithub, syncReddit } from './connectors.js';
@@ -494,6 +495,7 @@ registerImports(app);
 registerShare(app);
 registerWidgets(app);
 registerReplay(app);
+registerProfile(app);
 registerAlerts(app);
 registerConnectors(app);
 

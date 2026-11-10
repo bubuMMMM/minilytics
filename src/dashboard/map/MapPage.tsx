@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Feed, ReplayBar, useReplay, type ReplayData, type Visit } from './Replay';
+import { VisitorMini } from '../components/VisitorCard';
+import { visitorJitter } from '../../shared/persona';
 import { feature } from 'topojson-client';
 import type { Feature, MultiPolygon, Polygon } from 'geojson';
 import { AppHeader, BottomNav } from '../components/AppNav';
@@ -84,7 +86,11 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
   const [mode, setMode] = useState<Mode>(() => (localStorage.getItem('ml-map-mode') === 'flat' ? 'flat' : 'globe'));
   const [zoom, setZoom] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>('rank');
+  const [tab, setTab] = useState<Tab>(isPublic || isShare ? 'rank' : 'feed');
+  const [pickedVisit, setPickedVisit] = useState<string | null>(null);
+  const [feedMode, setFeedMode] = useState<'live' | '30m'>('live');
+  const [livePeople, setLivePeople] = useState<Visit[] | null>(null);
+  const [hoverLive, setHoverLive] = useState<{ visit: Visit; x: number; y: number } | null>(null);
   const [hover, setHover] = useState<{ iso2: string; x: number; y: number } | null>(null);
   const [toast, setToast] = useState<{ country: string; at: number } | null>(null);
   const [sheet, setSheet] = useState(false);
@@ -98,11 +104,19 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
   useEffect(() => {
     if (!canReplay || replaying) return;
     let alive = true;
+    const tickLive = () => { if (document.visibilityState !== 'visible') return; api<{ visits: Visit[]; online: number }>(`/api/sites/${siteId}/live-visitors`).then((d) => { if (alive) { setLivePeople(d.visits); setNow(Date.now()); } }).catch(() => {}); };
+    tickLive();
+    const tLive = setInterval(tickLive, 10_000);
+    return () => { alive = false; clearInterval(tLive); };
+  }, [canReplay, replaying, siteId]);
+  useEffect(() => {
+    if (!canReplay || replaying || feedMode !== '30m') return;
+    let alive = true;
     const tick = () => { if (document.visibilityState !== 'visible') return; api<ReplayData>(`/api/sites/${siteId}/replay?window=30m`).then((d) => { if (alive) { setFeed([...d.visits].reverse()); setNow(Date.now()); } }).catch(() => {}); };
     tick();
     const t = setInterval(tick, 15_000);
     return () => { alive = false; clearInterval(t); };
-  }, [canReplay, replaying, siteId]);
+  }, [canReplay, replaying, siteId, feedMode]);
   const world = useWorld(zoom >= 2.4);
   const tz = data?.timezone ?? site?.timezone ?? 'UTC';
   const title = isShare ? share.title : isPublic ? 'Démo' : site?.name;
@@ -169,6 +183,18 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
       }
       return out;
     }
+    const people = livePeople ?? [];
+    if (people.length) {
+      const out: LivePoint[] = [];
+      for (const v of people) {
+        const c = v.country ? COUNTRIES.get(v.country) : undefined;
+        const ll = v.country ? locate(v.country, v.city ?? '', v.lat, v.lon) ?? (c ? [c.lng, c.lat] as [number, number] : null) : null;
+        if (!ll) continue;
+        const [jLon, jLat] = visitorJitter(v.visitorId);
+        out.push({ key: v.id, lon: ll[0] + jLon, lat: ll[1] + jLat, value: 1, highlight: pickedVisit === v.id });
+      }
+      return out;
+    }
     if (!live) return [];
     const out: LivePoint[] = [];
     const placed = new Set<string>();
@@ -181,7 +207,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
       if (!placed.has(c.country) && info) out.push({ key: c.country, lon: info.lng, lat: info.lat, value: c.visitors });
     }
     return out;
-  }, [live, locate, replaying, replay.active]);
+  }, [live, livePeople, locate, replaying, replay.active, pickedVisit]);
 
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
   const todayStart = useMemo(() => {
@@ -198,18 +224,26 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
 
   const select = useCallback((iso2: string | null, fly = true) => {
     setSelected(iso2);
+    setPickedVisit(null);
     if (iso2 && fly) mapRef.current?.flyToCountry(iso2);
     if (iso2) setSheet(true);
   }, []);
   const flyToPlace = (lon: number, lat: number) => mapRef.current?.flyTo(lon, lat, 14);
   const pickVisit = (v: Visit) => {
+    setPickedVisit(v.id);
+    setSelected(null);
+    setTab('feed');
+    setSheet(true);
     if (!v.country) return;
     const ll = locate(v.country, v.city ?? '', v.lat, v.lon);
-    setSelected(v.country); setSheet(true);
-    if (ll) flyToPlace(ll[0], ll[1]); else mapRef.current?.flyToCountry(v.country);
+    if (ll) {
+      const [jLon, jLat] = visitorJitter(v.visitorId);
+      flyToPlace(ll[0] + jLon, ll[1] + jLat);
+    } else mapRef.current?.flyToCountry(v.country);
   };
   useEffect(() => { if (replay.open) { setSelected(null); setTab('feed'); } }, [replay.open]);
-  const feedVisits = replaying ? [...replay.shown].reverse() : feed;
+  const feedVisits = replaying ? [...replay.shown].reverse() : feedMode === 'live' ? livePeople : feed;
+  const onlineCount = livePeople?.length ?? live?.online ?? 0;
 
   const header = isShare ? share.header : isPublic ? (
     <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
@@ -226,6 +260,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
       discovered={discovered} discovery={discovery} badges={badges} conts={conts} line={line} streak={st} reached={reached} lvl={lvl}
       regionNames={regionNames} locate={locate} flyToPlace={flyToPlace} isPublic={countryOnly}
       canFeed={canReplay} feed={feedVisits} replaying={replaying} now={now} pickVisit={pickVisit}
+      feedMode={feedMode} setFeedMode={setFeedMode} selectedId={pickedVisit} online={onlineCount}
     />
   );
 
@@ -237,8 +272,18 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
           <div className="absolute inset-0">
             {world ? (
               <GeoMap ref={mapRef} mode={mode} countries={world} intensity={intensity} discovered={discovered} points={points} live={livePoints}
-                selected={selected} onSelectCountry={(c) => select(c)} onSelectPoint={(pt) => { setSelected(pt.country); flyToPlace(pt.lon, pt.lat); setSheet(true); }}
-                onHover={setHover} onZoom={(k) => setZoom((z) => (Math.abs(z - k) > 0.05 ? k : z))}
+                selected={selected} onSelectCountry={(c) => select(c)} onSelectPoint={(pt) => { setPickedVisit(null); setSelected(pt.country); flyToPlace(pt.lon, pt.lat); setSheet(true); }}
+                onHover={setHover}
+                onHoverLive={(info) => {
+                  if (!info) { setHoverLive(null); return; }
+                  const visit = (livePeople ?? []).find((v) => v.id === info.key) ?? (replaying ? replay.shown.find((v) => v.id === info.key) : undefined);
+                  setHoverLive(visit ? { visit, x: info.x, y: info.y } : null);
+                }}
+                onSelectLive={(key) => {
+                  const visit = (livePeople ?? []).find((v) => v.id === key) ?? feedVisits?.find((v) => v.id === key);
+                  if (visit) pickVisit(visit);
+                }}
+                onZoom={(k) => setZoom((z) => (Math.abs(z - k) > 0.05 ? k : z))}
                 label={`Carte des visiteurs : ${reached} pays découverts sur ${SOVEREIGN_TOTAL}. Glissez pour tourner, pincez ou utilisez les boutons pour zoomer.`} />
             ) : <div className="flex h-full items-center justify-center"><div className="ml-skeleton h-[min(70vw,520px)] w-[min(70vw,520px)] rounded-full" /></div>}
           </div>
@@ -285,10 +330,15 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
             <span className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm" style={{ background: 'linear-gradient(90deg, rgb(var(--accent) / .3), rgb(var(--accent) / .9))' }} />Visiteurs sur la période</span>
             <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-accent/15" />Déjà découvert</span>
             <span className="flex items-center gap-1.5"><span className="ml-fog h-2.5 w-2.5 rounded-sm" />Inexploré</span>
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-success" />En direct{live ? ` · ${nf(live.online)}` : ''}</span>
+            <button type="button" className="pointer-events-auto flex items-center gap-1.5 hover:text-ink" onClick={() => { setTab('feed'); setFeedMode('live'); setSheet(true); }}><span className="h-2 w-2 rounded-full bg-success" />En direct{` · ${nf(onlineCount)}`}</button>
           </div>
 
-          {hover && (
+          {hoverLive && (
+            <div className="pointer-events-none absolute z-20 rounded-xl border border-line bg-surface px-3 py-2 shadow-pop" style={{ left: Math.min(hoverLive.x + 14, 9999), top: hoverLive.y + 14 }}>
+              <VisitorMini visit={hoverLive.visit} tz={tz} />
+            </div>
+          )}
+          {hover && !hoverLive && (
             <div className="pointer-events-none absolute z-10 rounded-lg border border-line bg-surface px-3 py-2 text-[12px] shadow-pop" style={{ left: Math.min(hover.x + 14, 9999), top: hover.y + 14 }}>
               <div className="font-medium text-ink">{flag(hover.iso2)} {countryName(hover.iso2)}</div>
               <div className="text-ink-3">{discovered.has(hover.iso2)
@@ -350,6 +400,7 @@ interface PanelProps {
   regionNames: Record<string, string> | null; locate: (cc: string, city: string, lat: number | null, lon: number | null) => [number, number] | null;
   flyToPlace: (lon: number, lat: number) => void; isPublic: boolean;
   canFeed: boolean; feed: Visit[] | null; replaying: boolean; now: number; pickVisit: (v: Visit) => void;
+  feedMode: 'live' | '30m'; setFeedMode: (m: 'live' | '30m') => void; selectedId: string | null; online: number;
 }
 
 const TABS = [['rank', 'Classement'], ['game', 'Succès'], ['timeline', 'Conquête']] as const;
@@ -369,8 +420,22 @@ function Panel(props: PanelProps) {
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-6 pt-3">
-        {tab === 'feed' && props.canFeed ? (props.feed ? <Feed visits={props.feed} tz={props.tz} now={props.now} onPick={props.pickVisit} replaying={props.replaying}
-            emptyText={props.replaying ? 'Les visites apparaîtront ici au fil du replay.' : 'Aucune visite ces 30 dernières minutes.'} /> : <div className="space-y-2">{[0, 1, 2, 3, 4].map((i) => <div key={i} className="ml-skeleton h-11 w-full" />)}</div>)
+        {tab === 'feed' && props.canFeed ? (
+          <div>
+            {!props.replaying && (
+              <div className="mb-3 inline-flex rounded-lg border border-line bg-well p-0.5" role="radiogroup" aria-label="Fenêtre du flux">
+                {([['live', 'En ligne'], ['30m', '30 min']] as const).map(([k, l]) => (
+                  <button key={k} type="button" role="radio" aria-checked={props.feedMode === k} onClick={() => props.setFeedMode(k)}
+                    className={`min-h-[32px] rounded-md px-3 text-[12px] font-medium ${props.feedMode === k ? 'bg-surface text-ink shadow-xs' : 'text-ink-3 hover:text-ink'}`}>{l}</button>
+                ))}
+              </div>
+            )}
+            {props.feed ? <Feed visits={props.feed} tz={props.tz} now={props.now} onPick={props.pickVisit} replaying={props.replaying}
+              selectedId={props.selectedId} online={props.feedMode === 'live' ? props.online : undefined}
+              emptyText={props.replaying ? 'Les visites apparaîtront ici au fil du replay.' : props.feedMode === 'live' ? 'Personne en ligne pour le moment. Les cartes apparaissent dès qu’un visiteur est actif (5 dernières minutes).' : 'Aucune visite ces 30 dernières minutes.'} />
+              : <div className="space-y-2">{[0, 1, 2, 3].map((i) => <div key={i} className="ml-skeleton h-24 w-full rounded-xl" />)}</div>}
+          </div>
+        )
           : !data ? <div className="space-y-2">{[0, 1, 2, 3, 4].map((i) => <div key={i} className="ml-skeleton h-9 w-full" />)}</div>
           : tab === 'rank' ? <Ranking {...props} data={data} />
           : tab === 'game' ? <Game {...props} data={data} />

@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import app from '../src/worker/index';
 import { ingest } from '../src/worker/collect';
-import { replay } from '../src/worker/replay';
+import { liveVisitors, replay } from '../src/worker/replay';
 import type { Site } from '../src/worker/env';
 import { makeDb, type PgliteD1 } from './helpers/pglite-d1';
 
@@ -41,5 +41,20 @@ describe('replay', () => {
   it('is admin only', async () => {
     const r = await call(`/api/sites/${site.id}/replay?window=24h`);
     expect(r.status).toBe(401);
+  });
+  it('adds current page, goals, revenue and hides PII on the live list', async () => {
+    const t0 = NOW - 60_000;
+    await ingest(db as unknown as D1Database, site, { w: site.id, sw: 1440, t: 'pageview', u: 'https://replay.test/prix', vid: 'v_pay', sid: 's_pay' }, new URL('https://replay.test/prix'), UA, { country: 'FR', region: 'ARA', city: 'Lyon' }, t0);
+    await ingest(db as unknown as D1Database, site, { w: site.id, sw: 1440, t: 'pageview', u: 'https://replay.test/merci', vid: 'v_pay', sid: 's_pay' }, new URL('https://replay.test/merci'), UA, { country: 'FR', region: 'ARA', city: 'Lyon' }, t0 + 500);
+    await ingest(db as unknown as D1Database, site, { w: site.id, sw: 1440, t: 'goal', u: 'https://replay.test/merci', n: 'Achat', vid: 'v_pay', sid: 's_pay' }, new URL('https://replay.test/merci'), UA, { country: 'FR', region: 'ARA', city: 'Lyon' }, t0 + 1000);
+    await db.prepare("INSERT INTO payments (id, site_id, provider, ts, amount, currency, kind, visitor_id, session_id, renewal) VALUES ('pay_r', ?, 'api', ?, 1200, 'EUR', 'payment', 'v_pay', 's_pay', 0)").bind(site.id, t0).run();
+    const live = await liveVisitors(db as unknown as D1Database, site.id, NOW);
+    const v = live.visits.find((x) => x.id === 's_pay' || x.visitorId === 'v_pay');
+    expect(v).toMatchObject({ current: '/merci', goals: 1, revenue: 1200, currency: 'EUR', name: null, email: null });
+    expect(JSON.stringify(live)).not.toMatch(/Ada@|Ada Lovelace/i);
+    const replayed = await replay(db as unknown as D1Database, site.id, '30m', NOW);
+    const r = replayed.visits.find((x) => x.visitorId === 'v_pay');
+    expect(r?.revenue).toBe(1200);
+    expect(r?.goals).toBe(1);
   });
 });

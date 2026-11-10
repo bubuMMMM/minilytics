@@ -1,13 +1,14 @@
 /*! Minilytics widgets — https://minilytics-six.vercel.app
  * <div data-minilytics-widget="live" data-token="w…" data-theme="auto"></div>
  * <script async src="https://minilytics-six.vercel.app/js/widget.js"></script>
- * Options (data-*): theme auto|light|dark · accent (hex, sans #) · size sm|md|lg · period today|24h|7d|30d|90d|12m|all
+ * Options (data-*): theme auto|light|dark · style classic|minimal|editorial|glass|gradient|compact
+ *                   accent (hex, sans #) · size sm|md|lg · period today|24h|7d|30d|90d|12m|all
  *                   transparent 1 · locale fr|en · logo 0 · width (CSS, ex. 320px)
  */
 (function () {
   var s = document.currentScript;
   var origin = s ? new URL(s.src, location.href).origin : 'https://minilytics-six.vercel.app';
-  var KEYS = ['theme', 'accent', 'size', 'period', 'transparent', 'locale', 'logo'];
+  var KEYS = ['theme', 'accent', 'size', 'period', 'transparent', 'locale', 'logo', 'style'];
   var H = { live: 40, counter: 156, chart: 214, pages: 258, map: 240 };
   var frames = {};
   addEventListener('message', function (e) {

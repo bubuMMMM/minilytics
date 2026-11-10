@@ -5,7 +5,8 @@ import { UiIcon } from '../components/UiIcon';
 
 type WType = 'live' | 'counter' | 'chart' | 'pages' | 'map' | 'badge';
 type Theme = 'auto' | 'light' | 'dark';
-interface Opts { type: WType; theme: Theme; accent: string; size: 'sm' | 'md' | 'lg'; period: string; transparent: boolean; locale: 'fr' | 'en'; logo: boolean; badge: 'live' | 'visitors' | 'pageviews' }
+type WStyle = 'classic' | 'minimal' | 'editorial' | 'glass' | 'gradient' | 'compact';
+interface Opts { type: WType; theme: Theme; accent: string; size: 'sm' | 'md' | 'lg'; period: string; transparent: boolean; locale: 'fr' | 'en'; logo: boolean; badge: 'live' | 'visitors' | 'pageviews'; style: WStyle }
 
 const TYPES: { key: WType; label: string; hint: string }[] = [
   { key: 'live', label: 'En ligne', hint: '« 3 personnes en ligne »' },
@@ -20,6 +21,14 @@ const PERIODS = [
   { value: '30d', label: '30 jours' }, { value: '90d', label: '90 jours' }, { value: '12m', label: '12 mois' }, { value: 'all', label: 'Depuis le début' },
 ];
 const ACCENTS = ['2563eb', '16a34a', '7c3aed', 'db2777', 'ea580c', '0a0a0a'];
+const STYLES: { key: WStyle; label: string; hint: string }[] = [
+  { key: 'classic', label: 'Classique', hint: 'Carte nette, comme aujourd’hui' },
+  { key: 'minimal', label: 'Minimal', hint: 'Chiffre immense, presque pas de cadre' },
+  { key: 'editorial', label: 'Éditorial', hint: 'Typo serif, allure magazine' },
+  { key: 'glass', label: 'Verre', hint: 'Flou, bord lumineux, transparence' },
+  { key: 'gradient', label: 'Dégradé', hint: 'Fond coloré, texte blanc' },
+  { key: 'compact', label: 'Compact', hint: 'Une bande serrée, pour un encadré' },
+];
 // Heights at size M (content + 4 px); the script embed resizes itself, the iframe snippet scales these.
 const HEIGHT: Record<Exclude<WType, 'badge'>, number> = { live: 40, counter: 156, chart: 214, pages: 258, map: 240 };
 const SCALE = { sm: 0.86, md: 1, lg: 1.18 } as const;
@@ -34,6 +43,7 @@ function params(o: Opts, wid?: string) {
   if (o.transparent && o.type !== 'badge') p.set('transparent', '1');
   if (o.locale !== 'fr') p.set('locale', o.locale);
   if (!o.logo && o.type !== 'badge') p.set('logo', '0');
+  if (o.style && o.style !== 'classic' && o.type !== 'badge') p.set('style', o.style);
   if (wid) p.set('wid', wid);
   return p.toString();
 }
@@ -42,10 +52,19 @@ export function WidgetBuilder({ site }: { site: Site }) {
   const [token, setToken] = useState<string | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [o, setO] = useState<Opts>({ type: 'live', theme: 'auto', accent: '2563eb', size: 'md', period: '30d', transparent: false, locale: 'fr', logo: true, badge: 'live' });
+  const [o, setO] = useState<Opts>(() => {
+    const base: Opts = { type: 'live', theme: 'auto', accent: '2563eb', size: 'md', period: '30d', transparent: false, locale: 'fr', logo: true, badge: 'live', style: 'classic' };
+    try {
+      const raw = localStorage.getItem('ml-widget-opts:' + site.id);
+      if (!raw) return base;
+      const saved = JSON.parse(raw) as Partial<Opts>;
+      return { ...base, ...saved, style: STYLES.some((x) => x.key === saved.style) ? saved.style as WStyle : 'classic' };
+    } catch { return base; }
+  });
   const [stage, setStage] = useState<'light' | 'dark'>('light');
   const [tab, setTab] = useState<'script' | 'iframe' | 'markdown' | 'html'>('script');
   const set = (p: Partial<Opts>) => setO((x) => ({ ...x, ...p }));
+  useEffect(() => { try { localStorage.setItem('ml-widget-opts:' + site.id, JSON.stringify(o)); } catch {} }, [o, site.id]);
   useEffect(() => { api<{ token: string | null }>(`/api/sites/${site.id}/widgets`).then((r) => setToken(r.token), (e) => setError((e as Error).message)); }, [site.id]);
   useEffect(() => { if (o.type === 'badge' && (tab === 'script' || tab === 'iframe')) setTab('markdown'); if (o.type !== 'badge' && (tab === 'markdown' || tab === 'html')) setTab('script'); }, [o.type, tab]);
 
@@ -76,6 +95,7 @@ export function WidgetBuilder({ site }: { site: Site }) {
     if (o.transparent) attrs.push('data-transparent="1"');
     if (o.locale !== 'fr') attrs.push(`data-locale="${o.locale}"`);
     if (!o.logo) attrs.push('data-logo="0"');
+    if (o.style !== 'classic') attrs.push(`data-style="${o.style}"`);
     return `<div ${attrs.join(' ')}></div>\n<script async src="${origin}/js/widget.js"></script>`;
   }, [token, o, tab, origin, site.domain]);
 
@@ -112,6 +132,21 @@ export function WidgetBuilder({ site }: { site: Site }) {
               </button>
             ))}
           </div>
+
+          {o.type !== 'badge' && (
+            <div className="mt-5">
+              <div className="label">Style</div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Style du widget">
+                {STYLES.map((st) => (
+                  <button key={st.key} type="button" role="radio" aria-checked={o.style === st.key} onClick={() => set({ style: st.key })}
+                    className={`min-h-[64px] rounded-lg border p-2.5 text-left transition-colors ${o.style === st.key ? 'border-accent bg-accent/5' : 'border-line hover:border-line-strong'}`}>
+                    <span className="block text-[13px] font-medium">{st.label}</span>
+                    <span className="block text-[11px] text-ink-3">{st.hint}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             {o.type === 'badge' && (

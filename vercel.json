@@ -9,6 +9,10 @@
       "destination": "/api"
     },
     {
+      "source": "/u/:slug",
+      "destination": "/api/u/:slug"
+    },
+    {
       "source": "/((?!js/|assets/).*)",
       "destination": "/index.html"
     }

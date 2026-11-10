@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 export type UiIconName = IconName;
-type IconName = 'share' | 'heart' | 'repeat' | 'message' | 'copy' | 'file-text' | 'filter' | 'code' | 'arrow-up-right' | 'arrow-right' | 'activity' | 'eye' | 'users' | 'clock' | 'refresh' | 'globe' | 'mouse' | 'target' | 'layers' | 'check' | 'plus' | 'logout' | 'search' | 'shield' | 'bar-chart' | 'sparkles' | 'external' | 'calendar' | 'menu' | 'chevron-down' | 'link' | 'play' | 'megaphone' | 'grid' | 'compass' | 'settings' | 'command' | 'download' | 'info' | 'x' | 'lock' | 'smartphone' | 'zap' | 'bot' | 'star' | 'upload' | 'key' | 'bell' | 'coins' | 'layout' | 'book' | 'sliders' | 'database' | 'plug' | 'chevron-right' | 'sun';
+type IconName = 'share' | 'heart' | 'repeat' | 'message' | 'copy' | 'file-text' | 'filter' | 'code' | 'arrow-up-right' | 'arrow-right' | 'activity' | 'eye' | 'users' | 'clock' | 'refresh' | 'globe' | 'mouse' | 'target' | 'layers' | 'check' | 'plus' | 'logout' | 'search' | 'shield' | 'bar-chart' | 'sparkles' | 'external' | 'calendar' | 'menu' | 'chevron-down' | 'link' | 'play' | 'megaphone' | 'grid' | 'compass' | 'settings' | 'command' | 'download' | 'info' | 'x' | 'lock' | 'smartphone' | 'zap' | 'bot' | 'star' | 'upload' | 'key' | 'bell' | 'coins' | 'layout' | 'book' | 'sliders' | 'database' | 'plug' | 'chevron-right' | 'sun' | 'user';
 
 export function UiIcon({ name, size = 20, className = '' }: { name: IconName; size?: number; className?: string }) {
   const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -62,6 +62,7 @@ export function UiIcon({ name, size = 20, className = '' }: { name: IconName; si
     plug: <><path d="M9 2v5M15 2v5M6 7h12v4a6 6 0 0 1-12 0V7ZM12 17v5"/></>,
     'chevron-right': <><path d="m9 6 6 6-6 6"/></>,
     sun: <><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></>,
+    user: <><path d="M16 20v-1.5A3.5 3.5 0 0 0 12.5 15h-1A3.5 3.5 0 0 0 8 18.5V20"/><circle cx="12" cy="9" r="3.2"/></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className} {...common}>{paths[name]}</svg>;
 }
