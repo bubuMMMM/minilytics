@@ -96,7 +96,7 @@ export function Segmented<T extends string>({ options, value, onChange, label, s
     <div className="inline-flex max-w-full overflow-x-auto rounded-lg border border-line bg-well p-0.5" role="radiogroup" aria-label={label}>
       {options.map((o) => (
         <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)}
-          className={`whitespace-nowrap rounded-md px-2.5 font-medium transition-colors duration-150 ${size === 'sm' ? 'min-h-[28px] text-[12px]' : 'min-h-[36px] text-[13px] md:min-h-[30px]'} ${value === o.value ? 'bg-surface text-ink shadow-xs' : 'text-ink-3 hover:text-ink'}`}>
+          className={`whitespace-nowrap rounded-md px-2.5 font-medium transition-colors duration-150 ${size === 'sm' ? 'min-h-[44px] text-[12px] md:min-h-[28px]' : 'min-h-[44px] text-[13px] md:min-h-[30px]'} ${value === o.value ? 'bg-surface text-ink shadow-xs' : 'text-ink-3 hover:text-ink'}`}>
           {o.label}
         </button>
       ))}
