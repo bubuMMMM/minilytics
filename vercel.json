@@ -10,7 +10,7 @@
     },
     {
       "source": "/u/:slug",
-      "destination": "/api/u/:slug"
+      "destination": "/api"
     },
     {
       "source": "/((?!js/|assets/).*)",
