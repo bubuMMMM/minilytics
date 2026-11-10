@@ -73,3 +73,17 @@
 - Limites : iOS n’offre pas de vrai widget d’écran d’accueil tiers sans Scriptable ; Android = PWA « Ajouter à l’écran d’accueil » ou appli Photo Widget/KWGT avec l’URL du PNG. Les widgets expérimentaux du manifeste (Adaptive Cards) n’ont pas été activés (peu disponibles, risque élevé). Lighthouse 13 n’a plus de catégorie PWA ; critères d’installabilité vérifiés à la main (manifeste, SW, icônes, métas, HTTPS).
 - Vérif prod 1440/390 clair/sombre : 0 erreur console, 0 débordement. Écran de test créé sur le site démo puis révoqué ; n0.pub non modifié. Après nettoyage : widget_boards 0 (le jeton widget déjà présent n’a pas été touché). Tests 184/184, typecheck, build.
 - Captures (y compris les PNG téléchargés) : /workspace/minilytics-shots/phone-widgets/
+
+## DEPLOYED a41b6b2 (51d341b + a41b6b2) — 11 nov. 2026 00:09 (Europe/Paris) → https://minilytics-six.vercel.app, frontend agent — Expérience mobile
+- Demande owner t33u : optimiser le site en version mobile, améliorer l’UI/UX. Branche `vercel-port` uniquement.
+- Audit 360 / 390 / 430 px, clair et sombre, sur l’accueil et les tarifs, la connexion, Mes sites, l’aperçu et tous les panneaux d’analyse, la carte (feuille visiteurs), le temps réel, les réglages / widgets / téléphone, `/page`, `/api-docs`, les objectifs, le replay, plus un lien `/share/:token` et un écran `/w/:token` temporaires.
+- Problèmes corrigés :
+  - débordement de l’en-tête « Mes sites » à 360 px (trop d’icônes) → logo compact + menu Compte en feuille ;
+  - pas de sélecteur de site sur téléphone → `SiteSwitcher` dans l’en-tête collant ; le bouton Direct redondant est retiré de l’en-tête (il reste dans la barre basse) ;
+  - menus (période, filtres, site, compte) en feuille depuis le bas sur ≤ 767 px ; le menu commande aussi ; le bureau garde les popovers ;
+  - cibles tactiles portées à 44 px (boutons, onglets, puces, carte, démo, accueil, copie de code, listes) ; champs texte à 16 px pour éviter le zoom iOS ;
+  - tableaux de détail en cartes empilées sous `sm` ; infobulles des graphiques conservées au doigt ; feuille carte au-dessus de la barre d’onglets, avec safe-area ;
+  - correctif de cascade CSS : les boutons d’aide (InfoTip) et les sélecteurs segmentés de `/page` font bien 44 px (a41b6b2).
+- Bureau : barre latérale et popovers inchangés (vérifié à 1440 px, 0 débordement).
+- Vérif prod 360/390/430 clair (+ sombre sur les pages clés) : 0 erreur console, 0 débordement. Lien et écran de test créés sur le site démo puis révoqués ; n0.pub non modifié. Tests 184/184, typecheck, build.
+- Captures avant/après : /workspace/minilytics-shots/mobile-ux/
