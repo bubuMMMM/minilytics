@@ -1,14 +1,16 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { geoArea, geoBounds, geoCentroid, geoContains, geoDistance, geoGraticule10, geoNaturalEarth1, geoOrthographic, geoPath, type GeoProjection } from 'd3-geo';
 import type { Feature, MultiPolygon, Polygon } from 'geojson';
+import { clusterLive, clusterThreshold, type Clustered } from './cluster';
 
 export type Mode = 'globe' | 'flat';
 export interface CountryFeature { iso2: string; feature: Feature<Polygon | MultiPolygon>; center: [number, number]; span: number }
 export interface MapPoint { key: string; lon: number; lat: number; value: number; label: string; country: string }
-export interface LivePoint { key: string; lon: number; lat: number; value: number; highlight?: boolean }
+export interface LivePoint { key: string; lon: number; lat: number; value: number; highlight?: boolean; pages?: number; pulse?: boolean }
 export interface GeoMapHandle {
   flyTo(lon: number, lat: number, k: number): void;
   flyToCountry(iso2: string): void;
+  flyToCluster(lon: number, lat: number): void;
   zoomBy(f: number): void;
   reset(): void;
   celebrate(lon: number, lat: number): void;
@@ -27,6 +29,7 @@ interface Props {
   onSelectPoint?(p: MapPoint): void;
   onHover?(info: { iso2: string; x: number; y: number } | null): void;
   onHoverLive?(info: { key: string; x: number; y: number } | null): void;
+  onHoverCluster?(info: { count: number; x: number; y: number } | null): void;
   onSelectLive?(key: string): void;
   onZoom?(k: number): void;
   label: string;
@@ -77,6 +80,7 @@ export const GeoMap = forwardRef<GeoMapHandle, Props>(function GeoMap(props, ref
   const dirty = useRef(true);
   const interactedAt = useRef(0);
   const bursts = useRef<{ lon: number; lat: number; start: number }[]>([]);
+  const clustered = useRef<Clustered[]>([]);
   const pal = useRef<ReturnType<typeof palette> | null>(null);
   const fog = useRef<CanvasPattern | null>(null);
   const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -122,6 +126,7 @@ export const GeoMap = forwardRef<GeoMapHandle, Props>(function GeoMap(props, ref
 
   useImperativeHandle(ref, () => ({
     flyTo: (lon, lat, k) => flyTo(lon, lat, k),
+    flyToCluster: (lon, lat) => flyTo(lon, lat, clampK(view.current.k * 2.4), 700),
     flyToCountry: (iso2) => {
       const c = p.current.countries.find((x) => x.iso2 === iso2);
       if (!c) return;
@@ -256,20 +261,60 @@ export const GeoMap = forwardRef<GeoMapHandle, Props>(function GeoMap(props, ref
         ctx.lineWidth = 1.5; ctx.strokeStyle = `rgba(${c.surface},1)`; ctx.stroke();
         if (k >= 2.5) labels.push({ x: xy[0], y: xy[1], r, t: pt.label });
       }
-      // Live visitors: pulsing rings (highlighted card gets a larger accent ring).
+      // Live visitors: cluster nearby markers; a selected (highlighted) point stays alone.
+      const projected: { key: string; lon: number; lat: number; x: number; y: number; highlight?: boolean; pages?: number; pulse?: boolean }[] = [];
       for (const lv of pr.live) {
         if (!visible(lv.lon, lv.lat)) continue;
         const xy = proj([lv.lon, lv.lat]);
-        if (!xy) continue;
-        const hi = !!lv.highlight;
-        const ph = ((now / (hi ? 1400 : 1600)) + (lv.lon + 180) / 360) % 1;
+        if (xy) projected.push({ key: lv.key, lon: lv.lon, lat: lv.lat, x: xy[0], y: xy[1], highlight: lv.highlight, pages: lv.pages, pulse: lv.pulse !== false });
+      }
+      const groups = clusterLive(projected, clusterThreshold(k));
+      clustered.current = groups;
+      for (const g of groups) {
+        if (g.type === 'cluster') {
+          const ph = ((now / 1800) + (g.lon + 180) / 360) % 1;
+          const core = 10 + Math.min(8, Math.log2(g.count) * 2);
+          ctx.beginPath(); ctx.arc(g.x, g.y, core + ph * 16, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(${c.success},${0.55 * (1 - ph)})`; ctx.lineWidth = 2; ctx.stroke();
+          ctx.beginPath(); ctx.arc(g.x, g.y, core, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${c.success},1)`; ctx.fill();
+          ctx.lineWidth = 2; ctx.strokeStyle = `rgba(${c.surface},1)`; ctx.stroke();
+          ctx.fillStyle = `rgba(${c.surface},1)`;
+          ctx.font = `700 ${core >= 14 ? 13 : 11}px Geist, Inter, system-ui, sans-serif`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(String(g.count), g.x, g.y + 0.5);
+          ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+          continue;
+        }
+        const hi = !!g.highlight;
+        const pulse = g.pulse !== false;
+        const ph = pulse ? ((now / (hi ? 1400 : 1600)) + (g.lon + 180) / 360) % 1 : 0;
         const core = hi ? 6.5 : 4;
-        ctx.beginPath(); ctx.arc(xy[0], xy[1], core + ph * (hi ? 26 : 18), 0, Math.PI * 2);
-        ctx.strokeStyle = hi ? `rgba(${c.accent},${0.85 * (1 - ph)})` : `rgba(${c.success},${0.7 * (1 - ph)})`;
-        ctx.lineWidth = hi ? 2.5 : 2; ctx.stroke();
-        ctx.beginPath(); ctx.arc(xy[0], xy[1], core, 0, Math.PI * 2);
+        if (pulse) {
+          ctx.beginPath(); ctx.arc(g.x, g.y, core + ph * (hi ? 26 : 18), 0, Math.PI * 2);
+          ctx.strokeStyle = hi ? `rgba(${c.accent},${0.85 * (1 - ph)})` : `rgba(${c.success},${0.7 * (1 - ph)})`;
+          ctx.lineWidth = hi ? 2.5 : 2; ctx.stroke();
+        }
+        ctx.beginPath(); ctx.arc(g.x, g.y, core, 0, Math.PI * 2);
         ctx.fillStyle = hi ? `rgba(${c.accent},1)` : `rgba(${c.success},1)`; ctx.fill();
         ctx.lineWidth = 1.5; ctx.strokeStyle = `rgba(${c.surface},1)`; ctx.stroke();
+        if (hi && (g.pages ?? 0) > 1) {
+          const label = `${g.pages} p.`;
+          ctx.font = '600 10px Geist, Inter, system-ui, sans-serif';
+          const tw = ctx.measureText(label).width;
+          const bx = g.x + 8, by = g.y - 16;
+          ctx.fillStyle = `rgba(${c.surface},0.92)`;
+          ctx.beginPath();
+          const w = tw + 8, h = 16, r = 8;
+          ctx.moveTo(bx + r, by); ctx.lineTo(bx + w - r, by); ctx.quadraticCurveTo(bx + w, by, bx + w, by + r);
+          ctx.lineTo(bx + w, by + h - r); ctx.quadraticCurveTo(bx + w, by + h, bx + w - r, by + h);
+          ctx.lineTo(bx + r, by + h); ctx.quadraticCurveTo(bx, by + h, bx, by + h - r);
+          ctx.lineTo(bx, by + r); ctx.quadraticCurveTo(bx, by, bx + r, by); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = `rgba(${c.line},1)`; ctx.lineWidth = 1; ctx.stroke();
+          ctx.fillStyle = `rgba(${c.ink},1)`; ctx.textBaseline = 'middle';
+          ctx.fillText(label, bx + 4, by + 8);
+          ctx.textBaseline = 'alphabetic';
+        }
       }
       // New-country celebration: three expanding rings.
       bursts.current = bursts.current.filter((b) => now - b.start < 2600);
@@ -369,25 +414,21 @@ export const GeoMap = forwardRef<GeoMapHandle, Props>(function GeoMap(props, ref
       for (const f of p.current.countries) if (geoContains(f.feature, ll as [number, number])) return f.iso2;
       return null;
     }
-    function hitLive(x: number, y: number): string | null {
-      const proj = projection();
-      const pr = p.current;
-      let best: { key: string; d: number } | null = null;
-      for (const lv of pr.live) {
-        if (pr.mode === 'globe' && geoDistance([view.current.lon, view.current.lat], [lv.lon, lv.lat]) > Math.PI / 2) continue;
-        const xy = proj([lv.lon, lv.lat]);
-        if (!xy) continue;
-        const d = Math.hypot(xy[0] - x, xy[1] - y);
-        const r = lv.highlight ? 16 : 12;
-        if (d < r && (!best || d < best.d)) best = { key: lv.key, d };
+    function hitMarker(x: number, y: number): Clustered | null {
+      let best: { g: Clustered; d: number } | null = null;
+      for (const g of clustered.current) {
+        const d = Math.hypot(g.x - x, g.y - y);
+        const r = g.type === 'cluster' ? 10 + Math.min(8, Math.log2(g.count) * 2) + 6 : (g.highlight ? 16 : 12);
+        if (d < r && (!best || d < best.d)) best = { g, d };
       }
-      return best?.key ?? null;
+      return best?.g ?? null;
     }
     function click(x: number, y: number) {
       const proj = projection();
       const pr = p.current;
-      const liveKey = hitLive(x, y);
-      if (liveKey && pr.onSelectLive) { pr.onSelectLive(liveKey); return; }
+      const hit = hitMarker(x, y);
+      if (hit?.type === 'cluster') { flyTo(hit.lon, hit.lat, clampK(view.current.k * 2.4), 700); return; }
+      if (hit?.type === 'point' && pr.onSelectLive) { pr.onSelectLive(hit.key); return; }
       for (const pt of pr.points) {
         if (pr.mode === 'globe' && geoDistance([view.current.lon, view.current.lat], [pt.lon, pt.lat]) > Math.PI / 2) continue;
         const xy = proj([pt.lon, pt.lat]);
@@ -399,20 +440,29 @@ export const GeoMap = forwardRef<GeoMapHandle, Props>(function GeoMap(props, ref
     function hover(x: number, y: number) {
       cancelAnimationFrame(hoverRaf);
       hoverRaf = requestAnimationFrame(() => {
-        const liveKey = hitLive(x, y);
-        if (liveKey) {
-          p.current.onHoverLive?.({ key: liveKey, x, y });
+        const hit = hitMarker(x, y);
+        if (hit?.type === 'cluster') {
+          p.current.onHoverCluster?.({ count: hit.count, x, y });
+          p.current.onHoverLive?.(null);
+          p.current.onHover?.(null);
+          el.style.cursor = 'pointer';
+          return;
+        }
+        if (hit?.type === 'point') {
+          p.current.onHoverLive?.({ key: hit.key, x, y });
+          p.current.onHoverCluster?.(null);
           p.current.onHover?.(null);
           el.style.cursor = 'pointer';
           return;
         }
         p.current.onHoverLive?.(null);
+        p.current.onHoverCluster?.(null);
         const iso = pick(x, y);
         p.current.onHover?.(iso ? { iso2: iso, x, y } : null);
         el.style.cursor = iso ? 'pointer' : 'grab';
       });
     }
-    const leave = () => { p.current.onHover?.(null); p.current.onHoverLive?.(null); };
+    const leave = () => { p.current.onHover?.(null); p.current.onHoverLive?.(null); p.current.onHoverCluster?.(null); };
     const dbl = (e: MouseEvent) => { const [x, y] = local(e); flyTo(...(projection().invert?.([x, y]) ?? [view.current.lon, view.current.lat]) as [number, number], view.current.k * 2, 500); };
     el.addEventListener('pointerdown', down);
     el.addEventListener('pointermove', move);

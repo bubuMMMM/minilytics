@@ -182,3 +182,26 @@ describe('widgets', () => {
     expect((svg.match(/fill="#2563eb"/g) ?? []).length).toBeGreaterThan(2);
   });
 });
+
+describe('share Open Graph image', () => {
+  it('serves a PNG and points the HTML meta at it, then 404s once revoked', async () => {
+    const created = await json(await authed(`/api/sites/${site.id}/shares`, { method: 'POST', json: { label: 'Revue mensuelle' } }));
+    expect(created.status).toBe(201);
+    const token = created.body.token as string;
+    const png = await call(`/api/share/${token}/og.png`);
+    expect(png.status).toBe(200);
+    expect(png.headers.get('content-type')).toMatch(/image\/png/);
+    const bytes = Buffer.from(await png.arrayBuffer());
+    expect(bytes.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+    expect(bytes.readUInt32BE(16)).toBe(1200);
+    const html = await call(`/share/${token}`);
+    expect(html.status).toBe(200);
+    const text = await html.text();
+    expect(text).toContain(`/api/share/${token}/og.png`);
+    expect(text).toContain('Revue mensuelle');
+    expect(text).toContain('og:image:type');
+    await authed(`/api/sites/${site.id}/shares/${created.body.id}`, { method: 'DELETE' });
+    expect((await call(`/api/share/${token}/og.png`)).status).toBe(404);
+    expect((await call(`/share/${token}`)).status).toBe(404);
+  });
+});

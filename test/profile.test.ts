@@ -78,10 +78,19 @@ describe('profile pages', () => {
     const text = await html.text();
     expect(text).toContain('og:title');
     expect(text).toContain('Bülent');
+    expect(text).toContain('/api/public/page/bulent/og.png');
+    expect(text).toContain('og:image:type');
     const og = await call('/api/public/page/bulent/og.svg');
     expect(og.status).toBe(200);
     expect(og.headers.get('content-type')).toMatch(/svg/);
     expect(ogSvg(pub.body.page)).toContain('Bülent');
+    const png = await call('/api/public/page/bulent/og.png');
+    expect(png.status).toBe(200);
+    expect(png.headers.get('content-type')).toMatch(/image\/png/);
+    const bytes = Buffer.from(await png.arrayBuffer());
+    expect(bytes.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+    expect(bytes.readUInt32BE(16)).toBe(1200);
+    expect(bytes.readUInt32BE(20)).toBe(630);
     const w = await call('/api/public/page/bulent/widget/0');
     expect(w.status).toBe(200);
     const whtml = await w.text();
@@ -92,6 +101,7 @@ describe('profile pages', () => {
     expect((await call('/api/u/bulent')).status).toBe(404);
     expect((await call('/api/public/page/bulent/widget/0')).status).toBe(404);
     expect((await call('/api/public/page/bulent/og.svg')).status).toBe(404);
+    expect((await call('/api/public/page/bulent/og.png')).status).toBe(404);
   });
   it('rejects a widget for a site the owner does not have', async () => {
     const r = await json(await authed('/api/me/page', { method: 'PUT', json: {

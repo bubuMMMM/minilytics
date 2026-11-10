@@ -18,7 +18,7 @@ const WTYPES: { key: string; label: string }[] = [
   { key: 'live', label: 'En ligne' }, { key: 'counter', label: 'Compteur' }, { key: 'chart', label: 'Graphique' },
   { key: 'pages', label: 'Top pages' }, { key: 'map', label: 'Carte' },
 ];
-const STYLES = ['classic', 'minimal', 'editorial', 'glass', 'gradient', 'compact'] as const;
+const STYLES = [['classic','Classique'],['minimal','Minimal'],['editorial','Éditorial'],['glass','Verre'],['gradient','Dégradé'],['compact','Compact']] as const;
 
 interface Social { network: string; url: string }
 interface W { siteId: string; type: string; period?: string; style?: string; accent?: string; size?: string; theme?: string; logo?: boolean; transparent?: boolean }
@@ -174,7 +174,7 @@ export function ProfileSettings() {
                         </select></label>
                       <label className="min-w-[120px]"><span className="label">Style</span>
                         <select className="input mt-1" value={w.style ?? 'classic'} onChange={(e) => set({ widgets: form.widgets.map((x, j) => j === i ? { ...x, style: e.target.value } : x) })}>
-                          {[['classic','Classique'],['minimal','Minimal'],['editorial','Éditorial'],['glass','Verre'],['gradient','Dégradé'],['compact','Compact']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+                          {STYLES.map(([v,l]) => <option key={v} value={v}>{l}</option>)}
                         </select></label>
                       {w.type !== 'live' && (
                         <label className="min-w-[120px]"><span className="label">Période</span>

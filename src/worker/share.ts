@@ -12,6 +12,8 @@ import { rawRequestIp } from './lib/security.js';
 import { resolveRange, tzOffset } from './lib/time.js';
 import { liveMap, mapReport } from './map.js';
 import { breakdown, makeCtx, overview, parseFilters, type Ctx } from './stats.js';
+import { OG_PNG_HEADERS, renderOgPng } from './og-image.js';
+import { SPA_SHELL } from './spa-shell.gen.js';
 
 export const SHARE_VIEWS = ['overview', 'sources', 'pages', 'map', 'tech', 'goals'] as const;
 export type ShareView = (typeof SHARE_VIEWS)[number];
@@ -115,6 +117,31 @@ async function unlocked(c: Context<AppEnv>, link: ShareRow): Promise<boolean> {
 const expired = (l: ShareRow) => l.expires_at != null && num(l.expires_at) <= Date.now();
 
 type ShareEnv = AppEnv & { Variables: AppEnv['Variables'] & { share: ShareRow } };
+
+
+const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
+
+export function injectShareMeta(html: string, opts: { title: string; desc: string; url: string; image: string }) {
+  const set = (s: string, re: RegExp, tag: string) => (re.test(s) ? s.replace(re, tag) : s.replace('</head>', `    ${tag}\n  </head>`));
+  let out = html;
+  out = out.replace(/<title>[^<]*<\/title>/, `<title>${esc(opts.title)}</title>`);
+  out = set(out, /<meta name="description" content="[^"]*"\s*\/?>/, `<meta name="description" content="${esc(opts.desc)}" />`);
+  out = set(out, /<link rel="canonical" href="[^"]*"\s*\/?>/, `<link rel="canonical" href="${esc(opts.url)}" />`);
+  out = set(out, /<meta property="og:url" content="[^"]*"\s*\/?>/, `<meta property="og:url" content="${esc(opts.url)}" />`);
+  out = set(out, /<meta property="og:title" content="[^"]*"\s*\/?>/, `<meta property="og:title" content="${esc(opts.title)}" />`);
+  out = set(out, /<meta property="og:description" content="[^"]*"\s*\/?>/, `<meta property="og:description" content="${esc(opts.desc)}" />`);
+  out = set(out, /<meta property="og:image" content="[^"]*"\s*\/?>/, `<meta property="og:image" content="${esc(opts.image)}" />`);
+  out = set(out, /<meta property="og:image:width" content="[^"]*"\s*\/?>/, `<meta property="og:image:width" content="1200" />`);
+  out = set(out, /<meta property="og:image:height" content="[^"]*"\s*\/?>/, `<meta property="og:image:height" content="630" />`);
+  out = set(out, /<meta property="og:image:type" content="[^"]*"\s*\/?>/, `<meta property="og:image:type" content="image/png" />`);
+  out = set(out, /<meta property="og:image:alt" content="[^"]*"\s*\/?>/, `<meta property="og:image:alt" content="${esc(opts.title)}" />`);
+  out = set(out, /<meta name="twitter:title" content="[^"]*"\s*\/?>/, `<meta name="twitter:title" content="${esc(opts.title)}" />`);
+  out = set(out, /<meta name="twitter:description" content="[^"]*"\s*\/?>/, `<meta name="twitter:description" content="${esc(opts.desc)}" />`);
+  out = set(out, /<meta name="twitter:image" content="[^"]*"\s*\/?>/, `<meta name="twitter:image" content="${esc(opts.image)}" />`);
+  if (!/<meta name="robots"/.test(out)) out = out.replace('</head>', '    <meta name="robots" content="noindex, nofollow" />\n  </head>');
+  else out = out.replace(/<meta name="robots" content="[^"]*"\s*\/?>/, '<meta name="robots" content="noindex, nofollow" />');
+  return out;
+}
 
 export function registerShare(app: Hono<AppEnv>) {
   // ---------- management (behind requireAuth + loadSite + csrfGuard from index.ts)
@@ -310,6 +337,50 @@ export function registerShare(app: Hono<AppEnv>) {
     if (!parseViews(link.views).includes('map')) return c.json({ error: 'Vue non partagée' }, 403);
     return c.json(await liveMap(c.env.DB, link.site_id, { cities: !parseHide(link.hide).cities }));
   });
+
+  app.get('/api/share/:token/og.png', async (c) => {
+    const link = await loadLink(c, c.req.param('token'));
+    if (!link || expired(link)) return c.body('not found', 404, { 'content-type': 'text/plain' });
+    const site = await c.env.DB.prepare('SELECT name, domain FROM sites WHERE id = ?').bind(link.site_id).first() as { name: string; domain: string } | null;
+    const title = link.label || site?.name || 'Tableau partagé';
+    const png = await renderOgPng({
+      title,
+      subtitle: site ? `${site.name} · ${site.domain}` : 'Tableau de bord Minilytics',
+      kicker: link.password_hash ? 'Lien protégé' : 'Tableau partagé',
+      footer: `minilytics-six.vercel.app/share/${link.token}`,
+      initials: title,
+    });
+    return new Response(png, { status: 200, headers: { ...OG_PNG_HEADERS, 'X-Robots-Tag': 'noindex' } });
+  });
+
+  const serveShareHtml = async (c: any) => {
+    const link = await loadLink(c, c.req.param('token'));
+    const origin = new URL(c.req.url).origin;
+    if (!link || expired(link)) {
+      return new Response('<!doctype html><meta charset="utf-8"><title>Lien introuvable</title><meta name="robots" content="noindex"><p>Ce lien de partage n’existe pas, a expiré ou a été révoqué.</p>', {
+        status: !link ? 404 : 410,
+        headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=30', 'x-robots-tag': 'noindex, nofollow' },
+      });
+    }
+    const site = await c.env.DB.prepare('SELECT name, domain FROM sites WHERE id = ?').bind(link.site_id).first() as { name: string; domain: string } | null;
+    const title = `${link.label || site?.name || 'Tableau partagé'} · Minilytics`;
+    const desc = site
+      ? `Tableau de bord partagé pour ${site.name} (${site.domain}).`
+      : 'Tableau de bord partagé Minilytics.';
+    const url = `${origin}/share/${link.token}`;
+    const image = `${origin}/api/share/${link.token}/og.png`;
+    const shell = SPA_SHELL;
+    const html = shell ? injectShareMeta(shell, { title, desc, url, image }) : `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><meta name="robots" content="noindex, nofollow"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:image" content="${esc(image)}"><meta property="og:image:type" content="image/png"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(image)}"></head><body><div id="root"></div></body></html>`;
+    return new Response(html, {
+      status: 200,
+      headers: {
+        'content-type': 'text/html; charset=utf-8',
+        'cache-control': 'public, max-age=60',
+        'x-robots-tag': 'noindex, nofollow',
+      },
+    });
+  };
+  app.get('/share/:token', serveShareHtml);
 }
 
 // ---------- widgets: aggregate-only data for embeds

@@ -13,6 +13,10 @@
       "destination": "/api"
     },
     {
+      "source": "/share/:token",
+      "destination": "/api"
+    },
+    {
       "source": "/((?!js/|assets/).*)",
       "destination": "/index.html"
     }
@@ -109,5 +113,10 @@
       "path": "/api/cron/daily",
       "schedule": "0 7 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "src/worker/fonts/**"
+    }
+  }
 }

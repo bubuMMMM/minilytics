@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Feed, ReplayBar, useReplay, type ReplayData, type Visit } from './Replay';
+import { VisitDetail } from './VisitDetail';
 import { VisitorMini } from '../components/VisitorCard';
 import { visitorJitter } from '../../shared/persona';
 import { feature } from 'topojson-client';
@@ -69,6 +70,14 @@ function useLookup<T>(url: string, need: boolean) {
   return data;
 }
 
+
+function tipPos(x: number, y: number, box: DOMRect | undefined, w: number, h: number): { left: number; top: number } {
+  const maxW = box?.width ?? 800, maxH = box?.height ?? 600;
+  const left = x + 14 + w > maxW - 8 ? Math.max(8, x - w - 10) : x + 14;
+  const top = y + 14 + h > maxH - 8 ? Math.max(8, y - h - 10) : y + 14;
+  return { left, top };
+}
+
 export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publicSiteId?: string; share?: { token: string; header: ReactNode; cities: boolean; title: string } }) {
   const [q, update] = useQueryState();
   const isPublic = !!publicSiteId;
@@ -91,6 +100,8 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
   const [feedMode, setFeedMode] = useState<'live' | '30m'>('live');
   const [livePeople, setLivePeople] = useState<Visit[] | null>(null);
   const [hoverLive, setHoverLive] = useState<{ visit: Visit; x: number; y: number } | null>(null);
+  const [hoverCluster, setHoverCluster] = useState<{ count: number; x: number; y: number } | null>(null);
+  const stageRef = useRef<HTMLElement>(null);
   const [hover, setHover] = useState<{ iso2: string; x: number; y: number } | null>(null);
   const [toast, setToast] = useState<{ country: string; at: number } | null>(null);
   const [sheet, setSheet] = useState(false);
@@ -179,11 +190,11 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
       for (const v of replay.active) {
         const c = v.country ? COUNTRIES.get(v.country) : undefined;
         const ll = v.country ? locate(v.country, v.city ?? '', v.lat, v.lon) ?? (c ? [c.lng, c.lat] as [number, number] : null) : null;
-        if (ll) out.push({ key: v.id, lon: ll[0], lat: ll[1], value: 1 });
+        if (ll) out.push({ key: v.id, lon: ll[0], lat: ll[1], value: 1, highlight: pickedVisit === v.id, pages: v.pageviews });
       }
       return out;
     }
-    const people = livePeople ?? [];
+    const people = feedMode === '30m' ? (feed ?? []) : (livePeople ?? []);
     if (people.length) {
       const out: LivePoint[] = [];
       for (const v of people) {
@@ -191,7 +202,8 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
         const ll = v.country ? locate(v.country, v.city ?? '', v.lat, v.lon) ?? (c ? [c.lng, c.lat] as [number, number] : null) : null;
         if (!ll) continue;
         const [jLon, jLat] = visitorJitter(v.visitorId);
-        out.push({ key: v.id, lon: ll[0] + jLon, lat: ll[1] + jLat, value: 1, highlight: pickedVisit === v.id });
+        const recent = now - v.lastSeen < 5 * 60_000;
+        out.push({ key: v.id, lon: ll[0] + jLon, lat: ll[1] + jLat, value: 1, highlight: pickedVisit === v.id, pages: v.pageviews, pulse: recent });
       }
       return out;
     }
@@ -207,7 +219,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
       if (!placed.has(c.country) && info) out.push({ key: c.country, lon: info.lng, lat: info.lat, value: c.visitors });
     }
     return out;
-  }, [live, livePeople, locate, replaying, replay.active, pickedVisit]);
+  }, [live, livePeople, feed, feedMode, locate, replaying, replay.active, pickedVisit, now]);
 
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
   const todayStart = useMemo(() => {
@@ -244,6 +256,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
   useEffect(() => { if (replay.open) { setSelected(null); setTab('feed'); } }, [replay.open]);
   const feedVisits = replaying ? [...replay.shown].reverse() : feedMode === 'live' ? livePeople : feed;
   const onlineCount = livePeople?.length ?? live?.online ?? 0;
+  const selectedVisit = (pickedVisit && feedVisits?.find((v) => v.id === pickedVisit)) || null;
 
   const header = isShare ? share.header : isPublic ? (
     <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
@@ -261,6 +274,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
       regionNames={regionNames} locate={locate} flyToPlace={flyToPlace} isPublic={countryOnly}
       canFeed={canReplay} feed={feedVisits} replaying={replaying} now={now} pickVisit={pickVisit}
       feedMode={feedMode} setFeedMode={setFeedMode} selectedId={pickedVisit} online={onlineCount}
+      selectedVisit={selectedVisit} siteId={siteId} onClearVisit={() => setPickedVisit(null)}
     />
   );
 
@@ -268,7 +282,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-canvas text-ink">
       {header}
       <main id="contenu" className={`relative flex min-h-0 flex-1 ${isPublic || isShare ? '' : 'pb-[calc(57px+env(safe-area-inset-bottom))] md:pb-0'}`}>
-        <section className="relative min-w-0 flex-1 overflow-hidden" aria-label="Carte des visiteurs">
+        <section ref={stageRef} className="relative min-w-0 flex-1 overflow-hidden" aria-label="Carte des visiteurs">
           <div className="absolute inset-0">
             {world ? (
               <GeoMap ref={mapRef} mode={mode} countries={world} intensity={intensity} discovered={discovered} points={points} live={livePoints}
@@ -276,9 +290,10 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
                 onHover={setHover}
                 onHoverLive={(info) => {
                   if (!info) { setHoverLive(null); return; }
-                  const visit = (livePeople ?? []).find((v) => v.id === info.key) ?? (replaying ? replay.shown.find((v) => v.id === info.key) : undefined);
+                  const visit = (livePeople ?? []).find((v) => v.id === info.key) ?? (replaying ? replay.shown.find((v) => v.id === info.key) : undefined) ?? feedVisits?.find((v) => v.id === info.key);
                   setHoverLive(visit ? { visit, x: info.x, y: info.y } : null);
                 }}
+                onHoverCluster={(info) => setHoverCluster(info)}
                 onSelectLive={(key) => {
                   const visit = (livePeople ?? []).find((v) => v.id === key) ?? feedVisits?.find((v) => v.id === key);
                   if (visit) pickVisit(visit);
@@ -319,8 +334,10 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
           </div>
 
           {/* Replay */}
-          {canReplay && (
-            <div className={replay.open ? 'absolute inset-x-3 bottom-[152px] flex justify-center md:inset-x-auto md:bottom-5 md:left-5' : 'absolute bottom-[152px] left-3 md:bottom-5 md:left-auto md:right-[72px]'}>
+          {canReplay && (!sheet || replay.open) && (
+            <div className={replay.open
+              ? `absolute inset-x-3 z-[35] flex justify-center md:inset-x-auto md:bottom-5 md:left-5 md:z-10 ${sheet ? 'bottom-[calc(72%+8px)]' : 'bottom-[152px]'}`
+              : 'absolute bottom-[152px] left-3 z-[35] md:bottom-5 md:left-auto md:right-[72px] md:z-10'}>
               <ReplayBar r={replay} tz={tz} />
             </div>
           )}
@@ -334,12 +351,18 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
           </div>
 
           {hoverLive && (
-            <div className="pointer-events-none absolute z-20 rounded-xl border border-line bg-surface px-3 py-2 shadow-pop" style={{ left: Math.min(hoverLive.x + 14, 9999), top: hoverLive.y + 14 }}>
+            <div className="pointer-events-none absolute z-20 w-[240px] rounded-xl border border-line bg-surface px-3 py-2 shadow-pop" style={tipPos(hoverLive.x, hoverLive.y, stageRef.current?.getBoundingClientRect(), 240, 88)}>
               <VisitorMini visit={hoverLive.visit} tz={tz} />
             </div>
           )}
-          {hover && !hoverLive && (
-            <div className="pointer-events-none absolute z-10 rounded-lg border border-line bg-surface px-3 py-2 text-[12px] shadow-pop" style={{ left: Math.min(hover.x + 14, 9999), top: hover.y + 14 }}>
+          {hoverCluster && !hoverLive && (
+            <div className="pointer-events-none absolute z-20 rounded-lg border border-line bg-surface px-3 py-2 text-[12px] shadow-pop" style={tipPos(hoverCluster.x, hoverCluster.y, stageRef.current?.getBoundingClientRect(), 220, 52)}>
+              <div className="font-medium text-ink">{hoverCluster.count} visiteur{hoverCluster.count > 1 ? 's' : ''} ici</div>
+              <div className="text-ink-3">Cliquez pour zoomer et les voir un par un.</div>
+            </div>
+          )}
+          {hover && !hoverLive && !hoverCluster && (
+            <div className="pointer-events-none absolute z-10 max-w-[220px] rounded-lg border border-line bg-surface px-3 py-2 text-[12px] shadow-pop" style={tipPos(hover.x, hover.y, stageRef.current?.getBoundingClientRect(), 220, 64)}>
               <div className="font-medium text-ink">{flag(hover.iso2)} {countryName(hover.iso2)}</div>
               <div className="text-ink-3">{discovered.has(hover.iso2)
                 ? `${nf(data?.countries.find((c) => c.country === hover.iso2)?.visitors ?? 0)} visiteurs sur la période`
@@ -401,6 +424,7 @@ interface PanelProps {
   flyToPlace: (lon: number, lat: number) => void; isPublic: boolean;
   canFeed: boolean; feed: Visit[] | null; replaying: boolean; now: number; pickVisit: (v: Visit) => void;
   feedMode: 'live' | '30m'; setFeedMode: (m: 'live' | '30m') => void; selectedId: string | null; online: number;
+  selectedVisit: Visit | null; siteId?: string; onClearVisit: () => void;
 }
 
 const TABS = [['rank', 'Classement'], ['game', 'Succès'], ['timeline', 'Conquête']] as const;
@@ -410,6 +434,9 @@ function Panel(props: PanelProps) {
   const { data, error, tab, setTab, selected } = props;
   if (error) return <p className="p-5 text-[13px] text-danger" role="alert">{error}</p>;
   if (selected) return <CountryDetail {...props} iso2={selected} />;
+  if (props.selectedVisit && props.canFeed && props.siteId) {
+    return <VisitDetail key={props.selectedVisit.id} visit={props.selectedVisit} siteId={props.siteId} tz={props.tz} now={props.now} onBack={props.onClearVisit} />;
+  }
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 px-4 pt-3 md:pt-4">

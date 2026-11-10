@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import app from '../src/worker/index';
 import { ingest } from '../src/worker/collect';
-import { liveVisitors, replay } from '../src/worker/replay';
+import { liveVisitors, replay, sessionJourney } from '../src/worker/replay';
 import type { Site } from '../src/worker/env';
 import { makeDb, type PgliteD1 } from './helpers/pglite-d1';
 
@@ -56,5 +56,25 @@ describe('replay', () => {
     const r = replayed.visits.find((x) => x.visitorId === 'v_pay');
     expect(r?.revenue).toBe(1200);
     expect(r?.goals).toBe(1);
+  });
+});
+
+describe('session journey', () => {
+  it('returns ordered pages, source, entry/exit and no PII', async () => {
+    const j = await sessionJourney(db as unknown as D1Database, site.id, 's_pay');
+    expect(j).toBeTruthy();
+    expect(j!.steps.map((s) => `${s.type}:${s.path}`)).toEqual(['pageview:/prix', 'pageview:/merci', 'goal:/merci']);
+    expect(j!.entry).toBe('/prix');
+    expect(j!.exit).toBe('/merci');
+    expect(j!.steps.some((s) => s.type === 'goal' && s.name === 'Achat')).toBe(true);
+    expect(JSON.stringify(j)).not.toMatch(/Ada@|Ada Lovelace|email|@example/i);
+    const a = await sessionJourney(db as unknown as D1Database, site.id, 's_a');
+    expect(a?.source).toBeTruthy();
+    expect(a?.referrer).toBe('news.ycombinator.com');
+    expect(a?.entry).toBe('/a');
+  });
+  it('is admin-only and 404s for unknown sessions', async () => {
+    expect((await call(`/api/sites/${site.id}/sessions/s_a/journey`)).status).toBe(401);
+    expect(await sessionJourney(db as unknown as D1Database, site.id, 'nope')).toBeNull();
   });
 });

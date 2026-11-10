@@ -3,7 +3,7 @@
  * GET/PUT /api/me/page, POST /api/me/page/publish
  * GET /api/public/page/:slug  (404 if unpublished or unknown)
  * GET /api/public/page/:slug/widget/:i[/data]
- * GET /api/public/page/:slug/og.svg
+ * GET /api/public/page/:slug/og.png (SVG kept at /og.svg as fallback)
  * GET /api/u/:slug and GET /u/:slug — HTML shell with OG tags for crawlers.
  */
 import type { Hono } from 'hono';
@@ -14,6 +14,7 @@ import type { Principal } from './env.js';
 import { widgetData, type WidgetData } from './share.js';
 import { renderWidget, widgetOpts, WIDGET_STYLES, WIDGET_TYPES, type WidgetOpts } from './widgets.js';
 import { SPA_SHELL } from './spa-shell.gen.js';
+import { OG_PNG_HEADERS, renderOgPng } from './og-image.js';
 
 export const RESERVED_SLUGS = new Set([
   'admin', 'api', 'login', 'signup', 'sites', 'site', 'team', 'demo', 'share', 'invite', 'settings',
@@ -177,7 +178,7 @@ export function injectProfileMeta(html: string, page: ProfilePage, origin: strin
   const url = `${origin}/u/${page.slug}`;
   const title = `${page.title} · Minilytics`;
   const desc = (page.bio || `La page publique de ${page.title}, avec des widgets Minilytics en direct.`).slice(0, 200);
-  const image = `${origin}/api/public/page/${page.slug}/og.svg`;
+  const image = `${origin}/api/public/page/${page.slug}/og.png`;
   const set = (s: string, re: RegExp, tag: string) => (re.test(s) ? s.replace(re, tag) : s.replace('</head>', `    ${tag}\n  </head>`));
   let out = html;
   out = out.replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`);
@@ -187,6 +188,9 @@ export function injectProfileMeta(html: string, page: ProfilePage, origin: strin
   out = set(out, /<meta property="og:title" content="[^"]*"\s*\/?>/, `<meta property="og:title" content="${esc(title)}" />`);
   out = set(out, /<meta property="og:description" content="[^"]*"\s*\/?>/, `<meta property="og:description" content="${esc(desc)}" />`);
   out = set(out, /<meta property="og:image" content="[^"]*"\s*\/?>/, `<meta property="og:image" content="${esc(image)}" />`);
+  out = set(out, /<meta property="og:image:width" content="[^"]*"\s*\/?>/, `<meta property="og:image:width" content="1200" />`);
+  out = set(out, /<meta property="og:image:height" content="[^"]*"\s*\/?>/, `<meta property="og:image:height" content="630" />`);
+  out = set(out, /<meta property="og:image:type" content="[^"]*"\s*\/?>/, `<meta property="og:image:type" content="image/png" />`);
   out = set(out, /<meta property="og:image:alt" content="[^"]*"\s*\/?>/, `<meta property="og:image:alt" content="${esc(page.title)}" />`);
   out = set(out, /<meta name="twitter:title" content="[^"]*"\s*\/?>/, `<meta name="twitter:title" content="${esc(title)}" />`);
   out = set(out, /<meta name="twitter:description" content="[^"]*"\s*\/?>/, `<meta name="twitter:description" content="${esc(desc)}" />`);
@@ -204,11 +208,12 @@ export function fallbackProfileHtml(page: ProfilePage, origin: string) {
   const title = `${page.title} · Minilytics`;
   const desc = (page.bio || `La page publique de ${page.title}.`).slice(0, 200);
   const url = `${origin}/u/${page.slug}`;
-  const image = `${origin}/api/public/page/${page.slug}/og.svg`;
+  const image = `${origin}/api/public/page/${page.slug}/og.png`;
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}"><link rel="canonical" href="${esc(url)}">
 <meta property="og:type" content="website"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:type" content="image/png">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(desc)}"><meta name="twitter:image" content="${esc(image)}">
 </head><body><div id="root"></div></body></html>`;
@@ -366,8 +371,20 @@ export function registerProfile(app: Hono<AppEnv>) {
     if (!page) return c.body('not found', 404, { 'content-type': 'text/plain' });
     return c.body(ogSvg(page), 200, {
       'Content-Type': 'image/svg+xml; charset=utf-8',
-      'Cache-Control': 'public, max-age=300',
+      'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
     });
+  });
+  app.get('/api/public/page/:slug/og.png', async (c) => {
+    const page = await publicPage(c.env.DB, c.req.param('slug'));
+    if (!page) return c.body('not found', 404, { 'content-type': 'text/plain' });
+    const png = await renderOgPng({
+      title: page.title,
+      subtitle: page.bio || 'Page publique Minilytics',
+      kicker: 'Page publique',
+      footer: `minilytics-six.vercel.app/u/${page.slug}`,
+      accent: page.accent,
+    });
+    return new Response(png, { status: 200, headers: OG_PNG_HEADERS });
   });
 
   const serveHtml = async (c: any) => {

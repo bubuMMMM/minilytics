@@ -2,6 +2,7 @@
  * Replay of recent visits and the live visitor list for the Carte page.
  * GET /api/sites/:id/replay?window=30m|24h → visits started in the window, oldest first (max 2000).
  * GET /api/sites/:id/live-visitors → sessions active in the last 5 minutes (max 200), newest last_seen first.
+ * GET /api/sites/:id/sessions/:sid/journey → ordered page path for one session (admin, no PII).
  * Aggregates never include raw IPs. Name and email stay on the admin replay payload for other UI
  * (visitor modal); the live-visitors payload only exposes an `identified` flag.
  */
@@ -110,6 +111,89 @@ export async function liveVisitors(db: D1Database, siteId: string, now = Date.no
   return { updatedAt: now, online: visits.length, visits };
 }
 
+
+const JOURNEY_TYPES = new Set(['pageview', 'goal', 'outbound', 'form', 'video']);
+
+export interface JourneyStep {
+  t: number;
+  type: string;
+  path: string | null;
+  name: string | null;
+  duration: number | null;
+}
+export interface Journey {
+  sessionId: string;
+  visitorId: string;
+  source: string | null;
+  referrer: string | null;
+  channel: string | null;
+  entry: string | null;
+  exit: string | null;
+  startedAt: number;
+  lastSeen: number;
+  pageviews: number;
+  steps: JourneyStep[];
+}
+
+export function buildJourney(
+  session: {
+    id: string; visitor_id: string; started_at: number; last_seen_at: number;
+    source: string | null; channel: string | null; referrer_domain: string | null;
+    entry_page: string | null; exit_page: string | null; pageviews: number;
+  },
+  events: { ts: number; type: string; name: string | null; path: string | null }[],
+): Journey {
+  const lastSeen = num(session.last_seen_at);
+  const useful = events
+    .filter((e) => JOURNEY_TYPES.has(e.type))
+    .sort((a, b) => num(a.ts) - num(b.ts))
+    .slice(0, 200);
+  const steps: JourneyStep[] = [];
+  if (!useful.length) {
+    if (session.entry_page) steps.push({ t: num(session.started_at), type: 'pageview', path: session.entry_page, name: null, duration: null });
+    if (session.exit_page && session.exit_page !== session.entry_page) {
+      steps.push({ t: lastSeen, type: 'pageview', path: session.exit_page, name: null, duration: null });
+    }
+  } else {
+    for (const e of useful) {
+      const last = steps[steps.length - 1];
+      if (e.type === 'pageview' && last && last.type === 'pageview' && last.path === (e.path ?? null)) continue;
+      steps.push({ t: num(e.ts), type: e.type, path: e.path ?? null, name: e.name ?? null, duration: null });
+    }
+  }
+  for (let i = 0; i < steps.length; i++) {
+    const next = steps[i + 1];
+    const d = (next ? next.t : lastSeen) - steps[i].t;
+    steps[i].duration = d >= 0 ? d : 0;
+  }
+  return {
+    sessionId: String(session.id),
+    visitorId: String(session.visitor_id),
+    source: session.source ?? null,
+    referrer: session.referrer_domain ?? null,
+    channel: session.channel ?? null,
+    entry: session.entry_page ?? null,
+    exit: (session.exit_page ?? session.entry_page) ?? null,
+    startedAt: num(session.started_at),
+    lastSeen,
+    pageviews: num(session.pageviews),
+    steps,
+  };
+}
+
+export async function sessionJourney(db: D1Database, siteId: string, sessionId: string): Promise<Journey | null> {
+  if (!sessionId || sessionId.length > 80) return null;
+  const s = await db.prepare(
+    `SELECT id, visitor_id, started_at, last_seen_at, source, channel, referrer_domain, entry_page, exit_page, pageviews
+     FROM sessions WHERE site_id = ? AND id = ?`,
+  ).bind(siteId, sessionId).first<any>();
+  if (!s) return null;
+  const ev = await db.prepare(
+    `SELECT ts, type, name, path FROM events WHERE site_id = ? AND session_id = ? ORDER BY ts ASC LIMIT 200`,
+  ).bind(siteId, sessionId).all();
+  return buildJourney(s, (ev.results as any[]) ?? []);
+}
+
 export function registerReplay(app: Hono<AppEnv>) {
   app.get('/api/sites/:id/replay', async (c) => {
     const w = c.req.query('window') === '24h' ? '24h' : '30m';
@@ -119,5 +203,11 @@ export function registerReplay(app: Hono<AppEnv>) {
   app.get('/api/sites/:id/live-visitors', async (c) => {
     c.header('Cache-Control', 'no-store');
     return c.json(await liveVisitors(c.env.DB, c.get('site').id));
+  });
+  app.get('/api/sites/:id/sessions/:sid/journey', async (c) => {
+    c.header('Cache-Control', 'no-store');
+    const journey = await sessionJourney(c.env.DB, c.get('site').id, c.req.param('sid'));
+    if (!journey) return c.json({ error: 'Visite introuvable' }, 404);
+    return c.json(journey);
   });
 }
