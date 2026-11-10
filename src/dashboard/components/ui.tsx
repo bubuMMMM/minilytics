@@ -133,7 +133,7 @@ export function CodeBlock({ code, label, wrap = false, className = '' }: { code:
     <div className={`min-w-0 overflow-hidden rounded-lg border border-line bg-well ${className}`}>
       <div className="flex min-h-[36px] items-center justify-between gap-2 border-b border-line py-1 pl-3 pr-1.5">
         <span className="text-[11px] font-medium text-ink-4">{label ?? guessLang(code)}</span>
-        <button type="button" className="inline-flex min-h-[28px] items-center gap-1.5 rounded-md px-2 text-[12px] font-medium text-ink-3 transition-colors duration-150 hover:bg-surface hover:text-ink"
+        <button type="button" className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md px-2 text-[12px] font-medium text-ink-3 transition-colors duration-150 hover:bg-surface hover:text-ink sm:min-h-[28px]"
           aria-label={copied ? 'Copié' : 'Copier le code'}
           onClick={() => { navigator.clipboard?.writeText(code).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>
           <UiIcon name={copied ? 'check' : 'copy'} size={13} />{copied ? 'Copié' : 'Copier'}

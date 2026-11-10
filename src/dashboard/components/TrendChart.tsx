@@ -15,6 +15,7 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const box = useRef<HTMLDivElement>(null);
+  const touch = useRef(false);
   const gid = useId().replace(/:/g, '');
   const W = 1000, H = height, P = 8;
   const n = buckets.length;
@@ -48,9 +49,14 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
         role="img"
         aria-label={`Graphique : ${series.map((s) => s.label).join(' et ')} sur la période`}
         onPointerMove={(e) => onMove(e.clientX)}
-        onPointerDown={(e) => onMove(e.clientX)}
-        onPointerLeave={() => setHover(null)}
-        onBlur={() => setHover(null)}
+        onPointerDown={(e) => {
+          touch.current = e.pointerType === 'touch';
+          onMove(e.clientX);
+          try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
+        }}
+        onPointerLeave={() => { if (!touch.current) setHover(null); }}
+        onBlur={() => { if (!touch.current) setHover(null); }}
+        onPointerUp={() => { /* keep the last point visible after a tap */ }}
         onKeyDown={(e) => {
           if (e.key === 'ArrowRight') setHover((v) => Math.min(n - 1, (v ?? -1) + 1));
           if (e.key === 'ArrowLeft') setHover((v) => Math.max(0, (v ?? n) - 1));

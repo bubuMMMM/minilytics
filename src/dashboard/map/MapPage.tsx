@@ -282,7 +282,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-canvas text-ink">
       {header}
       <main id="contenu" className={`relative flex min-h-0 flex-1 ${isPublic || isShare ? '' : 'pb-[calc(57px+env(safe-area-inset-bottom))] md:pb-0'}`}>
-        <section ref={stageRef} className="relative min-w-0 flex-1 overflow-hidden" aria-label="Carte des visiteurs">
+        <section ref={stageRef} className="relative min-w-0 flex-1 overflow-hidden pb-[calc(57px+env(safe-area-inset-bottom))] md:pb-0" aria-label="Carte des visiteurs">
           <div className="absolute inset-0">
             {world ? (
               <GeoMap ref={mapRef} mode={mode} countries={world} intensity={intensity} discovered={discovered} points={points} live={livePoints}
@@ -321,13 +321,13 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
             <div className="inline-flex rounded-lg border border-line bg-surface/90 p-0.5 shadow-xs backdrop-blur" role="group" aria-label="Projection">
               {(['globe', 'flat'] as const).map((m) => (
                 <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)}
-                  className={`min-h-[36px] rounded-md px-3 text-[13px] font-medium transition-colors md:min-h-[30px] ${mode === m ? 'bg-well text-ink' : 'text-ink-3 hover:text-ink'}`}>{m === 'globe' ? 'Globe' : 'Plan'}</button>
+                  className={`min-h-[44px] rounded-md px-3 text-[13px] font-medium transition-colors md:min-h-[30px] ${mode === m ? 'bg-well text-ink' : 'text-ink-3 hover:text-ink'}`}>{m === 'globe' ? 'Globe' : 'Plan'}</button>
               ))}
             </div>
           </div>
 
           {/* Zoom */}
-          <div className={`absolute right-3 flex flex-col overflow-hidden rounded-lg border border-line bg-surface/90 shadow-card backdrop-blur sm:right-5 md:bottom-5 ${replay.open ? 'bottom-[272px]' : 'bottom-[152px]'}`}>
+          <div className={`absolute right-3 flex flex-col overflow-hidden rounded-lg border border-line bg-surface/90 shadow-card backdrop-blur sm:right-5 md:bottom-5 ${replay.open ? 'bottom-[calc(272px+env(safe-area-inset-bottom))]' : 'bottom-[calc(152px+env(safe-area-inset-bottom))]'} md:bottom-5`}>
             <MapButton label="Zoomer" onClick={() => mapRef.current?.zoomBy(1.6)}><path d="M12 5v14M5 12h14" /></MapButton>
             <MapButton label="Dézoomer" onClick={() => mapRef.current?.zoomBy(1 / 1.6)}><path d="M5 12h14" /></MapButton>
             <MapButton label="Vue d’ensemble" onClick={() => { setSelected(null); mapRef.current?.reset(); }}><circle cx="12" cy="12" r="8" /><path d="M4 12h16M12 4c2.5 2.6 2.5 13.4 0 16M12 4c-2.5 2.6-2.5 13.4 0 16" /></MapButton>
@@ -336,8 +336,8 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
           {/* Replay */}
           {canReplay && (!sheet || replay.open) && (
             <div className={replay.open
-              ? `absolute inset-x-3 z-[35] flex justify-center md:inset-x-auto md:bottom-5 md:left-5 md:z-10 ${sheet ? 'bottom-[calc(72%+8px)]' : 'bottom-[152px]'}`
-              : 'absolute bottom-[152px] left-3 z-[35] md:bottom-5 md:left-auto md:right-[72px] md:z-10'}>
+              ? `absolute inset-x-3 z-[35] flex justify-center md:inset-x-auto md:bottom-5 md:left-5 md:z-10 ${sheet ? 'bottom-[calc(72%+8px)]' : 'bottom-[calc(152px+env(safe-area-inset-bottom))]'}`
+              : 'absolute bottom-[calc(152px+env(safe-area-inset-bottom))] left-3 z-[35] md:bottom-5 md:left-auto md:right-[72px] md:z-10'}>
               <ReplayBar r={replay} tz={tz} />
             </div>
           )}
@@ -382,8 +382,8 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
           )}
 
           {/* Mobile bottom sheet */}
-          <div className={`absolute inset-x-0 bottom-0 z-30 flex flex-col rounded-t-2xl border-t border-line bg-surface shadow-[0_-12px_40px_rgb(0_0_0/.12)] transition-[height] duration-200 md:hidden ${sheet ? 'h-[72%]' : 'h-[140px]'}`}>
-            <button type="button" className="flex w-full shrink-0 flex-col items-center pt-2" onClick={() => setSheet((s) => !s)} aria-expanded={sheet} aria-label={sheet ? 'Réduire le panneau' : 'Agrandir le panneau'}>
+          <div className={`absolute inset-x-0 z-30 flex flex-col rounded-t-2xl border-t border-line bg-surface shadow-[0_-12px_40px_rgb(0_0_0/.12)] transition-[height] duration-200 md:hidden ${sheet ? 'h-[min(72%,calc(100%-8px))]' : 'h-[148px]'}`} style={{ bottom: 0 }}>
+            <button type="button" className="flex min-h-[28px] w-full shrink-0 flex-col items-center justify-center pt-2" onClick={() => setSheet((s) => !s)} aria-expanded={sheet} aria-label={sheet ? 'Réduire le panneau' : 'Agrandir le panneau'}>
               <span className="h-1 w-10 rounded-full bg-line-strong" />
             </button>
             <div className="min-h-0 flex-1 overflow-hidden" onClick={() => !sheet && setSheet(true)}>{panel}</div>
@@ -442,7 +442,7 @@ function Panel(props: PanelProps) {
       <div className="shrink-0 px-4 pt-3 md:pt-4">
         <div className={`grid ${props.canFeed ? 'grid-cols-4' : 'grid-cols-3'} gap-0.5 rounded-lg border border-line bg-well p-0.5`} role="tablist" aria-label="Panneau">
           {(props.canFeed ? TABS_ADMIN : TABS).map(([k, l]) => (
-            <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`min-h-[36px] rounded-md text-[13px] font-medium transition-colors md:min-h-[30px] ${tab === k ? 'bg-surface text-ink shadow-xs' : 'text-ink-3 hover:text-ink'}`}>{l}</button>
+            <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`min-h-[44px] rounded-md px-2 text-[13px] font-medium transition-colors md:min-h-[30px] ${tab === k ? 'bg-surface text-ink shadow-xs' : 'text-ink-3 hover:text-ink'}`}>{l}</button>
           ))}
         </div>
       </div>
@@ -453,7 +453,7 @@ function Panel(props: PanelProps) {
               <div className="mb-3 inline-flex rounded-lg border border-line bg-well p-0.5" role="radiogroup" aria-label="Fenêtre du flux">
                 {([['live', 'En ligne'], ['30m', '30 min']] as const).map(([k, l]) => (
                   <button key={k} type="button" role="radio" aria-checked={props.feedMode === k} onClick={() => props.setFeedMode(k)}
-                    className={`min-h-[32px] rounded-md px-3 text-[12px] font-medium ${props.feedMode === k ? 'bg-surface text-ink shadow-xs' : 'text-ink-3 hover:text-ink'}`}>{l}</button>
+                    className={`min-h-[44px] rounded-md px-3 text-[13px] font-medium md:min-h-[32px] ${props.feedMode === k ? 'bg-surface text-ink shadow-xs' : 'text-ink-3 hover:text-ink'}`}>{l}</button>
                 ))}
               </div>
             )}
@@ -491,7 +491,7 @@ function Ranking({ data, select, discovered, locate, flyToPlace, isPublic }: Pan
         </div>
         {!isPublic && (
           <div className="inline-flex shrink-0 rounded-lg border border-line p-0.5" role="group" aria-label="Niveau">
-            {(['countries', 'cities'] as const).map((k) => <button key={k} aria-pressed={kind === k} onClick={() => setKind(k)} className={`min-h-[36px] rounded-md px-2.5 text-[12px] font-medium md:min-h-[30px] ${kind === k ? 'bg-well text-ink' : 'text-ink-3'}`}>{k === 'countries' ? 'Pays' : 'Villes'}</button>)}
+            {(['countries', 'cities'] as const).map((k) => <button key={k} aria-pressed={kind === k} onClick={() => setKind(k)} className={`min-h-[44px] rounded-md px-2.5 text-[13px] font-medium md:min-h-[30px] ${kind === k ? 'bg-well text-ink' : 'text-ink-3'}`}>{k === 'countries' ? 'Pays' : 'Villes'}</button>)}
           </div>
         )}
       </div>

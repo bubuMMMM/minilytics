@@ -210,7 +210,23 @@ export function Panel({ tabs, title }: { tabs: TabDef[]; title?: string }) {
       )}
       <Modal open={details} onClose={() => setDetails(false)} title={tab.label} width="max-w-3xl">
         <input className="input mb-4" placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)} autoFocus />
-        <div className="overflow-x-auto">
+        <ul className="divide-y divide-line sm:hidden">
+          {filtered.map((r, i) => (
+            <li key={i}>
+              <button type="button" className={`flex min-h-[56px] w-full flex-col gap-1 py-3 text-left ${tab.filter ? 'active:bg-well' : ''}`} onClick={() => pick(r)}>
+                <div className="flex min-w-0 items-center gap-2 text-[14px] font-medium">{renderLabel(active, r)}</div>
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[13px] text-ink-3">
+                  <span><span className="text-ink-4">Visiteurs</span> <span className="tnum font-medium text-ink">{fmtNumber(r.visitors)}</span></span>
+                  {!hideRevenue && <>
+                    <span><span className="text-ink-4">Revenus</span> <span className="tnum font-medium text-ink">{money(r.revenue)}</span></span>
+                    <span><span className="text-ink-4">Conv.</span> <span className="tnum font-medium text-ink">{r.visitors ? fmtPct(r.customers / r.visitors, 1) : '—'}</span></span>
+                  </>}
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-ink-3">

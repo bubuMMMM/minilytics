@@ -67,10 +67,10 @@ export function FilterBar({ siteId, q, update }: { siteId: string; q: Query; upd
 
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2" aria-label="Filtres">
-      <Dropdown button={<button className="btn min-h-[34px] py-1"><UiIcon name="filter" size={15} />Filtrer</button>}>
+      <Dropdown button={<button className="btn"><UiIcon name="filter" size={15} />Filtrer</button>}>
         {(close) => <FilterBuilder siteId={siteId} q={q} onAdd={(k, v) => { update({ filters: { ...q.filters, [k]: v } }); close(); }} />}
       </Dropdown>
-      <Dropdown button={<button className="btn min-h-[34px] py-1">{active ? <><span className="h-1.5 w-1.5 rounded-full bg-accent" />{active.name}</> : 'Segments'}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink-4"><path d="m6 9 6 6 6-6" /></svg></button>}>
+      <Dropdown button={<button className="btn">{active ? <><span className="h-1.5 w-1.5 rounded-full bg-accent" />{active.name}</> : 'Segments'}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink-4"><path d="m6 9 6 6 6-6" /></svg></button>}>
         {(close) => (
           <SegmentMenu
             siteId={siteId}
@@ -85,7 +85,7 @@ export function FilterBar({ siteId, q, update }: { siteId: string; q: Query; upd
         const f = filterParts(raw);
         const meta = FILTER_LABELS[k];
         return (
-          <span key={k} className="flex max-w-full items-center gap-1.5 rounded-full border border-accent/30 bg-well py-1 pl-3 pr-1 text-[13px]">
+          <span key={k} className="flex min-h-[44px] max-w-full items-center gap-1.5 rounded-full border border-accent/30 bg-well py-1 pl-3 pr-1 text-[13px] sm:min-h-0">
             <span className="shrink-0 text-ink-3">{meta?.label ?? k}</span>
             <button
               className={`shrink-0 rounded px-1 font-medium ${f.op === 'not' ? 'text-danger' : 'text-accent'} ${f.op === 'contains' ? 'cursor-default' : 'hover:bg-surface'}`}
@@ -95,7 +95,7 @@ export function FilterBar({ siteId, q, update }: { siteId: string; q: Query; upd
               {opLabel(f.op)}
             </button>
             <span className="flex min-w-0 items-center gap-1.5 font-medium">{f.op === 'contains' ? <span className="truncate">« {f.v} »</span> : renderLabel(meta?.dim ?? k, { label: f.v || null })}</span>
-            <button className="rounded-lg px-1.5 text-ink-4 hover:bg-surface hover:text-ink" onClick={() => remove(k)} aria-label={`Retirer le filtre ${meta?.label ?? k}`}>
+            <button className="flex h-11 w-11 items-center justify-center rounded-lg text-ink-4 hover:bg-surface hover:text-ink sm:h-8 sm:w-8" onClick={() => remove(k)} aria-label={`Retirer le filtre ${meta?.label ?? k}`}>
               ✕
             </button>
           </span>

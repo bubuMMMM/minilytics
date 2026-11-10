@@ -186,8 +186,8 @@ export function WidgetBuilder({ site }: { site: Site }) {
             {o.type !== 'badge' && (
               <Field label="Affichage">
                 <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1 text-[13px]">
-                  <label className="inline-flex min-h-[32px] items-center gap-2"><input type="checkbox" className="h-4 w-4" checked={o.transparent} onChange={(e) => set({ transparent: e.target.checked })} /> Fond transparent</label>
-                  <label className="inline-flex min-h-[32px] items-center gap-2"><input type="checkbox" className="h-4 w-4" checked={o.logo} onChange={(e) => set({ logo: e.target.checked })} /> Logo Minilytics</label>
+                  <label className="inline-flex min-h-[44px] items-center gap-2 sm:min-h-[32px]"><input type="checkbox" className="h-4 w-4" checked={o.transparent} onChange={(e) => set({ transparent: e.target.checked })} /> Fond transparent</label>
+                  <label className="inline-flex min-h-[44px] items-center gap-2 sm:min-h-[32px]"><input type="checkbox" className="h-4 w-4" checked={o.logo} onChange={(e) => set({ logo: e.target.checked })} /> Logo Minilytics</label>
                 </div>
               </Field>
             )}
@@ -248,7 +248,7 @@ function Seg({ value, onChange, options, small }: { value: string; onChange: (v:
     <div className="inline-flex max-w-full overflow-x-auto rounded-lg border border-line bg-well p-0.5" role="radiogroup">
       {options.map(([k, l]) => (
         <button key={k} type="button" role="radio" aria-checked={value === k} onClick={() => onChange(k)}
-          className={`whitespace-nowrap rounded-md px-3 ${small ? 'min-h-[28px] text-[12px]' : 'min-h-[34px] text-[13px]'} ${value === k ? 'bg-surface font-medium text-ink shadow-xs' : 'text-ink-3 hover:text-ink'}`}>{l}</button>
+          className={`whitespace-nowrap rounded-md px-3 ${small ? 'min-h-[44px] text-[12px] sm:min-h-[28px]' : 'min-h-[44px] text-[13px] sm:min-h-[34px]'} ${value === k ? 'bg-surface font-medium text-ink shadow-xs' : 'text-ink-3 hover:text-ink'}`}>{l}</button>
       ))}
     </div>
   );

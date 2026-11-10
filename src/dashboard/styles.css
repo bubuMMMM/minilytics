@@ -137,11 +137,20 @@ select { background-color: rgb(var(--surface)); color: rgb(var(--ink)); }
 .ml-scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
 @media (pointer: coarse), (max-width: 767px) {
   .btn, .btn-dark, .btn-brand, .btn-accent { min-height: 44px; }
-  .btn-ghost { min-height: 40px; padding-left: .75rem; padding-right: .75rem; }
-  .tab { min-height: 38px; padding-left: .85rem; padding-right: .85rem; }
-  .input, select.input { min-height: 44px; font-size: 16px; }
+  .btn-ghost { min-height: 44px; padding-left: .75rem; padding-right: .75rem; }
+  .tab, .ml-tab { min-height: 44px; padding-left: .85rem; padding-right: .85rem; }
+  .input, select.input, textarea.input { min-height: 44px; font-size: 16px; }
+  /* iOS zooms any focused field under 16px, even without the .input class. */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='hidden']):not([type='color']),
+  select, textarea { font-size: 16px; }
+  .ml-tip-btn { height: 44px; width: 44px; margin: -10px; }
+  .ml-range::-webkit-slider-thumb { width: 28px; height: 28px; margin-top: -12px; }
+  .ml-range::-moz-range-thumb { width: 28px; height: 28px; }
 }
-@media (max-width: 767px) { .ml-has-bottom-nav { padding-bottom: calc(80px + env(safe-area-inset-bottom)); } }
+@media (max-width: 767px) {
+  .ml-has-bottom-nav { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .ml-subnav { min-height: 44px; }
+}
 
 /* Skip link */
 .ml-skip { position: fixed; left: 12px; top: -60px; z-index: 100; padding: 8px 12px; border-radius: 8px; background: rgb(var(--ink)); color: rgb(var(--canvas)); font-size: 13px; font-weight: 500; transition: top .15s ease; }
@@ -220,6 +229,9 @@ select { background-color: rgb(var(--surface)); color: rgb(var(--ink)); }
 .dark .ml-side-item[aria-current='page'], .dark .ml-side-item:hover { background: rgb(var(--line)); }
 .ml-navtabs-sep { margin-left: 8px; padding-left: 8px; border-left: 1px solid rgb(var(--line)); }
 .ml-sheet-backdrop { position: fixed; inset: 0; z-index: 40; background: rgb(var(--ink) / .25); animation: ml-fade-in .15s ease-out; }
+.ml-pop-backdrop { position: fixed; inset: 0; z-index: 55; display: flex; align-items: flex-end; justify-content: center; background: rgb(var(--ink) / .3); animation: ml-fade-in .15s ease-out; }
+.ml-pop-sheet { width: 100%; max-height: min(80dvh, 640px); overflow-y: auto; overscroll-behavior: contain; border-radius: 16px 16px 0 0; border: 1px solid rgb(var(--line)); border-bottom: 0; background: rgb(var(--surface)); padding: 10px 12px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -12px 40px rgb(0 0 0 / .16); animation: ml-sheet-in .2s ease-out; }
+.ml-pop-handle { display: block; width: 40px; height: 4px; margin: 2px auto 10px; border-radius: 99px; background: rgb(var(--line-strong)); }
 @keyframes ml-fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 /* ---------- Micro-interactions v3 ---------- */
@@ -250,7 +262,6 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
   .ml-subnav.is-active > svg { color: rgb(var(--ink)); }
   .dark .ml-subnav.is-active, .dark .ml-subnav:hover { background: rgb(var(--line)); }
 }
-@media (max-width: 767px) { .ml-subnav { min-height: 40px; } }
 .ml-side-icon { display: inline-flex; height: 36px; width: 36px; align-items: center; justify-content: center; border-radius: 8px; color: rgb(var(--ink-3)); transition: background-color .15s ease, color .15s ease; }
 .ml-side-icon:hover { background: rgb(var(--well)); color: rgb(var(--ink)); }
 

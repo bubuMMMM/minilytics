@@ -182,7 +182,7 @@ function ProductPreview() {
       )}
       <div className="flex items-center justify-between gap-3 border-t border-line bg-well/60 px-4 py-2.5 text-[12px] text-ink-3 sm:px-5">
         <span>Données réelles et agrégées d’un site en production</span>
-        <Link href={demoHref} className="inline-flex min-h-[32px] items-center gap-1 font-medium text-ink hover:underline hover:underline-offset-4">Ouvrir <UiIcon name="arrow-right" size={14} /></Link>
+        <Link href={demoHref} className="inline-flex min-h-[44px] items-center gap-1 px-1 font-medium text-ink hover:underline hover:underline-offset-4">Ouvrir <UiIcon name="arrow-right" size={14} /></Link>
       </div>
     </div>
   );
@@ -273,7 +273,7 @@ export function Landing() {
           <div className="ml-grid-bg pointer-events-none absolute inset-x-0 top-0 h-[560px]" aria-hidden />
           <div className="relative mx-auto max-w-[1200px] px-4 pb-16 pt-14 sm:px-6 sm:pt-20 lg:pb-24 lg:pt-24">
             <div className="mx-auto max-w-[760px] text-center">
-              <Link href="/demo" className="inline-flex min-h-[32px] items-center gap-2 rounded-full border border-line bg-surface px-3 text-[13px] text-ink-2 shadow-xs transition-colors hover:border-line-strong">
+              <Link href="/demo" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-line bg-surface px-3 text-[13px] text-ink-2 shadow-xs transition-colors hover:border-line-strong">
                 <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden /> Démo publique en direct <UiIcon name="arrow-right" size={13} />
               </Link>
               <h1 className="mt-6 text-[40px] font-semibold leading-[1.05] tracking-[-0.035em] text-ink [text-wrap:balance] sm:text-6xl">

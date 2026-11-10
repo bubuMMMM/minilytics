@@ -368,7 +368,7 @@ function Seg({ value, onChange, options }: { value: string; onChange: (v: string
     <div className="inline-flex max-w-full overflow-x-auto rounded-lg border border-line bg-well p-0.5" role="radiogroup">
       {options.map(([k, l]) => (
         <button key={k} type="button" role="radio" aria-checked={value === k} onClick={() => onChange(k)}
-          className={`whitespace-nowrap rounded-md px-3 min-h-[34px] text-[13px] ${value === k ? 'bg-surface font-medium text-ink shadow-xs' : 'text-ink-3 hover:text-ink'}`}>{l}</button>
+          className={`whitespace-nowrap rounded-md px-3 min-h-[44px] text-[13px] sm:min-h-[34px] ${value === k ? 'bg-surface font-medium text-ink shadow-xs' : 'text-ink-3 hover:text-ink'}`}>{l}</button>
       ))}
     </div>
   );

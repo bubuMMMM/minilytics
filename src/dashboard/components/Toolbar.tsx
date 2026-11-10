@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { navigate } from '../App';
 import type { Overview, Query, Site } from '../lib/api';
 import { dayInTz } from '../lib/format';
@@ -26,23 +27,59 @@ const GRANULARITIES = [
   { value: 'month', label: 'Par mois' },
 ];
 
-export function Dropdown({ button, children, align = 'left', grow = false }: { button: ReactNode; children: (close: () => void) => ReactNode; align?: 'left' | 'right'; grow?: boolean }) {
+
+/** True below the `md` breakpoint (phone + small tablet). */
+export function useNarrow() {
+  const [n, setN] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const on = () => setN(mq.matches);
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return n;
+}
+
+export function Dropdown({ button, children, align = 'left', grow = false, label }: { button: ReactNode; children: (close: () => void) => ReactNode; align?: 'left' | 'right'; grow?: boolean; label?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const narrow = useNarrow();
   useEffect(() => {
     if (!open) return;
-    const on = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    const on = (e: MouseEvent) => {
+      if (narrow) return;
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', on);
-    return () => document.removeEventListener('mousedown', on);
-  }, [open]);
+    window.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    if (narrow) document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('mousedown', on);
+      window.removeEventListener('keydown', onKey);
+      if (narrow) document.body.style.overflow = prev;
+    };
+  }, [open, narrow]);
+  const close = () => setOpen(false);
   return (
     <div className={`relative flex min-w-0 ${grow ? 'flex-1' : ''}`} ref={ref}>
       <div className="flex w-full min-w-0" onClick={() => setOpen((o) => !o)}>
         {button}
       </div>
-      {open && (
+      {open && narrow && createPortal(
+        <div className="ml-pop-backdrop md:hidden" onClick={close} role="presentation">
+          <div role="dialog" aria-modal="true" aria-label={label ?? 'Choisir'} className="ml-pop-sheet" onClick={(e) => e.stopPropagation()}>
+            <span className="ml-pop-handle" aria-hidden />
+            {children(close)}
+          </div>
+        </div>,
+        document.body,
+      )}
+      {open && !narrow && (
         <div className={`card absolute top-full z-40 mt-2 max-h-[70dvh] w-[min(320px,calc(100vw-2rem))] min-w-[200px] overflow-y-auto p-1 sm:w-auto ${align === 'right' ? 'right-0' : 'left-0'}`}>
-          {children(() => setOpen(false))}
+          {children(close)}
         </div>
       )}
     </div>

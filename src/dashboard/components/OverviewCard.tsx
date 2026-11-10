@@ -120,7 +120,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
                   key={l.key}
                   onClick={() => setHidden((h) => ({ ...h, [l.key]: !h[l.key] }))}
                   aria-pressed={!hidden[l.key]}
-                  className={`flex min-h-[32px] items-center gap-2 rounded-md px-2 text-[12px] font-medium transition-colors hover:bg-well ${hidden[l.key] ? 'text-ink-4 line-through' : 'text-ink-2'}`}
+                  className={`flex min-h-[44px] items-center gap-2 rounded-md px-2 text-[12px] font-medium transition-colors hover:bg-well sm:min-h-[32px] ${hidden[l.key] ? 'text-ink-4 line-through' : 'text-ink-2'}`}
                 >
                   <span className={`h-2 w-2 rounded-full ${l.swatch} ${hidden[l.key] ? 'opacity-30' : ''}`} />
                   {l.label}

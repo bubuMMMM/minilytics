@@ -11,7 +11,7 @@ export function SegmentedTabs<T extends string | number>({ value, options, onCha
     <div className="inline-flex items-center gap-0.5 rounded-lg border border-line bg-well p-0.5" role="group" aria-label={label}>
       {options.map((option) => (
         <button key={option.value} type="button" aria-pressed={value === option.value}
-          className={'min-h-[36px] rounded-md px-3 text-[13px] font-medium transition-colors md:min-h-[30px] ' +
+          className={'min-h-[44px] rounded-md px-3 text-[13px] font-medium transition-colors md:min-h-[30px] ' +
             (value === option.value ? 'bg-surface text-ink shadow-xs' : 'text-ink-3 hover:text-ink')}
           onClick={() => onChange(option.value)}>
           {option.label}

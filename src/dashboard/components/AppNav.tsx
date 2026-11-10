@@ -11,6 +11,8 @@ import { useMe } from '../lib/me';
 import { NAV, TITLES, groupOf, navHref, type NavGroup, type NavItem, type NavKey } from '../lib/nav';
 import { useApi } from '../lib/useApi';
 import { api, type Site } from '../lib/api';
+import { Dropdown } from './Toolbar';
+import { navigate } from '../App';
 
 export type { NavKey } from '../lib/nav';
 
@@ -63,11 +65,13 @@ export function AppHeader({ siteId, active, online, title }: { siteId: string; a
       <Sidebar siteId={siteId} active={active} online={online} nav={nav} onSearch={() => setCmd(true)} />
       <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="mx-auto flex h-14 max-w-[1480px] items-center justify-between gap-3 px-4 sm:px-6">
-          <div className="flex min-w-0 items-center gap-2">
-            <Link href="/sites" aria-label="Mes sites" className="flex min-h-[44px] min-w-0 items-center gap-2 rounded-lg lg:hidden">
-              <Logo small compact={!!title} />
-              {title && <><Slash /><span className="min-w-0 truncate text-[14px] font-medium text-ink" translate="no">{title}</span></>}
+          <div className="flex min-w-0 items-center gap-1">
+            <Link href="/sites" aria-label="Mes sites" className="flex min-h-[44px] shrink-0 items-center rounded-lg px-0.5 lg:hidden">
+              <Logo small compact />
             </Link>
+            <div className="min-w-0 lg:hidden">
+              <SiteSwitcher siteId={siteId} />
+            </div>
             {/* Desktop breadcrumb: group / page */}
             <nav aria-label="Fil d’Ariane" className="hidden min-w-0 items-center gap-2 text-[13px] lg:flex">
               {group && <span className="text-ink-3">{group.label}</span>}
@@ -75,17 +79,11 @@ export function AppHeader({ siteId, active, online, title }: { siteId: string; a
               <span className="truncate font-medium text-ink">{TITLES[active]}</span>
             </nav>
           </div>
-          <div className="flex items-center gap-1 sm:gap-1.5">
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
             <button type="button" className="ml-cmd-btn lg:hidden" onClick={() => setCmd(true)} aria-label={`Rechercher (${SHORTCUT})`}>
               <UiIcon name="search" size={16} />
             </button>
             <NotificationBell siteId={siteId} />
-            <ThemeToggle className="lg:hidden" />
-            {online !== undefined && (
-              <Link href={`/site/${siteId}/realtime`} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-2 text-[12px] font-medium text-ink-2 md:hidden">
-                <LiveDot on={online} /> <span>Direct</span>
-              </Link>
-            )}
           </div>
         </div>
         {/* Tablets: one row of tabs, grouped with thin separators */}
@@ -197,6 +195,10 @@ export function BottomNav({ siteId, active }: { siteId: string; active: NavKey }
               <div className="mt-3 grid grid-cols-2 gap-1 border-t border-line pt-3">
                 <Link href="/sites" onClick={() => setMore(false)} className="flex min-h-[48px] items-center gap-2.5 rounded-lg px-3 text-[14px] font-medium text-ink-2"><UiIcon name="layers" size={18} className="text-ink-3" /> Mes sites</Link>
                 <Link href="/team" onClick={() => setMore(false)} className="flex min-h-[48px] items-center gap-2.5 rounded-lg px-3 text-[14px] font-medium text-ink-2"><UiIcon name="users" size={18} className="text-ink-3" /> Équipe</Link>
+                <div className="col-span-2 flex min-h-[48px] items-center justify-between gap-3 rounded-lg px-3 text-[14px] font-medium text-ink-2">
+                  <span>Thème</span>
+                  <ThemeToggle />
+                </div>
               </div>
             </div>
           </div>
@@ -242,20 +244,87 @@ export function AccountHeader({ current, width = 'max-w-[1200px]' }: { current: 
     <>
       <a href="#contenu" className="ml-skip">Aller au contenu</a>
       <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className={`mx-auto flex h-14 ${width} items-center justify-between gap-3 px-4 sm:px-6`}>
-          <Link href="/sites" aria-label="Mes sites" className="flex min-h-[44px] items-center rounded-md"><Logo small /></Link>
-          <div className="flex items-center gap-1 sm:gap-1.5">
+        <div className={`mx-auto flex h-14 ${width} items-center justify-between gap-2 px-4 sm:px-6`}>
+          <Link href="/sites" aria-label="Mes sites" className="flex min-h-[44px] min-w-0 items-center rounded-md"><Logo small compact /></Link>
+          <div className="flex min-w-0 items-center gap-1 sm:gap-1.5">
             <button type="button" className="ml-cmd-btn" onClick={() => setCmd(true)} aria-label={`Rechercher (${SHORTCUT})`}><UiIcon name="search" size={16} /><kbd className="ml-kbd hidden lg:inline-flex">{SHORTCUT}</kbd></button>
-            {tab('/sites', 'sites', 'Mes sites', 'layers')}
-            {tab('/team', 'team', me?.role === 'owner' || !me ? 'Équipe' : 'Mon compte', 'users')}
-            {me?.role === 'owner' || !me ? <Link href="/page" aria-current={current === 'page' ? 'page' : undefined} className={`btn-ghost !text-[13px] ${current === 'page' ? '!bg-well !text-ink' : ''}`}><UiIcon name="user" size={15} /><span className="hidden sm:inline">Ma page</span></Link> : null}
-            <Link href="/demo" className="btn-ghost hidden !text-[13px] md:inline-flex"><UiIcon name="eye" size={15} />Démo</Link>
-            <ThemeToggle />
-            <button type="button" className="btn-ghost !text-[13px]" onClick={logout} aria-label="Se déconnecter"><UiIcon name="logout" size={15} /><span className="hidden lg:inline">Déconnexion</span></button>
+            <div className="hidden items-center gap-1 sm:flex">
+              {tab('/sites', 'sites', 'Mes sites', 'layers')}
+              {tab('/team', 'team', me?.role === 'owner' || !me ? 'Équipe' : 'Mon compte', 'users')}
+              {me?.role === 'owner' || !me ? <Link href="/page" aria-current={current === 'page' ? 'page' : undefined} className={`btn-ghost !text-[13px] ${current === 'page' ? '!bg-well !text-ink' : ''}`}><UiIcon name="user" size={15} /><span className="hidden md:inline">Ma page</span></Link> : null}
+              <Link href="/demo" className="btn-ghost hidden !text-[13px] md:inline-flex"><UiIcon name="eye" size={15} />Démo</Link>
+              <ThemeToggle />
+              <button type="button" className="btn-ghost !text-[13px]" onClick={logout} aria-label="Se déconnecter"><UiIcon name="logout" size={15} /><span className="hidden lg:inline">Déconnexion</span></button>
+            </div>
+            <div className="sm:hidden">
+              <AccountMenu current={current} onLogout={logout} isOwner={me?.role === 'owner' || !me} accountLabel={me?.role === 'owner' || !me ? 'Équipe' : 'Mon compte'} />
+            </div>
           </div>
         </div>
       </header>
       <CommandMenu open={cmd} onClose={() => setCmd(false)} />
     </>
+  );
+}
+
+
+function SiteSwitcher({ siteId }: { siteId: string }) {
+  const { data: sites } = useApi<Site[]>('/api/sites');
+  const site = sites?.find((s) => s.id === siteId);
+  return (
+    <Dropdown label="Changer de site" button={
+      <button type="button" className="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-lg px-1.5 text-left hover:bg-well">
+        {site ? <Favicon domain={site.domain} size={18} /> : <span className="h-[18px] w-[18px] shrink-0 rounded bg-well" />}
+        <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-ink" translate="no">{site?.name ?? '…'}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-ink-4" aria-hidden><path d="m6 9 6 6 6-6" /></svg>
+      </button>
+    }>
+      {(close) => (
+        <>
+          <div className="px-3 pb-1 pt-1 text-[11px] font-medium text-ink-4">Vos sites</div>
+          {(sites ?? []).map((s) => (
+            <button key={s.id} type="button" className={`flex min-h-[48px] w-full items-center gap-2.5 rounded-lg px-3 text-left text-[14px] ${s.id === siteId ? 'bg-well font-medium text-ink' : 'text-ink-2 hover:bg-well'}`}
+              onClick={() => { close(); if (s.id !== siteId) navigate(`/site/${s.id}${window.location.search}`); }}>
+              <Favicon domain={s.domain} size={18} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate" translate="no">{s.name}</span>
+                <span className="block truncate font-mono text-[11px] text-ink-4" translate="no">{s.domain}</span>
+              </span>
+            </button>
+          ))}
+          <div className="my-1 border-t border-line" />
+          <button type="button" className="flex min-h-[48px] w-full items-center gap-2.5 rounded-lg px-3 text-[14px] text-ink-2 hover:bg-well" onClick={() => { close(); navigate('/sites'); }}>
+            <UiIcon name="layers" size={16} className="text-ink-3" /> Tous les sites
+          </button>
+        </>
+      )}
+    </Dropdown>
+  );
+}
+
+function AccountMenu({ current, onLogout, isOwner, accountLabel }: { current: 'sites' | 'team' | 'page'; onLogout: () => void; isOwner: boolean; accountLabel: string }) {
+  return (
+    <Dropdown align="right" label="Compte" button={
+      <button type="button" className="ml-cmd-btn" aria-label="Menu du compte">
+        <UiIcon name="menu" size={16} />
+      </button>
+    }>
+      {(close) => (
+        <>
+          <Link href="/sites" onClick={close} className={`flex min-h-[48px] items-center gap-2.5 rounded-lg px-3 text-[14px] ${current === 'sites' ? 'bg-well font-medium text-ink' : 'text-ink-2'}`}><UiIcon name="layers" size={16} className="text-ink-3" /> Mes sites</Link>
+          <Link href="/team" onClick={close} className={`flex min-h-[48px] items-center gap-2.5 rounded-lg px-3 text-[14px] ${current === 'team' ? 'bg-well font-medium text-ink' : 'text-ink-2'}`}><UiIcon name="users" size={16} className="text-ink-3" /> {accountLabel}</Link>
+          {isOwner && <Link href="/page" onClick={close} className={`flex min-h-[48px] items-center gap-2.5 rounded-lg px-3 text-[14px] ${current === 'page' ? 'bg-well font-medium text-ink' : 'text-ink-2'}`}><UiIcon name="user" size={16} className="text-ink-3" /> Ma page</Link>}
+          <Link href="/demo" onClick={close} className="flex min-h-[48px] items-center gap-2.5 rounded-lg px-3 text-[14px] text-ink-2"><UiIcon name="eye" size={16} className="text-ink-3" /> Démo</Link>
+          <div className="flex min-h-[48px] items-center justify-between gap-3 rounded-lg px-3 text-[14px] text-ink-2">
+            <span>Thème</span>
+            <ThemeToggle />
+          </div>
+          <div className="my-1 border-t border-line" />
+          <button type="button" className="flex min-h-[48px] w-full items-center gap-2.5 rounded-lg px-3 text-[14px] text-ink-2 hover:bg-well" onClick={() => { close(); onLogout(); }}>
+            <UiIcon name="logout" size={16} className="text-ink-3" /> Déconnexion
+          </button>
+        </>
+      )}
+    </Dropdown>
   );
 }

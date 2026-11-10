@@ -79,8 +79,8 @@ export function CommandMenu({ siteId, open, onClose }: { siteId?: string; open: 
   const run = (c?: Cmd) => { if (!c) return; onClose(); c.run(); };
   let lastGroup = '';
   return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center bg-ink/30 p-3 pt-[12vh] backdrop-blur-[2px]" onMouseDown={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Menu de commandes" className="ml-cmd w-full max-w-[560px] overflow-hidden" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/30 p-0 backdrop-blur-[2px] sm:items-start sm:p-3 sm:pt-[12vh]" onMouseDown={onClose}>
+      <div role="dialog" aria-modal="true" aria-label="Menu de commandes" className="ml-cmd w-full max-w-[560px] overflow-hidden rounded-t-2xl pb-[env(safe-area-inset-bottom)] sm:rounded-xl sm:pb-0" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 border-b border-line px-4">
           <UiIcon name="search" size={18} className="text-ink-3" />
           <input
