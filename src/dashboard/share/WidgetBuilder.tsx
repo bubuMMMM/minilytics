@@ -2,6 +2,7 @@ import { CodeBlock } from '../components/ui';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api, type Site } from '../lib/api';
 import { UiIcon } from '../components/UiIcon';
+import { Link } from '../components/Link';
 
 type WType = 'live' | 'counter' | 'chart' | 'pages' | 'map' | 'badge';
 type Theme = 'auto' | 'light' | 'dark';
@@ -213,6 +214,11 @@ export function WidgetBuilder({ site }: { site: Site }) {
             </div>
             <CodeBox code={code} />
             <p className="mt-2 text-[12px] text-ink-3">{o.type === 'badge' ? 'Le badge est une image SVG mise en cache 60 s : il fonctionne dans GitHub, GitLab, Notion…' : tab === 'script' ? 'Le script crée l’iframe et ajuste sa hauteur automatiquement. Collez-le où le widget doit apparaître.' : 'Sans JavaScript : ajustez la hauteur si besoin.'}</p>
+            <p className="mt-4">
+              <Link href={`/site/${site.id}/settings/telephone`} className="inline-flex items-center gap-2 text-[13px] font-medium text-accent hover:underline">
+                <UiIcon name="smartphone" size={16} /> Mettre un ou plusieurs widgets sur mon téléphone
+              </Link>
+            </p>
           </div>
         </>
       )}

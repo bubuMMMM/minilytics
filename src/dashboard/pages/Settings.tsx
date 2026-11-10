@@ -10,6 +10,7 @@ import { AlertsSettings, ApiAccess, ConnectorsSettings, CrossDomain, PlanUsage, 
 import { useMe } from '../lib/me';
 import { ShareSettings } from '../share/ShareSettings';
 import { WidgetBuilder } from '../share/WidgetBuilder';
+import { PhoneWidgets } from '../share/PhoneWidgets';
 import { Link } from '../components/Link';
 import { UiIcon } from '../components/UiIcon';
 import { CodeBlock, PageHeader } from '../components/ui';
@@ -346,6 +347,9 @@ curl -X POST ${origin}/api/v1/goals \\
       </>}
       {sec === 'widgets' && <>
       <WidgetBuilder site={site} />
+      </>}
+      {sec === 'telephone' && <>
+      <PhoneWidgets site={site} />
       </>}
       {sec === 'alertes' && <>
       <AlertsSettings site={site} Section={Section} canEdit />

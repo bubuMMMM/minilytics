@@ -36,7 +36,7 @@ function fontFile(name: string): string {
   throw new Error(`Police Open Graph introuvable : ${name}`);
 }
 
-function loadFonts(): Font[] {
+export function loadFonts(): Font[] {
   if (fonts) return fonts;
   fonts = [
     { name: 'Inter', data: readFileSync(fontFile('inter-latin-400-normal.woff')), weight: 400, style: 'normal' },

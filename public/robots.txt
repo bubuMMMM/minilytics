@@ -8,6 +8,7 @@ Disallow: /team
 Disallow: /login
 Disallow: /page
 Disallow: /share/
+Disallow: /w/
 Disallow: /invite/
 
 Sitemap: https://minilytics-six.vercel.app/sitemap.xml

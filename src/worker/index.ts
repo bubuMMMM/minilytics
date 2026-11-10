@@ -21,6 +21,7 @@ import { registerBots } from './bots.js';
 import { registerImports } from './imports.js';
 import { registerShare } from './share.js';
 import { registerWidgets } from './widgets.js';
+import { registerPhone, registerWidgetPng } from './phone.js';
 import { registerReplay } from './replay.js';
 import { registerProfile } from './profile.js';
 import { registerAlerts, runDailyAlerts } from './alerts.js';
@@ -36,7 +37,7 @@ const app = new Hono<AppEnv>();
 // Security headers on every API response (nosniff, frame-ancestors via X-Frame-Options, referrer policy…).
 const apiHeaders = secureHeaders({ crossOriginResourcePolicy: false, crossOriginOpenerPolicy: false });
 // Widgets (src/worker/widgets.ts) set their own headers: they are the only responses other sites may frame.
-app.use('/api/*', (c, next) => (c.req.path.startsWith('/api/widget/') ? next() : apiHeaders(c, next)));
+app.use('/api/*', (c, next) => (c.req.path.startsWith('/api/widget/') || c.req.path.startsWith('/api/w/') ? next() : apiHeaders(c, next)));
 // Cookie-authenticated routes refuse cross-site writes (defence in depth on top of SameSite=Strict).
 app.use('/api/auth/*', csrfGuard);
 app.use('/api/sites', csrfGuard);
@@ -314,7 +315,7 @@ app.delete('/api/sites/:id', async (c) => {
   if (c.get('principal').role !== 'owner') return c.json({ error: 'Réservé au propriétaire' }, 403);
   const id = c.get('site').id;
   await c.env.DB.batch(
-    ['events', 'sessions', 'visitors', 'payments', 'funnels', 'segments', 'notes', 'bot_hits', 'imports', 'imported_stats', 'share_links', 'widget_tokens', 'notifications', 'github_commits', 'reddit_mentions', 'payment_claims'].map((t) =>
+    ['events', 'sessions', 'visitors', 'payments', 'funnels', 'segments', 'notes', 'bot_hits', 'imports', 'imported_stats', 'share_links', 'widget_tokens', 'widget_boards', 'notifications', 'github_commits', 'reddit_mentions', 'payment_claims'].map((t) =>
       c.env.DB.prepare(`DELETE FROM ${t} WHERE site_id = ?`).bind(id),
     ).concat(c.env.DB.prepare('DELETE FROM sites WHERE id = ?').bind(id)),
   );
@@ -494,6 +495,8 @@ registerBots(app);
 registerImports(app);
 registerShare(app);
 registerWidgets(app);
+registerWidgetPng(app);
+registerPhone(app);
 registerReplay(app);
 registerProfile(app);
 registerAlerts(app);

@@ -78,6 +78,7 @@ export const SETTINGS_SECTIONS: { id: string; label: string; icon: UiIconName; d
   { id: 'revenus', label: 'Revenus', icon: 'coins', desc: 'Dodo Payments, Stripe, Lemon Squeezy, Polar, Paddle, Shopify… et API serveur.' },
   { id: 'partage', label: 'Partage', icon: 'link', desc: 'Tableaux de bord publics, mot de passe, expiration.' },
   { id: 'widgets', label: 'Widgets', icon: 'layout', desc: 'Compteurs, graphique, carte et badge à intégrer.' },
+  { id: 'telephone', label: 'Widgets sur mon téléphone', icon: 'smartphone', desc: 'Écran d’accueil, images PNG et widgets natifs.' },
   { id: 'alertes', label: 'Alertes et rapports', icon: 'bell', desc: 'Notifications in-app, alertes de trafic, rapports e-mail.' },
   { id: 'integrations', label: 'Intégrations', icon: 'plug', desc: 'GitHub, Reddit, Search Console, Meta Ads, liens 𝕏 traçables.' },
   { id: 'api', label: 'API et MCP', icon: 'key', desc: 'Jetons personnels, REST v1, serveur MCP, CLI.' },
