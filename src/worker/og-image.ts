@@ -72,32 +72,30 @@ export async function renderOgPng(card: OgCard): Promise<Uint8Array<ArrayBuffer>
           height: 630,
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between',
           backgroundColor: '#0a0a0b',
           color: '#fafafa',
           fontFamily: 'Inter',
-          padding: '72px 80px',
           position: 'relative',
         },
         children: [
           {
             type: 'div',
             props: {
-              style: {
-                position: 'absolute', right: -40, top: -80, width: 440, height: 440,
-                borderRadius: 9999, backgroundColor: accentHex, opacity: 0.2,
-              },
+              style: { position: 'absolute', top: 0, left: 0, width: 1200, height: 630, display: 'flex' },
+              children: [
+                { type: 'div', props: { style: { position: 'absolute', right: -40, top: -80, width: 440, height: 440, borderRadius: 9999, backgroundColor: accentHex, opacity: 0.2 } } },
+                { type: 'div', props: { style: { position: 'absolute', left: -80, bottom: -120, width: 380, height: 380, borderRadius: 9999, backgroundColor: accentHex, opacity: 0.14 } } },
+              ],
             },
           },
           {
             type: 'div',
             props: {
               style: {
-                position: 'absolute', left: -80, bottom: -120, width: 380, height: 380,
-                borderRadius: 9999, backgroundColor: accentHex, opacity: 0.14,
+                display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                width: 1200, height: 630, padding: '72px 80px', boxSizing: 'border-box' as const,
               },
-            },
-          },
+              children: [
           {
             type: 'div',
             props: {
@@ -159,8 +157,11 @@ export async function renderOgPng(card: OgCard): Promise<Uint8Array<ArrayBuffer>
             props: {
               style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' },
               children: [
-                { type: 'div', props: { style: { fontSize: 22, color: '#71717a' }, children: footer } },
-                { type: 'div', props: { style: { fontSize: 20, color: '#a1a1aa', fontWeight: 500 }, children: 'Minilytics' } },
+                { type: 'div', props: { style: { fontSize: 22, color: '#a1a1aa' }, children: footer } },
+                { type: 'div', props: { style: { fontSize: 20, color: '#d4d4d8', fontWeight: 500 }, children: 'Minilytics' } },
+              ],
+            },
+          },
               ],
             },
           },
