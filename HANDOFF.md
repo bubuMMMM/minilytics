@@ -54,3 +54,12 @@
 - Migration-pg `0015_profile_pages` appliquée au Neon prod (table `profile_pages`). 0014_waitlist était encore absente de `_migrations` : `CREATE TABLE IF NOT EXISTS`, déjà en prod.
 - Vérif prod : 0 erreur console sur les captures 1440/390 clair/sombre ; révocation 404 ; share_links 0, widget_tokens 0, profile_pages 0 après vérif. Tests 172/172.
 - Captures : /workspace/minilytics-shots/live-widgets/ et …/prod/
+
+## DEPLOYED 2b839e4 (7855d50 + 70ba3c4) — 10 nov. 2026 22:22 (Europe/Paris) → https://minilytics-six.vercel.app, frontend agent — OG PNG, parcours, clustering
+- Image Open Graph PNG 1200×630 pour `/u/:slug` (`/api/public/page/:slug/og.png`) et les liens de partage (`/api/share/:token/og.png`), générée avec satori + resvg et Inter (latin) inclus. Les métas `og:image` / Twitter pointent vers l’URL absolue, avec largeur, hauteur et `og:image:type=image/png`. Le SVG reste en repli. `/share/:token` passe par la fonction API pour injecter les balises (sans incrémenter le compteur de vues). Vérifié en prod : `content-type: image/png`, dimensions 1200×630, magic PNG, métas correctes.
+- Dépublier / révoquer est immédiat : plus de cache CDN sur le HTML et l’image (sinon un lien dépublié restait 200 jusqu’à 5 min). `DELETE /api/me/page` supprime complètement la page. Vérifié : HTML, PNG page et PNG/HTML partage → 404 tout de suite après révocation.
+- Parcours visiteur (admin) : au clic sur une carte, panneau « Parcours de la visite » (pages dans l’ordre, heures, durées, source, entrée/sortie). `GET /api/sites/:id/sessions/:sid/journey`, données réelles, sans nom / e-mail / IP. Le point est mis en avant et la carte zoome dessus ; pastille « N p. » sur le marqueur s’il y a plusieurs pages.
+- Regroupement des marqueurs proches (bulle avec l’effectif, clic pour zoomer et séparer). Un visiteur sélectionné reste hors du groupe. Infobulle « N visiteurs ici ». Les visites de l’onglet « 30 min » apparaissent aussi sur la carte (pulsation seulement si encore en ligne).
+- Correctifs : infobulles de la carte rester dans l’écran (1440 et 390) ; bouton Rejouer au-dessus de la feuille mobile ; pied de page visible sur l’image OG.
+- Vérif prod 1440/390 clair/sombre : 0 erreur console, 0 débordement. Après nettoyage : profile_pages 0, share_links 0 (un jeton widget déjà présent n’a pas été touché). Tests 177/177.
+- Captures : /workspace/minilytics-shots/batch-og-journey/
