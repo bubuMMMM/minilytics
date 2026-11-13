@@ -134,6 +134,9 @@ select { background-color: rgb(var(--surface)); color: rgb(var(--ink)); }
 .tabs { max-width: 100%; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab { white-space: nowrap; flex-shrink: 0; }
+@media (max-width: 767px) {
+  .tabs { flex-wrap: wrap; overflow-x: visible; }
+}
 .ml-scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
 @media (pointer: coarse), (max-width: 767px) {
   .btn, .btn-dark, .btn-brand, .btn-accent { min-height: 44px; }
