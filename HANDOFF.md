@@ -87,3 +87,12 @@
 - Bureau : barre latérale et popovers inchangés (vérifié à 1440 px, 0 débordement).
 - Vérif prod 360/390/430 clair (+ sombre sur les pages clés) : 0 erreur console, 0 débordement. Lien et écran de test créés sur le site démo puis révoqués ; n0.pub non modifié. Tests 184/184, typecheck, build.
 - Captures avant/après : /workspace/minilytics-shots/mobile-ux/
+
+## DEPLOYED b82eb96 (3ce4c33 + b82eb96) — 13 nov. 2026 17:47 (Europe/Paris) → https://minilytics-six.vercel.app, frontend agent — Améliorations 2, 9, 10, 12
+- Demande owner t36u : profil visiteur depuis la carte live, cibles 44 px sur l’équipe, onglet Technologie du partage, style Verre plus lisible. Branche `vercel-port` uniquement.
+- Carte live : un clic (bureau et feuille mobile) ouvre le profil complet — identité, lieu, appareil, source, parcours de la visite, toutes les sessions, événements, objectifs, paiements, et « Rejouer cette visite sur la carte » si elle date de moins de 24 h. La visite est conservée en mémoire (plus de perte au rafraîchissement du flux) ; les clics ne sont plus interceptés par la feuille repliée.
+- Équipe : cases à cocher et boutons radio à 44 × 44 px sur téléphone. Pastilles de couleur des widgets également à 44 px sous `sm`.
+- `/share/:token` : la navigation (y compris « Technologie ») et les puces internes (appareil, navigateur, OS, langue…) passent à la ligne à 390 px, sans défilement horizontal.
+- Style Verre : bordure 1,5 px plus contrastée, flou 24 px, teinte plus opaque, ombre plus nette, textes en `--ink` / `--ink2` — lisible sur fond uni clair et sombre (HTML et PNG).
+- Vérif prod 390/1440 clair et sombre : 0 erreur console, 0 débordement. Lien de partage et clé widget temporaires créés sur le site démo puis révoqués ; n0.pub non modifié. Tests 185/185, typecheck, build.
+- Captures : /workspace/minilytics-shots/improvements-nov13/
