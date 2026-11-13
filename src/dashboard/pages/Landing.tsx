@@ -245,7 +245,7 @@ export function Landing() {
         <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex items-center gap-8">
             <Link href="/" aria-label="Minilytics, accueil" className="flex min-h-[44px] items-center rounded-md"><Logo /></Link>
-            <nav aria-label="Sections de la page" className="hidden items-center gap-1 md:flex">
+            <nav aria-label="Sections de la page" className="hidden items-center gap-1 lg:flex">
               {nav.map(([h, l]) => <a key={h} href={h} className="rounded-md px-3 py-2 text-[14px] text-ink-3 transition-colors hover:text-ink">{l}</a>)}
               <Link href="/demo" className="rounded-md px-3 py-2 text-[14px] text-ink-3 transition-colors hover:text-ink">Démo</Link>
             </nav>
@@ -254,13 +254,13 @@ export function Landing() {
             <ThemeToggle />
             <Link href="/login" className="btn-ghost !text-[14px]">Se connecter</Link>
             <Link href="/signup" className="btn-dark hidden sm:inline-flex">Commencer</Link>
-            <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink-2 hover:bg-well md:hidden" aria-expanded={menu} aria-controls="landing-menu" aria-label={menu ? 'Fermer le menu' : 'Ouvrir le menu'} onClick={() => setMenu((m) => !m)}>
+            <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink-2 hover:bg-well lg:hidden" aria-expanded={menu} aria-controls="landing-menu" aria-label={menu ? 'Fermer le menu' : 'Ouvrir le menu'} onClick={() => setMenu((m) => !m)}>
               <UiIcon name={menu ? 'x' : 'menu'} size={18} />
             </button>
           </div>
         </div>
         {menu && (
-          <nav id="landing-menu" aria-label="Sections de la page" className="border-t border-line px-4 pb-4 pt-2 md:hidden">
+          <nav id="landing-menu" aria-label="Sections de la page" className="border-t border-line px-4 pb-4 pt-2 lg:hidden">
             {[...nav, ['/demo', 'Démo'], ['/login', 'Se connecter']].map(([h, l]) => <a key={h} href={h} onClick={() => setMenu(false)} className="flex min-h-[48px] items-center rounded-lg px-3 text-[15px] font-medium text-ink-2 hover:bg-well">{l}</a>)}
             <Link href="/signup" onClick={() => setMenu(false)} className="btn-dark mt-2 w-full !min-h-[48px]">Réserver mon accès</Link>
           </nav>
@@ -337,7 +337,7 @@ export function Landing() {
 
         {/* Install */}
         <section id="installation" aria-labelledby="i-title" className="scroll-mt-20 border-y border-line bg-surface">
-          <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-4 py-20 sm:px-6 md:grid-cols-2 lg:gap-16 lg:py-24">
+          <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:py-24">
             <div>
               <SectionHead id="i-title" eyebrow="Installation" title="Une balise. Deux minutes." text="Collez le script dans le <head> de votre site : HTML, WordPress, Webflow ou Next.js. Les pages vues, la navigation des applis monopage, le scroll, le temps actif et les clics sortants sont mesurés automatiquement." />
               <ul className="mt-6 space-y-2.5 text-[14px] text-ink-2">

@@ -48,7 +48,7 @@
   --warning-soft: 66 32 6;
 }
 
-html { scroll-behavior: smooth; scroll-padding-top: 88px; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: rgb(var(--accent) / .12); }
+html { scroll-behavior: smooth; scroll-padding-top: 88px; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: rgb(var(--accent) / .12); overflow-x: clip; }
 html, body, #root { min-height: 100%; background: rgb(var(--canvas)); color: rgb(var(--ink)); }
 body { font-family: Geist, ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; overflow-x: clip; font-feature-settings: 'ss01' 1; }
 ::selection { background: rgb(var(--accent) / .2); }
