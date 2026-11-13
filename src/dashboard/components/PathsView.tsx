@@ -18,7 +18,7 @@ export function PathsView() {
   if (!data.paths.length) return <div className="p-8 text-center text-sm text-ink-3">Aucune visite sur la période.</div>;
   const max = data.paths[0].sessions || 1;
   return (
-    <div className="grid gap-5 px-3 pb-3 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+    <div className="grid gap-5 px-3 pb-3 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <div className="min-w-0">
         <div className="mb-2 flex items-baseline justify-between gap-2">
           <div className="text-[13px] font-semibold">Chemins les plus fréquents</div>

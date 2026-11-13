@@ -275,7 +275,7 @@ export function LiveGlobe({ siteId, publicSiteId }: { siteId?: string; publicSit
           <div className="mt-0.5 flex items-center justify-end gap-2 text-2xl font-semibold tabular-nums"><span className="h-2 w-2 rounded-full bg-success" />{data ? formatter.format(data.online) : '—'}</div>
         </div>
       </div>
-      <div className="relative grid items-center gap-1 lg:grid-cols-[minmax(0,1.7fr)_minmax(240px,.7fr)]">
+      <div className="relative grid items-center gap-1 md:grid-cols-[minmax(0,1.7fr)_minmax(240px,.7fr)]">
         <div className="relative min-w-0">
           <canvas
             ref={canvasRef}

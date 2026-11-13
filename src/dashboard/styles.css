@@ -64,10 +64,11 @@ code, kbd, pre, .font-mono { font-family: 'Geist Mono', ui-monospace, SFMono-Reg
   .ml-bento-interactive:hover { border-color: rgb(var(--line-strong)); }
 
   /* Buttons: 36px desktop, 44px touch */
-  .btn { @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-line bg-surface px-3.5 text-[13px] font-medium text-ink shadow-xs transition-[color,background-color,border-color,box-shadow] duration-150 hover:border-line-strong hover:bg-well disabled:pointer-events-none disabled:opacity-50; min-height: 36px; }
-  .btn-dark, .btn-brand { @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-ink px-3.5 text-[13px] font-medium text-canvas transition-[background-color,box-shadow,opacity] duration-150 hover:opacity-90 disabled:pointer-events-none disabled:opacity-50; min-height: 36px; }
-  .btn-accent { @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent px-3.5 text-[13px] font-medium text-accent-fg transition-opacity duration-150 hover:opacity-90; min-height: 36px; }
-  .btn-ghost { @apply inline-flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-ink-3 transition-colors hover:bg-well hover:text-ink; }
+  .btn { @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-line bg-surface px-3.5 text-[13px] font-medium text-ink shadow-xs transition-[color,background-color,border-color,box-shadow,transform] duration-150 hover:border-line-strong hover:bg-well disabled:pointer-events-none disabled:opacity-50; min-height: 36px; }
+  .btn-dark, .btn-brand { @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-ink px-3.5 text-[13px] font-medium text-canvas transition-[background-color,box-shadow,opacity,transform] duration-150 hover:opacity-90 disabled:pointer-events-none disabled:opacity-50; min-height: 36px; }
+  .btn-accent { @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent px-3.5 text-[13px] font-medium text-accent-fg transition-[opacity,transform] duration-150 hover:opacity-90; min-height: 36px; }
+  .btn-ghost { @apply inline-flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-ink-3 transition-[color,background-color,transform] duration-150 hover:bg-well hover:text-ink; }
+  .btn:active:not(:disabled), .btn-dark:active:not(:disabled), .btn-brand:active:not(:disabled), .btn-accent:active:not(:disabled), .btn-ghost:active:not(:disabled) { transform: scale(.98); }
 
   /* Form controls */
   .input { @apply w-full rounded-lg border border-line bg-surface px-3 text-[14px] text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-ink-4 hover:border-line-strong focus:border-accent focus:ring-4 focus:ring-accent/15; min-height: 38px; }
@@ -194,16 +195,23 @@ input.ml-check { width: 1.15rem; height: 1.15rem; accent-color: rgb(var(--accent
 /* Landing helpers */
 .ml-grid-bg { background-image: linear-gradient(rgb(var(--line) / .6) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--line) / .6) 1px, transparent 1px); background-size: 48px 48px; -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 75%); mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 75%); }
 
-/* Landing product shot: nested radii (outer 16 = inner 12 + 4px padding), layered shadow. */
+/* Landing product shot: nested radii (outer 16 = inner 12 + 4px padding), layered shadow. Full-bleed on narrow phones. */
 .ml-frame { position: relative; overflow: hidden; border-radius: 12px; border: 1px solid rgb(var(--line)); background: rgb(var(--surface)); box-shadow: 0 0 0 4px rgb(var(--well) / .9), 0 0 0 5px rgb(var(--line)), 0 1px 2px rgb(0 0 0 / .04), 0 24px 64px -16px rgb(0 0 0 / .18); }
 .dark .ml-frame { box-shadow: 0 0 0 4px rgb(var(--surface) / .6), 0 0 0 5px rgb(var(--line)), 0 24px 64px -16px rgb(0 0 0 / .6); }
+@media (max-width: 639px) {
+  .ml-frame-bleed { margin-left: -1rem; margin-right: -1rem; }
+  .ml-frame-bleed .ml-frame { border-radius: 0; border-left: 0; border-right: 0; box-shadow: 0 16px 48px -16px rgb(0 0 0 / .2); }
+  .dark .ml-frame-bleed .ml-frame { box-shadow: 0 16px 48px -12px rgb(0 0 0 / .55); }
+}
 .ml-stat-accent { border-color: rgb(var(--line-strong)); }
 
 /* Carte: fog-of-war hatch (matches the canvas pattern) and toast entrance. */
 .ml-fog { background-color: rgb(var(--well)); background-image: repeating-linear-gradient(135deg, rgb(var(--line-strong)) 0 1px, transparent 1px 6px); }
+.ml-toast { display: flex; align-items: center; gap: 12px; max-width: min(420px, calc(100vw - 24px)); border-radius: 12px; border: 1px solid rgb(var(--line)); background: rgb(var(--surface)); padding: 12px 14px; box-shadow: 0 10px 32px -8px rgb(0 0 0 / .2); }
 .ml-toast-in { animation: ml-toast-in .5s cubic-bezier(.2,.9,.3,1.2) both; }
 @keyframes ml-toast-in { from { opacity: 0; transform: translate(-50%, -12px) scale(.96); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
 @media (prefers-reduced-motion: reduce) { .ml-toast-in { animation: none; } }
+.ml-alert { border-radius: 10px; border: 1px solid rgb(var(--danger) / .3); background: rgb(var(--danger-soft)); padding: 10px 12px; font-size: 13px; line-height: 1.45; color: rgb(var(--danger)); }
 
 /* Replay scrubber (map) */
 .ml-range { -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; height: 100%; margin: 0; }
@@ -219,11 +227,15 @@ input.ml-check { width: 1.15rem; height: 1.15rem; accent-color: rgb(var(--accent
 @keyframes ml-feed-in { from { opacity: 0; transform: translateY(-6px); background: rgb(var(--accent) / .12); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .ml-feed-in { animation: none; } }
 
-/* ---------- App shell v3: grouped sidebar (≥ 1024 px) ---------- */
+/* ---------- App shell v3: grouped sidebar (≥ 768 px, 240 px from 1024) ---------- */
 .ml-sidebar { display: none; }
+@media (min-width: 768px) {
+  html.ml-shell body { padding-left: 208px; }
+  .ml-sidebar { position: fixed; inset-block: 0; left: 0; z-index: 45; display: flex; width: 208px; flex-direction: column; border-right: 1px solid rgb(var(--line)); background: rgb(var(--canvas)); }
+}
 @media (min-width: 1024px) {
   html.ml-shell body { padding-left: 240px; }
-  .ml-sidebar { position: fixed; inset-block: 0; left: 0; z-index: 45; display: flex; width: 240px; flex-direction: column; border-right: 1px solid rgb(var(--line)); background: rgb(var(--canvas)); }
+  .ml-sidebar { width: 240px; }
 }
 .ml-side-site { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 6px 10px; border-radius: 10px; border: 1px solid rgb(var(--line)); background: rgb(var(--surface)); box-shadow: 0 1px 2px rgb(var(--shadow-color) / .04); transition: border-color .15s ease; }
 .ml-side-site:hover { border-color: rgb(var(--line-strong)); }
@@ -264,7 +276,7 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
 .ml-subnav:hover { color: rgb(var(--ink)); border-color: rgb(var(--line-strong)); }
 .ml-subnav.is-active { background: rgb(var(--ink)); border-color: rgb(var(--ink)); color: rgb(var(--canvas)); }
 .ml-subnav.is-active > svg { color: rgb(var(--canvas)); }
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .ml-subnav { min-height: 32px; padding: 0 10px; border-radius: 8px; border-color: transparent; background: transparent; }
   .ml-subnav:hover { background: rgb(var(--well)); border-color: transparent; }
   .ml-subnav.is-active { background: rgb(var(--well)); border-color: transparent; color: rgb(var(--ink)); }

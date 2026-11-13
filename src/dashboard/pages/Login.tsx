@@ -65,7 +65,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
                   <button type="button" className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-r-lg text-ink-4 hover:text-ink" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?'Masquer le mot de passe':'Afficher le mot de passe'} aria-pressed={showPassword}><UiIcon name="eye" size={16}/></button>
                 </div>
               </div>
-              {error && <div className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2.5 text-[13px] text-danger" role="alert">{error}</div>}
+              {error && <div className="ml-alert" role="alert">{error}</div>}
               <button className="btn-dark !h-11 w-full" disabled={busy}>{busy ? 'Connexion…' : 'Se connecter'}</button>
             </form>
           </div>

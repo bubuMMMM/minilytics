@@ -280,7 +280,7 @@ function InstallCard({ board, site, origin, platform, onRevoke, busy }: { board:
         <p className="mt-2"><a className="inline-flex items-center gap-1 text-[13px] font-medium text-accent hover:underline" href={url} target="_blank" rel="noopener"><UiIcon name="external" size={14} /> Ouvrir l’écran</a></p>
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
         <div className="min-w-0 rounded-xl border border-line p-4">
           <h4 className="flex items-center gap-2 text-[13px] font-semibold"><UiIcon name="smartphone" size={16} /> Ajouter à l’écran d’accueil</h4>
           {platform === 'ios' && iosSteps}
@@ -326,7 +326,7 @@ function InstallCard({ board, site, origin, platform, onRevoke, busy }: { board:
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
         <div className="min-w-0 rounded-xl border border-line p-4">
           <h4 className="text-[13px] font-semibold">Widget natif iPhone (Scriptable)</h4>
           <Ol>

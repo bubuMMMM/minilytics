@@ -289,7 +289,7 @@ export function Invite({ token, onJoined }: { token: string; onJoined: () => voi
                 <div><label className="label" htmlFor="iv-email">E-mail</label><input id="iv-email" type="email" required className="input !h-11" autoComplete="username" value={form.email} onChange={set('email')} /></div>
                 <div><label className="label" htmlFor="iv-pw">Mot de passe</label><input id="iv-pw" type="password" required minLength={10} className="input !h-11" autoComplete="new-password" value={form.password} onChange={set('password')} /><p className="mt-1 text-[12px] text-ink-4">10 caractères minimum. Stocké sous forme de hachage PBKDF2.</p></div>
                 <div><label className="label" htmlFor="iv-pw2">Confirmer le mot de passe</label><input id="iv-pw2" type="password" required className="input !h-11" autoComplete="new-password" value={form.confirm} onChange={set('confirm')} /></div>
-                {error && <div className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2.5 text-[13px] text-danger" role="alert">{error}</div>}
+                {error && <div className="ml-alert" role="alert">{error}</div>}
                 <button className="btn-dark !h-11 w-full" disabled={busy}>{busy ? 'Création…' : 'Créer mon compte'}</button>
               </form>
             </>

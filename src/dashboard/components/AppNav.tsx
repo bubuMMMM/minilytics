@@ -66,39 +66,26 @@ export function AppHeader({ siteId, active, online, title }: { siteId: string; a
       <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="mx-auto flex h-14 max-w-[1480px] items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-1">
-            <Link href="/sites" aria-label="Mes sites" className="flex min-h-[44px] shrink-0 items-center rounded-lg px-0.5 lg:hidden">
+            <Link href="/sites" aria-label="Mes sites" className="flex min-h-[44px] shrink-0 items-center rounded-lg px-0.5 md:hidden">
               <Logo small compact />
             </Link>
-            <div className="min-w-0 lg:hidden">
+            <div className="min-w-0 md:hidden">
               <SiteSwitcher siteId={siteId} />
             </div>
             {/* Desktop breadcrumb: group / page */}
-            <nav aria-label="Fil d’Ariane" className="hidden min-w-0 items-center gap-2 text-[13px] lg:flex">
+            <nav aria-label="Fil d’Ariane" className="hidden min-w-0 items-center gap-2 text-[13px] md:flex">
               {group && <span className="text-ink-3">{group.label}</span>}
               {group && <Slash />}
               <span className="truncate font-medium text-ink">{TITLES[active]}</span>
             </nav>
           </div>
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
-            <button type="button" className="ml-cmd-btn lg:hidden" onClick={() => setCmd(true)} aria-label={`Rechercher (${SHORTCUT})`}>
+            <button type="button" className="ml-cmd-btn md:hidden" onClick={() => setCmd(true)} aria-label={`Rechercher (${SHORTCUT})`}>
               <UiIcon name="search" size={16} />
             </button>
             <NotificationBell siteId={siteId} />
           </div>
         </div>
-        {/* Tablets: one row of tabs, grouped with thin separators */}
-        <nav aria-label="Sections" className="mx-auto hidden max-w-[1480px] px-4 sm:px-6 md:block lg:hidden">
-          <ul className="ml-navtabs">
-            {nav.map((g, gi) => g.items.filter((i) => i.active).map((i, ii) => (
-              <li key={i.key} className={gi > 0 && ii === 0 ? 'ml-navtabs-sep' : ''}>
-                <Link href={navHref(siteId, i)} aria-current={active === i.active ? 'page' : undefined} className="ml-navtab">
-                  {i.key === 'realtime' && <LiveDot on={!!online} />}
-                  {i.label}
-                </Link>
-              </li>
-            )))}
-          </ul>
-        </nav>
       </header>
       <CommandMenu siteId={siteId} open={cmd} onClose={() => setCmd(false)} />
     </>

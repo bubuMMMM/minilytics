@@ -77,7 +77,7 @@ export function EngagementPanel({ siteId, publicSiteId, days = 7, query, reloadK
       <Metric label="Formulaires suivis" value={data ? nf(data.summary.forms) : '—'} caption="Soumissions explicitement marquées" icon="target"/>
     </div>
     {error && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-danger/30 bg-well px-4 py-3 text-[13px] text-ink-3" role="alert"><span>{error}</span><button className="btn !text-xs" onClick={() => setRetry(v => v + 1)}>Réessayer</button></div>}
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.28fr)_minmax(300px,.9fr)]">
+    <div className="grid gap-4 md:grid-cols-[minmax(0,1.28fr)_minmax(300px,.9fr)]">
       <section className="ml-bento min-w-0 p-5 sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><h3 className="text-[17px] font-semibold tracking-tight">Jusqu'où scrollent les visiteurs ?</h3><p className="mt-1 text-[12px] text-ink-4">Profondeur maximale atteinte dans une session, par page</p></div>

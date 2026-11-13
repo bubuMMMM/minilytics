@@ -138,4 +138,15 @@ describe('widget styles', () => {
       expect(html).toContain('box-shadow:0 14px 40px');
     }
   });
+
+  it('keeps the glass widget footer from colliding on a narrow card', () => {
+    const html = renderWidget(widgetOpts({ type: 'counter', style: 'glass', theme: 'light' }), {
+      site: { name: 'Page', domain: 'un-nom-de-domaine-tres-long.example' }, period: '30d', online: 2, visitors: 3, pageviews: 5,
+      previousVisitors: 2, series: [{ bucket: 'd1', visitors: 1 }, { bucket: 'd2', visitors: 3 }], pages: [], countries: [],
+    }, ORIGIN, 'tok').html;
+    expect(html).toMatch(/\.foot\{[^}]*gap:/);
+    expect(html).toMatch(/\.foot\{[^}]*flex-wrap:wrap/);
+    expect(html).toMatch(/\.site\{[^}]*text-overflow:ellipsis/);
+    expect(html).toContain('un-nom-de-domaine-tres-long.example');
+  });
 });

@@ -252,7 +252,7 @@ export function Landing() {
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
-            <Link href="/login" className="btn-ghost hidden !text-[14px] sm:inline-flex">Se connecter</Link>
+            <Link href="/login" className="btn-ghost !text-[14px]">Se connecter</Link>
             <Link href="/signup" className="btn-dark hidden sm:inline-flex">Commencer</Link>
             <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink-2 hover:bg-well md:hidden" aria-expanded={menu} aria-controls="landing-menu" aria-label={menu ? 'Fermer le menu' : 'Ouvrir le menu'} onClick={() => setMenu((m) => !m)}>
               <UiIcon name={menu ? 'x' : 'menu'} size={18} />
@@ -271,25 +271,27 @@ export function Landing() {
         {/* Hero */}
         <section className="relative overflow-hidden">
           <div className="ml-grid-bg pointer-events-none absolute inset-x-0 top-0 h-[560px]" aria-hidden />
-          <div className="relative mx-auto max-w-[1200px] px-4 pb-16 pt-14 sm:px-6 sm:pt-20 lg:pb-24 lg:pt-24">
+          <div className="relative mx-auto max-w-[1200px] px-4 pb-16 pt-10 sm:px-6 sm:pt-20 lg:pb-24 lg:pt-24">
             <div className="mx-auto max-w-[760px] text-center">
               <Link href="/demo" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-line bg-surface px-3 text-[13px] text-ink-2 shadow-xs transition-colors hover:border-line-strong">
                 <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden /> Démo publique en direct <UiIcon name="arrow-right" size={13} />
               </Link>
-              <h1 className="mt-6 text-[40px] font-semibold leading-[1.05] tracking-[-0.035em] text-ink [text-wrap:balance] sm:text-6xl">
+              <h1 className="mt-5 text-[clamp(2.75rem,10vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.045em] text-ink [text-wrap:balance] sm:mt-6 sm:text-6xl sm:leading-[1.05] sm:tracking-[-0.035em]">
                 Vos visiteurs, enfin lisibles.
               </h1>
-              <p className="mx-auto mt-5 max-w-[580px] text-[16px] leading-relaxed text-ink-3 [text-wrap:pretty] sm:text-[18px]">
+              <p className="mx-auto mt-4 max-w-[580px] text-[16px] leading-relaxed text-ink-3 [text-wrap:pretty] sm:mt-5 sm:text-[18px]">
                 Sources, pages, revenus, carte du monde et robots d’IA sur un seul tableau de bord, en français. Une balise à coller, les premières visites en quelques secondes.
               </p>
-              <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <div className="mt-7 flex flex-col justify-center gap-3 sm:mt-8 sm:flex-row">
                 <Link href="/signup" className="btn-dark !h-12 !px-6 !text-[15px]">Réserver mon accès</Link>
                 <Link href="/demo" className="btn !h-12 !px-6 !text-[15px]">Voir la démo <UiIcon name="arrow-right" size={16} /></Link>
               </div>
-              <p className="mt-4 text-[13px] text-ink-4">Liste d’attente gratuite · Aucune carte requise</p>
+              <p className="mt-3.5 text-[13px] text-ink-3 sm:mt-4">Liste d’attente gratuite · Aucune carte requise</p>
             </div>
-            <div className="relative mx-auto mt-14 max-w-[1040px] sm:mt-16">
-              <ProductPreview />
+            <div className="relative mx-auto mt-10 max-w-[1040px] sm:mt-16">
+              <div className="ml-frame-bleed">
+                <ProductPreview />
+              </div>
             </div>
           </div>
         </section>
@@ -335,7 +337,7 @@ export function Landing() {
 
         {/* Install */}
         <section id="installation" aria-labelledby="i-title" className="scroll-mt-20 border-y border-line bg-surface">
-          <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:py-24">
+          <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-4 py-20 sm:px-6 md:grid-cols-2 lg:gap-16 lg:py-24">
             <div>
               <SectionHead id="i-title" eyebrow="Installation" title="Une balise. Deux minutes." text="Collez le script dans le <head> de votre site : HTML, WordPress, Webflow ou Next.js. Les pages vues, la navigation des applis monopage, le scroll, le temps actif et les clics sortants sont mesurés automatiquement." />
               <ul className="mt-6 space-y-2.5 text-[14px] text-ink-2">
@@ -383,7 +385,7 @@ export function Landing() {
 
         {/* FAQ */}
         <section id="faq" aria-labelledby="faq-title" className="scroll-mt-20 border-t border-line">
-          <div className="mx-auto grid max-w-[1200px] gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[1fr_1.6fr] lg:py-28">
+          <div className="mx-auto grid max-w-[1200px] gap-10 px-4 py-20 sm:px-6 md:grid-cols-[1fr_1.6fr] lg:py-28">
             <SectionHead id="faq-title" eyebrow="FAQ" title="Questions fréquentes" text="Une autre question ? La démo publique montre exactement ce que vous obtiendrez." />
             <div className="divide-y divide-line border-y border-line">
               {FAQ.map((f) => (

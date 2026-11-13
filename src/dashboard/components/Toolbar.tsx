@@ -174,7 +174,7 @@ export function Toolbar({
 
   return (
     <div className="flex w-full items-center gap-2 sm:w-auto sm:flex-wrap">
-      <div className="hidden md:block"><Dropdown
+      <div className="hidden lg:block"><Dropdown
         button={
           <button className="btn w-full min-w-0 justify-start px-2.5 sm:w-auto">
             <Favicon domain={site.domain} size={16} />

@@ -118,7 +118,7 @@ export function BotsView() {
 
       {me && me.role !== 'viewer' && data && <SetupPanel siteId={site.id} open={data.usage.used === 0 && data.totals.hits === 0} />}
 
-      <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
+      <div className="grid gap-5 md:grid-cols-[1.5fr_1fr]">
         <section className="card min-w-0 p-4 sm:p-5">
           <h2 className="text-[15px] font-semibold tracking-tight">Passages dans le temps</h2>
           <p className="mb-3 mt-1 text-[12px] text-ink-3">Par type : entraînement des modèles, index de recherche IA, assistants qui lisent une page à la demande d’un utilisateur.</p>

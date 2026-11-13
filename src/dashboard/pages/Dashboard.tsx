@@ -165,7 +165,7 @@ function SourcesPanels({ full = false }: { full?: boolean }) {
     <section className="mt-10" aria-labelledby="sources-title">
       <SectionHeader id="sources-title" kicker={full ? undefined : 'Acquisition'} title={full ? 'Toutes les dimensions' : 'D’où viennent vos visiteurs'} description="Touchez une ligne pour filtrer tout le tableau de bord. Chaque bloc s’exporte en CSV."
         action={!full ? <Link href={`/site/${site.id}/sources${window.location.search}`} className="btn">Toutes les sources <UiIcon name="arrow-right" size={16} /></Link> : undefined} />
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-2">
           <Panel
             title="Sources"
             tabs={[

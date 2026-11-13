@@ -77,11 +77,11 @@ export function Badge({ tone = 'neutral', children, className = '', dot = false 
 /** One empty state: icon, title, one sentence, optional action. */
 export function EmptyState({ icon = 'bar-chart', title, description, action, compact = false }: { icon?: UiIconName; title: ReactNode; description?: ReactNode; action?: ReactNode; compact?: boolean }) {
   return (
-    <div className={`flex flex-col items-center justify-center text-center ${compact ? 'px-4 py-6' : 'px-6 py-10'}`}>
-      <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-well text-ink-3" aria-hidden><UiIcon name={icon} size={17} /></span>
-      <p className="mt-3 text-[13px] font-medium text-ink">{title}</p>
-      {description && <p className="mt-1 max-w-sm text-pretty text-[12px] leading-relaxed text-ink-3">{description}</p>}
-      {action && <div className="mt-4">{action}</div>}
+    <div className={`flex flex-col items-center justify-center text-center ${compact ? 'px-4 py-6' : 'px-6 py-12'}`}>
+      <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-well text-ink-3" aria-hidden><UiIcon name={icon} size={18} /></span>
+      <p className="mt-3.5 text-[14px] font-medium text-ink">{title}</p>
+      {description && <p className="mt-1.5 max-w-sm text-pretty text-[13px] leading-relaxed text-ink-3">{description}</p>}
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 }

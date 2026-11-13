@@ -340,7 +340,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
           </div>
 
           {/* Zoom */}
-          <div className={`absolute right-3 flex flex-col overflow-hidden rounded-lg border border-line bg-surface/90 shadow-card backdrop-blur sm:right-5 md:bottom-5 ${replay.open ? 'bottom-[calc(272px+env(safe-area-inset-bottom))]' : 'bottom-[calc(152px+env(safe-area-inset-bottom))]'} md:bottom-5`}>
+          <div className={`absolute right-3 flex flex-col overflow-hidden rounded-lg border border-line bg-surface/90 shadow-card backdrop-blur sm:right-5 lg:bottom-5 ${replay.open ? 'bottom-[calc(272px+env(safe-area-inset-bottom))]' : 'bottom-[calc(152px+env(safe-area-inset-bottom))]'} lg:bottom-5`}>
             <MapButton label="Zoomer" onClick={() => mapRef.current?.zoomBy(1.6)}><path d="M12 5v14M5 12h14" /></MapButton>
             <MapButton label="Dézoomer" onClick={() => mapRef.current?.zoomBy(1 / 1.6)}><path d="M5 12h14" /></MapButton>
             <MapButton label="Vue d’ensemble" onClick={() => { setSelected(null); mapRef.current?.reset(); }}><circle cx="12" cy="12" r="8" /><path d="M4 12h16M12 4c2.5 2.6 2.5 13.4 0 16M12 4c-2.5 2.6-2.5 13.4 0 16" /></MapButton>
@@ -349,14 +349,14 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
           {/* Replay */}
           {canReplay && (!sheet || replay.open) && (
             <div className={replay.open
-              ? `absolute inset-x-3 z-[35] flex justify-center md:inset-x-auto md:bottom-5 md:left-5 md:z-10 ${sheet ? 'bottom-[calc(72%+8px)]' : 'bottom-[calc(152px+env(safe-area-inset-bottom))]'}`
-              : 'absolute bottom-[calc(152px+env(safe-area-inset-bottom))] left-3 z-[35] md:bottom-5 md:left-auto md:right-[72px] md:z-10'}>
+              ? `absolute inset-x-3 z-[35] flex justify-center lg:inset-x-auto lg:bottom-5 lg:left-5 lg:z-10 ${sheet ? 'bottom-[calc(72%+8px)]' : 'bottom-[calc(152px+env(safe-area-inset-bottom))]'}`
+              : 'absolute bottom-[calc(152px+env(safe-area-inset-bottom))] left-3 z-[35] lg:bottom-5 lg:left-auto lg:right-[72px] lg:z-10'}>
               <ReplayBar r={replay} tz={tz} />
             </div>
           )}
 
           {/* Legend */}
-          <div className={`absolute bottom-5 left-5 hidden items-center gap-4 rounded-lg border border-line bg-surface/90 px-3 py-2 text-[12px] text-ink-3 shadow-xs backdrop-blur ${replay.open ? '' : 'md:flex'}`}>
+          <div className={`absolute bottom-5 left-5 hidden items-center gap-4 rounded-lg border border-line bg-surface/90 px-3 py-2 text-[12px] text-ink-3 shadow-xs backdrop-blur ${replay.open ? '' : 'lg:flex'}`}>
             <span className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm" style={{ background: 'linear-gradient(90deg, rgb(var(--accent) / .3), rgb(var(--accent) / .9))' }} />Visiteurs sur la période</span>
             <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-accent/15" />Déjà découvert</span>
             <span className="flex items-center gap-1.5"><span className="ml-fog h-2.5 w-2.5 rounded-sm" />Inexploré</span>
@@ -384,7 +384,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
           )}
 
           {toast && (
-            <div role="status" className="ml-toast-in absolute left-1/2 top-3 z-20 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 shadow-pop sm:top-5">
+            <div role="status" className="ml-toast ml-toast-in absolute left-1/2 top-3 z-20 -translate-x-1/2 sm:top-5">
               <span className="text-2xl leading-none" aria-hidden>{flag(toast.country)}</span>
               <div>
                 <div className="text-[12px] font-medium text-accent">Nouveau pays débloqué</div>
@@ -395,7 +395,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
           )}
 
           {/* Mobile bottom sheet */}
-          <div className={`absolute inset-x-0 z-30 flex flex-col rounded-t-2xl border-t border-line bg-surface shadow-[0_-12px_40px_rgb(0_0_0/.12)] transition-[height] duration-200 md:hidden ${sheet || selectedVisit ? 'h-[min(90%,calc(100%-8px))]' : 'h-[148px]'}`} style={{ bottom: 0 }}>
+          <div className={`absolute inset-x-0 z-30 flex flex-col rounded-t-2xl border-t border-line bg-surface shadow-[0_-12px_40px_rgb(0_0_0/.12)] transition-[height] duration-200 lg:hidden ${sheet || selectedVisit ? 'h-[min(90%,calc(100%-8px))]' : 'h-[148px]'}`} style={{ bottom: 0 }}>
             <button type="button" className="flex min-h-[28px] w-full shrink-0 flex-col items-center justify-center pt-2" onClick={() => setSheet((s) => !s)} aria-expanded={sheet || !!selectedVisit} aria-label={sheet || selectedVisit ? 'Réduire le panneau' : 'Agrandir le panneau'}>
               <span className="h-1 w-10 rounded-full bg-line-strong" />
             </button>
@@ -406,7 +406,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
             }}>{panel}</div>
           </div>
         </section>
-        <aside className="hidden w-[380px] shrink-0 flex-col border-l border-line bg-surface md:flex" aria-label="Classement et succès">{panel}</aside>
+        <aside className="hidden w-[380px] shrink-0 flex-col border-l border-line bg-surface lg:flex" aria-label="Classement et succès">{panel}</aside>
       </main>
       {!isPublic && !isShare && siteId && <BottomNav siteId={siteId} active="map" />}
     </div>

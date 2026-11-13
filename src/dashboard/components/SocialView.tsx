@@ -124,7 +124,7 @@ export function SocialView() {
         <StatCard loading={loading && !data} icon="message" label="Mentions 𝕏" value={data ? (data.configured ? fmtNumber(data.posts.length) : 'À activer') : '—'} hint={data && !data.configured ? 'Clé API X requise' : 'Posts sur la période'} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <div className="ml-bento p-5"><h3 className="mb-4 text-[15px] font-semibold">Visiteurs par réseau social</h3><Bars rows={(data?.networks ?? []).map((n) => ({ label: n.source, value: n.visitors }))} empty="Aucune visite venue d’un réseau social sur cette période." /></div>
         <div className="ml-bento p-5"><h3 className="mb-4 text-[15px] font-semibold">Pages d’arrivée depuis 𝕏</h3><Bars rows={(data?.landings ?? []).map((l) => ({ label: l.page ?? '(inconnue)', value: l.visitors }))} empty="Aucune visite venue de 𝕏 sur cette période." /></div>
       </div>
@@ -163,7 +163,7 @@ export function SocialView() {
         {data?.configured && data.sync && !data.sync.ok && <div role="alert" className="mb-3 rounded-xl border border-warning/30 bg-warning-soft p-3 text-[13px] text-warning">Dernière actualisation en échec : {data.sync.error}</div>}
         {syncMsg && <p className="mb-3 text-[13px] text-ink-2" aria-live="polite">{syncMsg}</p>}
         {data?.configured && (data.posts.length
-          ? <div className="grid gap-3 lg:grid-cols-2">{data.posts.map((p) => <PostCard key={p.id} p={p} />)}</div>
+          ? <div className="grid gap-3 md:grid-cols-2">{data.posts.map((p) => <PostCard key={p.id} p={p} />)}</div>
           : <p className="py-4 text-center text-[13px] text-ink-3">Aucune mention de <span translate="no">{site.domain}</span> sur 𝕏 sur cette période{data.sync ? ` (vérifié il y a ${fmtAgo(Date.now() - data.sync.at)})` : ''}.</p>)}
       </div>
     </section>

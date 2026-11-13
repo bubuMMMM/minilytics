@@ -19,12 +19,12 @@ import { LEGACY_SETTINGS_HASH, SETTINGS_SECTIONS } from '../lib/nav';
 /** Left sub-navigation on desktop; horizontally scrolling chips on phones / tablets. */
 function SettingsNav({ siteId, sec }: { siteId: string; sec: string }) {
   useEffect(() => {
-    if (window.matchMedia('(min-width: 1024px)').matches) return;
+    if (window.matchMedia('(min-width: 768px)').matches) return;
     document.querySelector<HTMLElement>('.ml-subnav.is-active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
   }, [sec]);
   return (
-    <nav aria-label="Sections des réglages" className="-mx-4 mb-5 sm:-mx-6 lg:sticky lg:top-20 lg:mx-0 lg:mb-0 lg:self-start">
-      <ul className="flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:px-6 lg:flex-col lg:gap-px lg:overflow-visible lg:px-0">
+    <nav aria-label="Sections des réglages" className="-mx-4 mb-5 sm:-mx-6 md:sticky md:top-20 md:mx-0 md:mb-0 md:self-start">
+      <ul className="flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:px-6 md:flex-col md:gap-px md:overflow-visible md:px-0">
         {SETTINGS_SECTIONS.map((x) => (
           <li key={x.id} className="shrink-0">
             <Link href={`/site/${siteId}/settings/${x.id}`} aria-current={x.id === sec ? 'page' : undefined}
@@ -33,7 +33,7 @@ function SettingsNav({ siteId, sec }: { siteId: string; sec: string }) {
             </Link>
           </li>
         ))}
-        <li className="shrink-0 lg:mt-3 lg:border-t lg:border-line lg:pt-3">
+        <li className="shrink-0 md:mt-3 md:border-t md:border-line md:pt-3">
           <Link href="/team" className="ml-subnav"><UiIcon name="users" size={15} /><span>Équipe et sécurité</span></Link>
         </li>
       </ul>
@@ -109,10 +109,10 @@ export function Settings({ siteId, section }: { siteId: string; section?: string
     <AppHeader siteId={site.id} active="settings" title={site.name} />
     <main id="contenu" className="mx-auto max-w-[1180px] px-4 py-6 sm:px-6 lg:py-10">
       <PageHeader title="Réglages" description="Installation, intégrations, partage et données du site." meta={<span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-ink-4" translate="no"><Favicon domain={site.domain} size={14} />{site.domain}</span>} />
-      <div className="lg:grid lg:grid-cols-[208px_minmax(0,1fr)] lg:gap-10">
+      <div className="md:grid md:grid-cols-[180px_minmax(0,1fr)] md:gap-8 lg:grid-cols-[208px_minmax(0,1fr)] lg:gap-10">
         <SettingsNav siteId={site.id} sec={sec} />
         <div className="min-w-0 max-w-3xl space-y-5">
-          <div className="hidden lg:block"><h2 className="text-[17px] font-semibold tracking-[-0.01em]">{current.label}</h2><p className="mt-1 text-[13px] text-ink-3">{current.desc}</p></div>
+          <div className="hidden md:block"><h2 className="text-[17px] font-semibold tracking-[-0.01em]">{current.label}</h2><p className="mt-1 text-[13px] text-ink-3">{current.desc}</p></div>
       {sec === 'installation' && <>
       <AiSetup site={site} origin={origin} />
       <Section title="Installer le script de suivi" desc={<>Collez-le dans le <code>&lt;head&gt;</code> de chaque page de {site.domain} (et de ses sous-domaines).</>}>

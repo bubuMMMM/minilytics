@@ -68,7 +68,7 @@ export function ApiDocs() {
       <main id="contenu" className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         <PageHeader kicker="Outils · Développeurs" title="API Minilytics" translateTitle={false} />
         <p className="-mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-3 [text-wrap:pretty]">Lisez vos statistiques en JSON, envoyez des paiements, des objectifs et des identifications depuis votre serveur, ou branchez un assistant IA par MCP. Authentification : <code>Authorization: Bearer mlt_…</code> (jeton personnel, Réglages › API) ou la clé <code>ml_…</code> d’un site. Montants en unités mineures (centimes) de la devise du site. Limite : 240 requêtes/min.</p>
-        <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+        <div className="mt-6 grid gap-5 md:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
           <aside className="card max-h-[45vh] min-w-0 self-start overflow-auto overscroll-contain p-2 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6.5rem)]" aria-label="Points d’accès">
             {!ops ? <div className="ml-skeleton m-2 h-64" /> : ops.map((o, i) => (
               <button key={o.method + o.path} onClick={() => { setSel(i); setRes(null); }} aria-current={i === sel} className={`flex w-full min-h-[44px] items-start gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors duration-150 ${i === sel ? 'bg-well' : 'hover:bg-well'}`}>

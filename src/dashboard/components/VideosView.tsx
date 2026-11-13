@@ -176,7 +176,7 @@ function VideoDetailModal({ videoId, onClose }: { videoId: string | null; onClos
             <Kpi label="Taux de complétion" value={fmtPct(v.completionRate)} hint={`${fmtNumber(v.completions)} visionnages ≥ 90 %`} icon="target" />
             <Kpi label="Interactions" value={fmtNumber(v.pauses + v.seeks)} hint={`${v.pauses} pauses · ${v.seeks} sauts`} icon="mouse" />
           </div>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="ml-bento p-4"><h4 className="mb-3 text-[14px] font-semibold">Rétention (où les spectateurs décrochent)</h4><DropOff video={v} /></div>
             <div className="ml-bento p-4"><h4 className="mb-3 text-[14px] font-semibold">Lectures dans le temps</h4><PlayChart series={data.series} granularity={data.range.granularity} />
               {data.actions.length > 0 && <div className="mt-3 border-t border-line pt-3"><h5 className="mb-2 text-[12px] font-semibold text-ink-2">Actions sur cette vidéo</h5>{data.actions.map((a) => <div key={a.label} className="flex justify-between py-1 text-[13px]"><span>{ACTION_LABELS[a.label] ?? a.label}</span><span className="tnum font-semibold">{a.count}</span></div>)}</div>}
@@ -216,7 +216,7 @@ export function VideosView() {
         <Kpi label="Taux de complétion" value={t ? fmtPct(t.completionRate) : '—'} hint="Visionnages ≥ 90 %" icon="target" />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
+      <div className="grid gap-5 md:grid-cols-[1fr_340px]">
         <div className="ml-bento p-5"><h3 className="mb-4 text-[15px] font-semibold">Lectures sur la période</h3>{data ? <PlayChart series={data.series} granularity={data.range.granularity} /> : <div className="skeleton h-44" />}</div>
         <div className="ml-bento p-5">
           <h3 className="mb-3 text-[15px] font-semibold">Chaînes les plus regardées</h3>

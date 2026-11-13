@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { bucketLabel, fmtNumber } from '../lib/format';
 
 export interface TrendSeries { key: string; label: string; color: string; values: number[]; axis?: 'left' | 'right' }
@@ -27,7 +27,16 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
   const x = (i: number) => (n <= 1 ? W / 2 : P + (i * (W - 2 * P)) / (n - 1));
   const y = (v: number, axis = 'left') => H - 24 - (v / max[axis]) * (H - 44);
   const path = (vals: number[], axis?: string) => smooth(vals.map((v, i) => [x(i), y(v, axis)] as [number, number]));
-  const step = Math.max(1, Math.ceil(n / 7));
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const el = box.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setNarrow(el.clientWidth < 520));
+    ro.observe(el);
+    setNarrow(el.clientWidth < 520);
+    return () => ro.disconnect();
+  }, []);
+  const step = Math.max(1, Math.ceil(n / (narrow ? 4 : 7)));
   const ticks: number[] = [];
   for (let i = 0; i < n; i += step) ticks.push(i);
   if (n > 1 && ticks[ticks.length - 1] !== n - 1) { if (n - 1 - ticks[ticks.length - 1] < step / 2 && ticks.length > 1) ticks.pop(); ticks.push(n - 1); }
@@ -98,7 +107,7 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
         )}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-5">
           {ticks.map((i) => (
-            <span key={buckets[i]} className={`absolute whitespace-nowrap text-[11px] text-ink-4 ${i === 0 && n > 1 ? '' : i === n - 1 && n > 1 ? '-translate-x-full' : '-translate-x-1/2'}`} style={{ left: n > 1 && i === 0 ? 0 : n > 1 && i === n - 1 ? '100%' : `${(x(i) / W) * 100}%` }}>{bucketLabel(buckets[i], granularity)}</span>
+            <span key={buckets[i]} className={`tnum absolute whitespace-nowrap text-[10px] text-ink-3 sm:text-[11px] ${i === 0 && n > 1 ? '' : i === n - 1 && n > 1 ? '-translate-x-full' : '-translate-x-1/2'}`} style={{ left: n > 1 && i === 0 ? 0 : n > 1 && i === n - 1 ? '100%' : `${(x(i) / W) * 100}%` }}>{bucketLabel(buckets[i], granularity)}</span>
           ))}
         </div>
       </div>

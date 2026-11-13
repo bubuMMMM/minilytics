@@ -235,10 +235,10 @@ function widgetTree(o: CardOpts, d: WidgetData, w: number, h: number): Node {
 
   const foot = o.logo
     ? el(
-      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 12, borderTop: o.style === 'minimal' ? '0' : `1px solid ${o.style === 'gradient' ? 'rgba(255,255,255,0.2)' : pal.line}` },
+      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 16, paddingTop: 12, borderTop: o.style === 'minimal' ? '0' : `1px solid ${o.style === 'gradient' ? 'rgba(255,255,255,0.2)' : pal.line}` },
       [
-        text({ fontSize: 18, color: muted, display: 'flex' }, 'Minilytics'),
-        text({ fontSize: 18, color: muted, display: 'flex' }, clean(d.site.domain, 36)),
+        text({ fontSize: 18, color: muted, display: 'flex', flexShrink: 0 }, 'Minilytics'),
+        text({ fontSize: 18, color: muted, display: 'flex', flexShrink: 1, minWidth: 0, overflow: 'hidden' }, clean(d.site.domain, w < 520 ? 18 : 36)),
       ],
     )
     : null;

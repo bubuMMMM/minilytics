@@ -129,7 +129,7 @@ export function PublicDemo() {
     </header>
 
     <main className="mx-auto max-w-[1370px] px-5 pb-14 sm:px-8 lg:px-10">
-      <section className="grid items-center gap-10 border-b border-line pb-14 pt-14 lg:grid-cols-[1.08fr_.92fr] lg:gap-14 lg:pb-20 lg:pt-20">
+      <section className="grid items-center gap-10 border-b border-line pb-14 pt-14 md:grid-cols-[1.08fr_.92fr] lg:gap-14 lg:pb-20 lg:pt-20">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-[13px] text-ink-2 shadow-xs"><span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden /> Démo publique · données réelles</span>
           <h1 className="mt-6 max-w-[730px] text-4xl font-semibold leading-[1.05] tracking-[-0.03em] text-ink sm:text-5xl">La démo en direct<br/><span className="text-ink-3" translate="no">{view?.site.domain ?? sites.find(s=>s.id===siteId)?.domain ?? 'n0.pub'}</span></h1>
@@ -179,7 +179,7 @@ export function PublicDemo() {
           <MetricTile label="Durée moyenne" value={view?duration(view.current.avgDurationMs):'—'} caption="Temps par session" icon="clock" number="04"/>
         </div>
 
-        <div className="mt-4 grid items-stretch gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,.82fr)]">
+        <div className="mt-4 grid items-stretch gap-4 md:grid-cols-[minmax(0,1.7fr)_minmax(280px,.82fr)]">
           <div className="ml-bento min-w-0 p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-4"><div><h3 className="text-[16px] font-semibold tracking-tight">Évolution du trafic</h3><p className="mt-1 text-xs text-ink-4">Visiteurs uniques par jour · UTC</p></div><span className="inline-flex items-center gap-2 rounded-full bg-accent-soft px-3 py-1.5 text-xs font-semibold text-accent"><i className="h-2 w-2 rounded-full bg-accent"/>Visiteurs</span></div>
             <div className="mt-7 h-[265px] sm:h-[320px]">

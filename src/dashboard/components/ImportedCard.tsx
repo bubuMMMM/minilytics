@@ -55,7 +55,7 @@ export function ImportedCard({ siteId }: { siteId: string }) {
           </div>
         ))}
       </dl>
-      <div className="mt-4 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+      <div className="mt-4 grid gap-5 md:grid-cols-[1.4fr_1fr]">
         <div className="min-w-0">
           <TrendChart height={180} granularity={data.granularity} buckets={data.series.map((s) => s.bucket)} series={[
             { key: 'visitors', label: 'Visiteurs (importés)', color: 'rgb(var(--warning))', values: data.series.map((s) => s.visitors) },

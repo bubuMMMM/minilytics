@@ -221,7 +221,7 @@ function SharedDashboard({ token, meta, view }: { token: string; meta: Extract<M
           )}
           {view === 'overview' && <OverviewCard data={overview} />}
           {sections.length > 0 && (
-            <div className={`grid gap-5 ${view === 'overview' ? 'mt-5' : ''} ${sections.length > 1 ? 'lg:grid-cols-2' : ''}`}>
+            <div className={`grid gap-5 ${view === 'overview' ? 'mt-5' : ''} ${sections.length > 1 ? 'md:grid-cols-2' : ''}`}>
               {sections.map((s) => <Panel key={s.title + view} title={s.title} tabs={s.tabs} />)}
             </div>
           )}

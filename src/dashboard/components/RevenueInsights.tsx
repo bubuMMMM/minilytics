@@ -48,7 +48,7 @@ export function RevenueInsights() {
               <p className="mt-2 text-sm">Potentiel des visiteurs des 7 derniers jours qui n’ont pas encore acheté : <b className="tnum">{money(p.pipeline ?? 0)}</b></p>
               <button className="btn mt-2 !h-9" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? 'Masquer le détail' : 'Pourquoi ? Voir le détail'}</button>
               {open && (
-                <div className="mt-3 grid gap-4 lg:grid-cols-2">
+                <div className="mt-3 grid gap-4 md:grid-cols-2">
                   <div className="min-w-0">
                     <div className="mb-1 text-[12px] font-medium text-ink-3">Facteurs (taux de conversion vs moyenne)</div>
                     <ul className="space-y-1 text-[13px]">{p.factors.map((f) => <li key={f.label + f.value} className="flex justify-between gap-2"><span className="truncate">{f.label} : {f.value}</span><span className={`tnum ${f.lift >= 1 ? 'text-success' : 'text-danger'}`}>×{f.lift.toFixed(2)}</span></li>)}</ul>
