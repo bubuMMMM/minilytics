@@ -174,7 +174,7 @@ export function PhoneWidgets({ site }: { site: Site }) {
               <div className="flex flex-wrap gap-2">
                 {ACCENTS.map((c) => (
                   <button key={c} type="button" aria-label={`Couleur ${c}`} aria-pressed={accent === c} onClick={() => setAccent(c)}
-                    className={`h-8 w-8 rounded-full border ${accent === c ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface' : 'border-line'}`}
+                    className={`h-11 w-11 rounded-full border sm:h-8 sm:w-8 ${accent === c ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface' : 'border-line'}`}
                     style={{ background: '#' + c }} />
                 ))}
               </div>

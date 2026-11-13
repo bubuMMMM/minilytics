@@ -55,13 +55,13 @@ function SitesPicker({ sites, value, onChange }: { sites: Site[]; value: '*' | s
     <fieldset className="space-y-1.5">
       <legend className="label">Accès aux sites</legend>
       <label className="flex min-h-[44px] items-center gap-2.5 rounded-lg border border-line px-3 text-[14px] sm:min-h-[38px]">
-        <input type="checkbox" checked={value === '*'} onChange={(e) => onChange(e.target.checked ? '*' : [])} /> Tous les sites (y compris les futurs)
+        <input type="checkbox" className="ml-check" checked={value === '*'} onChange={(e) => onChange(e.target.checked ? '*' : [])} /> Tous les sites (y compris les futurs)
       </label>
       {value !== '*' && (
         <div className="grid gap-1.5 sm:grid-cols-2">
           {sites.map((s) => (
             <label key={s.id} className="flex min-h-[44px] items-center gap-2.5 rounded-lg border border-line px-3 text-[14px] sm:min-h-[38px]">
-              <input type="checkbox" checked={value.includes(s.id)} onChange={(e) => onChange(e.target.checked ? [...value, s.id] : value.filter((x) => x !== s.id))} />
+              <input type="checkbox" className="ml-check" checked={value.includes(s.id)} onChange={(e) => onChange(e.target.checked ? [...value, s.id] : value.filter((x) => x !== s.id))} />
               <span className="min-w-0 truncate">{s.name}</span>
             </label>
           ))}
@@ -129,7 +129,7 @@ function InviteForm({ sites, onCreated }: { sites: Site[]; onCreated: () => void
           <div className="grid gap-2 sm:grid-cols-2">
             {(['viewer', 'admin'] as const).map((r) => (
               <label key={r} className={`flex cursor-pointer gap-3 rounded-lg border p-3 ${role === r ? 'border-accent ring-1 ring-accent' : 'border-line'}`}>
-                <input type="radio" name="role" className="mt-1" checked={role === r} onChange={() => setRole(r)} />
+                <input type="radio" name="role" className="ml-check mt-0.5 shrink-0" checked={role === r} onChange={() => setRole(r)} />
                 <span><span className="block text-[14px] font-semibold">{ROLE_LABEL[r]}</span><span className="block text-[12px] leading-relaxed text-ink-3">{ROLE_HELP[r]}</span></span>
               </label>
             ))}

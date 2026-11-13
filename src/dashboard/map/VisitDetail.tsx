@@ -2,6 +2,7 @@ import { useApi } from '../lib/useApi';
 import { fmtDuration } from '../lib/format';
 import { SourceIcon } from '../components/Icons';
 import { VisitorCard } from '../components/VisitorCard';
+import { VisitorProfile } from '../components/VisitorProfile';
 import type { Visit } from './Replay';
 
 export interface JourneyStep {
@@ -87,29 +88,42 @@ export function VisitJourney({ journey, tz }: { journey: Journey; tz: string }) 
   );
 }
 
+const DAY = 24 * 60 * 60 * 1000;
+
 export function VisitDetail({
-  visit, siteId, tz, now, onBack,
+  visit, siteId, tz, now, onBack, onReplay,
 }: {
   visit: Visit; siteId: string; tz: string; now: number; onBack: () => void;
+  onReplay?: () => void;
 }) {
   const { data, error, loading } = useApi<Journey>(`/api/sites/${siteId}/sessions/${encodeURIComponent(visit.id)}/journey`);
   const journey = data?.sessionId === visit.id ? data : null;
+  const canReplay = !!onReplay && (now - visit.t) < DAY;
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 border-b border-line px-4 py-3">
         <button type="button" className="btn-ghost -ml-2" onClick={onBack}>← Visiteurs</button>
-        <h2 className="mt-1 text-[15px] font-semibold tracking-tight">Parcours de la visite</h2>
-        <p className="text-[12px] text-ink-3">Pages vues, dans l’ordre, avec l’heure et la durée. Aucune donnée personnelle.</p>
+        <h2 className="mt-1 text-[15px] font-semibold tracking-tight">Profil du visiteur</h2>
+        <p className="text-[12px] text-ink-3">Identité, sessions, parcours, événements et paiements.</p>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-6 pt-3">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-8 pt-3">
         <VisitorCard visit={visit} tz={tz} now={now} selected />
-        <h3 className="mt-5 text-[13px] font-semibold">Parcours</h3>
+        {canReplay && (
+          <button type="button" className="btn mt-3 w-full justify-center" onClick={onReplay}>
+            Rejouer cette visite sur la carte
+          </button>
+        )}
+        <h3 className="mt-5 text-[13px] font-semibold">Parcours de cette visite</h3>
         <div className="mt-2">
           {error && <p className="text-[13px] text-danger" role="alert">{error}</p>}
           {!error && !journey && (loading || !data) && (
             <div className="space-y-2" aria-busy="true">{[0, 1, 2].map((i) => <div key={i} className="ml-skeleton h-8 w-full rounded-md" />)}</div>
           )}
           {journey && <VisitJourney journey={journey} tz={tz} />}
+        </div>
+        <div className="mt-6 border-t border-line pt-5">
+          <h3 className="mb-4 text-[13px] font-semibold">Toutes les visites</h3>
+          <VisitorProfile visitorId={visit.visitorId} siteId={siteId} tz={tz} highlightSessionId={visit.id} />
         </div>
       </div>
     </div>

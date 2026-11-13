@@ -151,11 +151,11 @@ function SharedDashboard({ token, meta, view }: { token: string; meta: Extract<M
 
   const go = (v: View) => navigate(`/share/${token}${v === 'overview' ? '' : '/' + v}${window.location.search}`);
   const nav = (
-    <nav className="-mb-px flex gap-1 overflow-x-auto px-4 sm:px-6" aria-label="Vues partagées">
+    <nav className="-mb-px flex flex-wrap gap-x-0.5 px-3 sm:px-6" aria-label="Vues partagées">
       {meta.views.map((v) => (
         <a key={v} href={`/share/${token}${v === 'overview' ? '' : '/' + v}`} onClick={(e) => { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); go(v); }}
           aria-current={v === view ? 'page' : undefined}
-          className={`flex min-h-[44px] shrink-0 items-center border-b-2 px-2.5 text-[13px] transition-colors ${v === view ? 'border-ink font-medium text-ink' : 'border-transparent text-ink-3 hover:text-ink'}`}>{VIEW_LABEL[v]}</a>
+          className={`flex min-h-[44px] items-center border-b-2 px-2 text-[13px] transition-colors sm:px-2.5 ${v === view ? 'border-ink font-medium text-ink' : 'border-transparent text-ink-3 hover:text-ink'}`}>{VIEW_LABEL[v]}</a>
       ))}
     </nav>
   );

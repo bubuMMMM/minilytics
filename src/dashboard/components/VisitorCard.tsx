@@ -105,7 +105,10 @@ export function VisitorCard({
   );
   if (!onPick) return <article className={className}>{inner}</article>;
   return (
-    <button type="button" onClick={() => onPick(v)} className={className} aria-current={selected ? 'true' : undefined} aria-label={`${persona.name}, ${place}`}>
+    <button type="button" data-visitor-id={v.visitorId} data-session-id={v.id}
+      onClick={(e) => { e.stopPropagation(); onPick(v); }}
+      onPointerUp={(e) => e.stopPropagation()}
+      className={className} aria-current={selected ? 'true' : undefined} aria-label={`${persona.name}, ${place}`}>
       {inner}
     </button>
   );

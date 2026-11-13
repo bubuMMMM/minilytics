@@ -96,7 +96,8 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
   const [zoom, setZoom] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>(isPublic || isShare ? 'rank' : 'feed');
-  const [pickedVisit, setPickedVisit] = useState<string | null>(null);
+  const [pickedVisit, setPickedVisit] = useState<Visit | null>(null);
+  const [replaySeek, setReplaySeek] = useState<number | null>(null);
   const [feedMode, setFeedMode] = useState<'live' | '30m'>('live');
   const [livePeople, setLivePeople] = useState<Visit[] | null>(null);
   const [hoverLive, setHoverLive] = useState<{ visit: Visit; x: number; y: number } | null>(null);
@@ -190,7 +191,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
       for (const v of replay.active) {
         const c = v.country ? COUNTRIES.get(v.country) : undefined;
         const ll = v.country ? locate(v.country, v.city ?? '', v.lat, v.lon) ?? (c ? [c.lng, c.lat] as [number, number] : null) : null;
-        if (ll) out.push({ key: v.id, lon: ll[0], lat: ll[1], value: 1, highlight: pickedVisit === v.id, pages: v.pageviews });
+        if (ll) out.push({ key: v.id, lon: ll[0], lat: ll[1], value: 1, highlight: pickedVisit?.id === v.id, pages: v.pageviews });
       }
       return out;
     }
@@ -203,7 +204,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
         if (!ll) continue;
         const [jLon, jLat] = visitorJitter(v.visitorId);
         const recent = now - v.lastSeen < 5 * 60_000;
-        out.push({ key: v.id, lon: ll[0] + jLon, lat: ll[1] + jLat, value: 1, highlight: pickedVisit === v.id, pages: v.pageviews, pulse: recent });
+        out.push({ key: v.id, lon: ll[0] + jLon, lat: ll[1] + jLat, value: 1, highlight: pickedVisit?.id === v.id, pages: v.pageviews, pulse: recent });
       }
       return out;
     }
@@ -242,7 +243,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
   }, []);
   const flyToPlace = (lon: number, lat: number) => mapRef.current?.flyTo(lon, lat, 14);
   const pickVisit = (v: Visit) => {
-    setPickedVisit(v.id);
+    setPickedVisit(v);
     setSelected(null);
     setTab('feed');
     setSheet(true);
@@ -253,10 +254,22 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
       flyToPlace(ll[0] + jLon, ll[1] + jLat);
     } else mapRef.current?.flyToCountry(v.country);
   };
+  const replayVisit = (v: Visit) => {
+    const win = Date.now() - v.t <= 30 * 60_000 ? '30m' as const : '24h' as const;
+    setReplaySeek(v.t);
+    replay.setWin(win);
+    replay.setOpen(true);
+  };
   useEffect(() => { if (replay.open) { setSelected(null); setTab('feed'); } }, [replay.open]);
+  useEffect(() => {
+    if (replay.data && replaySeek != null) {
+      replay.seek(Math.min(replay.data.to, Math.max(replay.data.from, replaySeek)));
+      setReplaySeek(null);
+    }
+  }, [replay.data, replaySeek, replay.seek]);
   const feedVisits = replaying ? [...replay.shown].reverse() : feedMode === 'live' ? livePeople : feed;
   const onlineCount = livePeople?.length ?? live?.online ?? 0;
-  const selectedVisit = (pickedVisit && feedVisits?.find((v) => v.id === pickedVisit)) || null;
+  const selectedVisit = pickedVisit ? (feedVisits?.find((v) => v.id === pickedVisit.id) ?? pickedVisit) : null;
 
   const header = isShare ? share.header : isPublic ? (
     <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
@@ -273,8 +286,8 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
       discovered={discovered} discovery={discovery} badges={badges} conts={conts} line={line} streak={st} reached={reached} lvl={lvl}
       regionNames={regionNames} locate={locate} flyToPlace={flyToPlace} isPublic={countryOnly}
       canFeed={canReplay} feed={feedVisits} replaying={replaying} now={now} pickVisit={pickVisit}
-      feedMode={feedMode} setFeedMode={setFeedMode} selectedId={pickedVisit} online={onlineCount}
-      selectedVisit={selectedVisit} siteId={siteId} onClearVisit={() => setPickedVisit(null)}
+      feedMode={feedMode} setFeedMode={setFeedMode} selectedId={pickedVisit?.id ?? null} online={onlineCount}
+      selectedVisit={selectedVisit} siteId={siteId} onClearVisit={() => setPickedVisit(null)} onReplayVisit={selectedVisit ? () => replayVisit(selectedVisit) : undefined}
     />
   );
 
@@ -382,11 +395,15 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
           )}
 
           {/* Mobile bottom sheet */}
-          <div className={`absolute inset-x-0 z-30 flex flex-col rounded-t-2xl border-t border-line bg-surface shadow-[0_-12px_40px_rgb(0_0_0/.12)] transition-[height] duration-200 md:hidden ${sheet ? 'h-[min(72%,calc(100%-8px))]' : 'h-[148px]'}`} style={{ bottom: 0 }}>
-            <button type="button" className="flex min-h-[28px] w-full shrink-0 flex-col items-center justify-center pt-2" onClick={() => setSheet((s) => !s)} aria-expanded={sheet} aria-label={sheet ? 'Réduire le panneau' : 'Agrandir le panneau'}>
+          <div className={`absolute inset-x-0 z-30 flex flex-col rounded-t-2xl border-t border-line bg-surface shadow-[0_-12px_40px_rgb(0_0_0/.12)] transition-[height] duration-200 md:hidden ${sheet || selectedVisit ? 'h-[min(90%,calc(100%-8px))]' : 'h-[148px]'}`} style={{ bottom: 0 }}>
+            <button type="button" className="flex min-h-[28px] w-full shrink-0 flex-col items-center justify-center pt-2" onClick={() => setSheet((s) => !s)} aria-expanded={sheet || !!selectedVisit} aria-label={sheet || selectedVisit ? 'Réduire le panneau' : 'Agrandir le panneau'}>
               <span className="h-1 w-10 rounded-full bg-line-strong" />
             </button>
-            <div className="min-h-0 flex-1 overflow-hidden" onClick={() => !sheet && setSheet(true)}>{panel}</div>
+            <div className="min-h-0 flex-1 overflow-hidden" onClick={(e) => {
+              if (sheet || selectedVisit) return;
+              if ((e.target as HTMLElement).closest('button, a, [role="button"]')) return;
+              setSheet(true);
+            }}>{panel}</div>
           </div>
         </section>
         <aside className="hidden w-[380px] shrink-0 flex-col border-l border-line bg-surface md:flex" aria-label="Classement et succès">{panel}</aside>
@@ -424,7 +441,7 @@ interface PanelProps {
   flyToPlace: (lon: number, lat: number) => void; isPublic: boolean;
   canFeed: boolean; feed: Visit[] | null; replaying: boolean; now: number; pickVisit: (v: Visit) => void;
   feedMode: 'live' | '30m'; setFeedMode: (m: 'live' | '30m') => void; selectedId: string | null; online: number;
-  selectedVisit: Visit | null; siteId?: string; onClearVisit: () => void;
+  selectedVisit: Visit | null; siteId?: string; onClearVisit: () => void; onReplayVisit?: () => void;
 }
 
 const TABS = [['rank', 'Classement'], ['game', 'Succès'], ['timeline', 'Conquête']] as const;
@@ -435,7 +452,7 @@ function Panel(props: PanelProps) {
   if (error) return <p className="p-5 text-[13px] text-danger" role="alert">{error}</p>;
   if (selected) return <CountryDetail {...props} iso2={selected} />;
   if (props.selectedVisit && props.canFeed && props.siteId) {
-    return <VisitDetail key={props.selectedVisit.id} visit={props.selectedVisit} siteId={props.siteId} tz={props.tz} now={props.now} onBack={props.onClearVisit} />;
+    return <VisitDetail key={props.selectedVisit.id} visit={props.selectedVisit} siteId={props.siteId} tz={props.tz} now={props.now} onBack={props.onClearVisit} onReplay={props.onReplayVisit} />;
   }
   return (
     <div className="flex h-full min-h-0 flex-col">

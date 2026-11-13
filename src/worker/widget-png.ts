@@ -69,17 +69,24 @@ interface CardOpts {
 
 function cardChrome(style: WidgetStyle, pal: Palette, accent: string, pad: number) {
   const radius = style === 'editorial' || style === 'minimal' ? 0 : style === 'glass' ? 28 : style === 'compact' ? 16 : 24;
-  const border = style === 'minimal' ? '0' : style === 'editorial' ? `0 0 3px 0 solid ${accent}` : `1px solid ${pal.line}`;
+  const dark = pal.card === '#0a0a0b';
+  const border = style === 'minimal' ? '0'
+    : style === 'editorial' ? `0 0 3px 0 solid ${accent}`
+    : style === 'glass' ? (dark ? '1.5px solid rgba(255,255,255,0.32)' : '1.5px solid rgba(9,9,11,0.22)')
+    : `1px solid ${pal.line}`;
   const background = style === 'gradient'
     ? `linear-gradient(135deg, ${accent}, #09090b)`
     : style === 'glass'
-      ? (pal.card === '#0a0a0b' ? 'rgba(24,24,27,0.78)' : 'rgba(255,255,255,0.86)')
+      ? (dark ? 'rgba(18,18,22,0.86)' : 'rgba(255,255,255,0.9)')
       : style === 'minimal' || style === 'editorial'
         ? 'transparent'
         : pal.card;
   const color = style === 'gradient' ? '#ffffff' : pal.ink;
   const muted = style === 'gradient' ? 'rgba(255,255,255,0.78)' : pal.muted;
-  return { radius, border, background, color, muted, pad };
+  const shadow = style === 'glass'
+    ? (dark ? '0 16px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.22)' : '0 16px 40px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.8)')
+    : undefined;
+  return { radius, border, background, color, muted, pad, shadow };
 }
 
 function periodLabel(period: string, locale: 'fr' | 'en') {
@@ -247,6 +254,7 @@ function widgetTree(o: CardOpts, d: WidgetData, w: number, h: number): Node {
       backgroundImage: chrome.background.startsWith('linear') ? chrome.background : undefined,
       borderRadius: chrome.radius,
       border: chrome.border,
+      boxShadow: chrome.shadow,
       color: ink,
       fontFamily: 'Inter',
     },

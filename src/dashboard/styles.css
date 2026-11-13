@@ -182,6 +182,10 @@ select { background-color: rgb(var(--surface)); color: rgb(var(--ink)); }
 @media (pointer: coarse), (max-width: 767px) {
   .ml-tip-btn { height: 44px; width: 44px; margin: -10px; }
 }
+input.ml-check { width: 1.15rem; height: 1.15rem; accent-color: rgb(var(--accent)); flex-shrink: 0; }
+@media (pointer: coarse), (max-width: 767px) {
+  input.ml-check { width: 44px; height: 44px; }
+}
 .ml-tip { position: absolute; left: 50%; bottom: calc(100% + 6px); z-index: 50; width: max-content; max-width: min(260px, 80vw); transform: translateX(-50%); border-radius: 8px; border: 1px solid rgb(var(--line)); background: rgb(var(--surface)); padding: 8px 10px; font-size: 12px; font-weight: 400; line-height: 1.45; color: rgb(var(--ink-2)); text-transform: none; letter-spacing: 0; box-shadow: 0 8px 24px -4px rgb(0 0 0 / .16); pointer-events: none; }
 
 /* Landing helpers */

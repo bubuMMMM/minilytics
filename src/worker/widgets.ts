@@ -134,11 +134,13 @@ const STYLE_CSS: Record<WidgetStyle, string> = {
 .list li{border-radius:0;border-bottom:1px solid var(--line);padding-left:0;padding-right:0}.bar{opacity:.1;border-radius:0}
 .foot{border-top:1px solid var(--ink);padding-top:8px;font-style:italic}
 .lbl{font-family:inherit;font-style:italic}`,
-  glass: `.card,.pill{background:color-mix(in srgb,var(--bg) 62%,transparent);border:1px solid color-mix(in srgb,var(--ink) 10%,transparent);box-shadow:0 8px 32px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.28);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4)}
+  glass: `.card,.pill{background:color-mix(in srgb,var(--bg) 78%,transparent);border:1.5px solid color-mix(in srgb,var(--ink) 28%,transparent);box-shadow:0 14px 40px rgba(0,0,0,.18),0 0 0 1px color-mix(in srgb,var(--ink) 8%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 55%,transparent);backdrop-filter:blur(24px) saturate(1.7);-webkit-backdrop-filter:blur(24px) saturate(1.7)}
 .card{border-radius:calc(22px*var(--s));padding:calc(18px*var(--s))}
 .pill{padding:calc(8px*var(--s)) calc(14px*var(--s))}
-.list li{background:color-mix(in srgb,var(--well) 70%,transparent);border-radius:10px}
-.foot{border-color:color-mix(in srgb,var(--ink) 10%,transparent)}`,
+.kicker,.muted,.foot,.site{color:var(--ink2)}
+.big,.lbl,.num{color:var(--ink)}
+.list li{background:color-mix(in srgb,var(--well) 86%,transparent);border:1px solid color-mix(in srgb,var(--ink) 12%,transparent);border-radius:10px}
+.foot{border-color:color-mix(in srgb,var(--ink) 18%,transparent)}`,
   gradient: `.card,.pill{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#09090b));border:0;box-shadow:0 10px 28px color-mix(in srgb,var(--accent) 35%,transparent);color:#fff}
 .card{border-radius:calc(18px*var(--s))}
 .kicker,.muted,.foot,.pill .brand,.site,.delta{color:rgba(255,255,255,.78)}

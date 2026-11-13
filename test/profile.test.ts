@@ -125,4 +125,17 @@ describe('widget styles', () => {
     expect(html).toContain('linear-gradient');
     expect(html).toContain('3');
   });
+
+  it('renders a visible glass style on light and dark backgrounds', () => {
+    const data = {
+      site: { name: 'Page', domain: 'page.test' }, period: '30d', online: 2, visitors: 3, pageviews: 5,
+      previousVisitors: 2, series: [{ bucket: 'd1', visitors: 1 }, { bucket: 'd2', visitors: 3 }], pages: [], countries: [],
+    };
+    for (const theme of ['light', 'dark'] as const) {
+      const html = renderWidget(widgetOpts({ type: 'counter', style: 'glass', theme }), data, ORIGIN, 'tok').html;
+      expect(html).toContain('backdrop-filter:blur(24px)');
+      expect(html).toContain('border:1.5px solid');
+      expect(html).toContain('box-shadow:0 14px 40px');
+    }
+  });
 });

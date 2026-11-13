@@ -167,7 +167,7 @@ export function WidgetBuilder({ site }: { site: Site }) {
               <div className="flex flex-wrap items-center gap-1.5">
                 {ACCENTS.map((a) => (
                   <button key={a} type="button" onClick={() => set({ accent: a })} aria-label={`Couleur #${a}`} aria-pressed={o.accent === a}
-                    className={`h-8 w-8 rounded-full border-2 ${o.accent === a ? 'border-ink' : 'border-transparent'}`}><span className="block h-full w-full rounded-full border border-black/10" style={{ background: '#' + a }} /></button>
+                    className={`h-11 w-11 rounded-full border-2 sm:h-8 sm:w-8 ${o.accent === a ? 'border-ink' : 'border-transparent'}`}><span className="block h-full w-full rounded-full border border-black/10" style={{ background: '#' + a }} /></button>
                 ))}
                 <label className="relative ml-1 inline-flex h-8 items-center gap-1.5 rounded-lg border border-line px-2 text-[12px]">
                   <input type="color" className="h-5 w-5 cursor-pointer border-0 bg-transparent p-0" value={'#' + o.accent} onChange={(e) => set({ accent: e.target.value.slice(1).toLowerCase() })} aria-label="Couleur personnalisée" />
