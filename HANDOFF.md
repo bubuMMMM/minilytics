@@ -96,3 +96,13 @@
 - Style Verre : bordure 1,5 px plus contrastée, flou 24 px, teinte plus opaque, ombre plus nette, textes en `--ink` / `--ink2` — lisible sur fond uni clair et sombre (HTML et PNG).
 - Vérif prod 390/1440 clair et sombre : 0 erreur console, 0 débordement. Lien de partage et clé widget temporaires créés sur le site démo puis révoqués ; n0.pub non modifié. Tests 185/185, typecheck, build.
 - Captures : /workspace/minilytics-shots/improvements-nov13/
+
+## DEPLOYED 9c5281d (90cfd64 + 9c5281d) — 13 nov. 2026 21:21 (Europe/Paris) → https://minilytics-six.vercel.app, frontend agent — Design v5 (responsive + UI)
+- Demande owner t37u : poursuivre les améliorations design, rendre l’app responsive et améliorer l’expérience UI. Branche `vercel-port` uniquement. n0.pub non modifié.
+- Barre latérale groupée dès 768 px (208 px, puis 240 px à partir de 1024). Le bandeau d’onglets tablette est retiré ; fil d’Ariane et recherche dès `md`. Grilles d’analyse, démo, partage et réglages en 2 colonnes dès 768 px (nav verticale des réglages comprise).
+- Carte : le panneau visiteurs reste une feuille jusqu’à 1024 px (la barre latérale prend la largeur tablette), puis colonne 380 px.
+- Widget Verre : pied « Minilytics » + domaine avec écart, retour à la ligne et ellipse (HTML et PNG) — plus de chevauchement sur une carte étroite.
+- Accueil mobile plus affirmé : titre en `clamp`, aperçu plein bord, « Se connecter » visible. Sur tablette, les ancres passent dans le menu pour éviter un débordement de l’en-tête (corrigé en 9c5281d) ; le bloc d’installation reste sur une colonne jusqu’à 1024 px.
+- Micro-interactions (appui `scale(.98)` sur les boutons, `prefers-reduced-motion` respecté), états vides un peu plus aérés, toasts et alertes unifiés (`.ml-toast`, `.ml-alert`), graduations des graphiques en chiffres tabulaires `ink-3`, moins nombreuses sous 520 px (contraste AA).
+- Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Jeton widget temporaire créé sur le site démo puis révoqué ; share_links 0, afterHasToken false. Tests 186/186, typecheck, build.
+- Captures avant/après : /workspace/minilytics-shots/design-v5/
