@@ -129,3 +129,8 @@
 - Composants 21st.dev / Magic UI adaptés (quota `get_component` déjà épuisé ce jour-là ; implémentations publiques Magic UI, sans framer-motion / motion) : Globe (dillionverma, id 1128, cobe) ; Animated Beam (dillionverma, id 919, chemins SVG et dégradé animé en CSS). Toiles décoratives en `aria-hidden`, alternative textuelle pour les lecteurs d’écran.
 - Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Tests 186/186, typecheck, build. Déploiement `dpl_CSwVpd488muemAT7t6Fixm7iGbE6`.
 - Captures : /workspace/minilytics-shots/landing-globe-beams/after/
+
+## DEPLOYED 1f5a2a5 — 14 nov. 2026 18:06 (Europe/Paris) → https://minilytics-six.vercel.app, frontend agent — Faisceaux d’attribution (ancrage)
+- Suite t41u : les faisceaux partent et arrivent au bord intérieur de chaque carte (droite des sources, gauche/droite de Minilytics, gauche des paiements, bords de Revenus), courbes cubiques symétriques, pastilles opaques au-dessus des lignes. En mobile, sources en une rangée, lignes du bas de chaque pastille vers le haut de Minilytics, puis vers les paiements et Revenus, sans traverser une carte. Tracé plus visible, dégradé plus lumineux, points lumineux aux extrémités.
+- Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Tests 186/186, typecheck, build. Déploiement `dpl_9SDPdK7Nza6i3gQ8ot6o9cXeDwAX`.
+- Captures : /workspace/minilytics-shots/landing-globe-beams/polish/
