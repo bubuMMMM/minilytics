@@ -106,3 +106,11 @@
 - Micro-interactions (appui `scale(.98)` sur les boutons, `prefers-reduced-motion` respecté), états vides un peu plus aérés, toasts et alertes unifiés (`.ml-toast`, `.ml-alert`), graduations des graphiques en chiffres tabulaires `ink-3`, moins nombreuses sous 520 px (contraste AA).
 - Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Jeton widget temporaire créé sur le site démo puis révoqué ; share_links 0, afterHasToken false. Tests 186/186, typecheck, build.
 - Captures avant/après : /workspace/minilytics-shots/design-v5/
+
+## DEPLOYED 09a9646 — 14 nov. 2026 08:51 (Europe/Paris) → https://minilytics-six.vercel.app, frontend agent — Section fonctionnalités en bento
+- Demande owner t38u : redessiner « Tout ce qui compte, dès l’installation. » sur l’accueil. Branche `vercel-port` uniquement. n0.pub non modifié.
+- Grille bento (src/dashboard/pages/LandingFeatures.tsx) : cartes de tailles variées, chacune avec icône et aperçu HTML/CSS/SVG (graphique, carte live, sources, entonnoir, revenus attribués, carte visiteur, widget, bots IA, confidentialité, API/CLI/MCP). Uniquement des fonctions réellement présentes. Vidéos, sponsors et contenus restent en option, avec un mini aperçu.
+- Survol : liseré et lueur d’accent, léger soulèvement, barres qui s’animent ; `prefers-reduced-motion` respecté. Clair et sombre. Empilement propre à 360/390, 2 colonnes à 768, bento dès 1024.
+- Les chiffres des aperçus sont illustratifs, jamais présentés comme des stats en direct. Le reste de l’accueil est inchangé.
+- Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Tests 186/186, typecheck, build.
+- Captures avant/après : /workspace/minilytics-shots/landing-features/
