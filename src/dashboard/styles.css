@@ -522,12 +522,13 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
 .dark .ml-globe-stage { overflow: hidden; }
 .ml-globe-stage::before { background: radial-gradient(circle, rgb(var(--accent) / .28), transparent 70%); }
 
-.ml-beam-board { min-height: 280px; }
+.ml-beam-board { min-height: 280px; isolation: isolate; }
+.ml-beam-lines { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 .ml-beam-grid {
   display: grid;
   grid-template-columns: 1fr;
   grid-template-areas: "sources" "hub" "pays" "rev";
-  gap: 28px;
+  gap: 40px;
   position: relative;
   z-index: 1;
   padding: 8px 0 4px;
@@ -536,17 +537,24 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
 .ml-beam-hub { grid-area: hub; }
 .ml-beam-pays { grid-area: pays; }
 .ml-beam-rev { grid-area: rev; }
-.ml-beam-col { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 12px; }
+.ml-beam-col { list-style: none; margin: 0; padding: 0; display: grid; }
+.ml-beam-sources { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px 4px; }
+.ml-beam-pays { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 10px; max-width: 420px; margin-inline: auto; width: 100%; }
 .ml-beam-node {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 6px 10px 6px 6px;
-  border-radius: 999px;
+  justify-content: center;
+  gap: 4px;
+  min-height: 52px;
+  width: 100%;
+  padding: 6px 2px 5px;
+  border-radius: 14px;
   border: 1px solid rgb(var(--line));
   background: rgb(var(--canvas));
   box-shadow: 0 1px 2px rgb(var(--shadow-color) / .05);
+  position: relative;
+  z-index: 1;
 }
 .ml-beam-mark {
   display: inline-flex;
@@ -560,7 +568,8 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
   line-height: 1;
   flex-shrink: 0;
 }
-.ml-beam-label { font-size: 12.5px; font-weight: 500; color: rgb(var(--ink-2)); white-space: nowrap; }
+.ml-beam-label { font-size: 9.5px; font-weight: 500; color: rgb(var(--ink-2)); line-height: 1.15; text-align: center; max-width: 100%; }
+.ml-beam-center, .ml-beam-revenue { position: relative; z-index: 1; }
 .ml-beam-center {
   display: inline-flex;
   align-items: center;
@@ -587,27 +596,37 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
   box-shadow: 0 10px 28px -16px rgb(var(--accent) / .4);
 }
 .ml-beam-glow {
-  stroke-dasharray: 0.16 0.84;
+  stroke-dasharray: 0.2 0.8;
   stroke-dashoffset: 0;
   animation: ml-beam-run var(--ml-beam-dur, 4s) linear var(--ml-beam-delay, 0s) infinite;
+  filter: drop-shadow(0 0 3px rgb(var(--accent) / .65));
 }
 @keyframes ml-beam-run { to { stroke-dashoffset: -1; } }
 
 @media (min-width: 768px) {
   .ml-beam-board { min-height: 360px; }
   .ml-beam-grid {
-    grid-template-columns: minmax(140px, 200px) 1fr minmax(140px, 200px) auto;
+    grid-template-columns: minmax(148px, 210px) 1fr minmax(148px, 210px) auto;
     grid-template-areas: "sources hub pays rev";
     align-items: center;
-    gap: 8px 12px;
+    gap: 8px 28px;
     min-height: 360px;
     padding: 12px 4px;
   }
-  .ml-beam-col { flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: center; gap: 14px; }
+  .ml-beam-sources, .ml-beam-pays { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: center; gap: 14px; max-width: none; margin-inline: 0; width: auto; }
+  .ml-beam-node {
+    flex-direction: row;
+    gap: 8px;
+    min-height: 44px;
+    width: auto;
+    padding: 6px 10px 6px 6px;
+    border-radius: 999px;
+  }
+  .ml-beam-label { font-size: 12.5px; white-space: nowrap; text-align: left; line-height: 1.2; }
   .ml-beam-sources .ml-beam-node { margin-right: auto; }
   .ml-beam-pays .ml-beam-node { margin-left: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ml-beam-glow { animation: none; stroke-dasharray: none; }
+  .ml-beam-glow { animation: none; stroke-dasharray: none; filter: none; }
 }

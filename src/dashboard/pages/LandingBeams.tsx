@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useId, useRef, useState, type CSSProperties, typ
 import { Logo } from '../components/Logo';
 
 type NodeDef = { id: string; label: string; mark: string; color: string };
+type Side = 'left' | 'right' | 'top' | 'bottom';
 
 const SOURCES: NodeDef[] = [
   { id: 'google', label: 'Google', mark: 'G', color: '#4285F4' },
@@ -17,9 +18,6 @@ const PAYMENTS: NodeDef[] = [
   { id: 'lemon', label: 'Lemon Squeezy', mark: 'L', color: '#FFC233' },
   { id: 'polar', label: 'Polar', mark: 'P', color: '#0062FF' },
 ];
-
-const SOURCE_CURVE = [-86, -52, -18, 18, 52, 86];
-const PAY_CURVE = [-48, 0, 48];
 
 export function LandingBeams() {
   const box = useRef<HTMLDivElement>(null);
@@ -81,16 +79,17 @@ export function LandingBeams() {
           </div>
 
           {ready && (
-            <>
+            <div className="ml-beam-lines" aria-hidden>
               {SOURCES.map((n, i) => (
                 <AnimatedBeam
                   key={`s-${n.id}`}
                   containerRef={box}
                   fromRef={refAt(srcRefs, i)}
                   toRef={mid}
-                  curvature={SOURCE_CURVE[i]}
-                  delay={i * 0.18}
-                  duration={4.2 + (i % 3) * 0.4}
+                  fromAt={0.5}
+                  toAt={(i + 1) / (SOURCES.length + 1)}
+                  delay={i * 0.16}
+                  duration={4.2 + (i % 3) * 0.35}
                 />
               ))}
               {PAYMENTS.map((n, i) => (
@@ -99,9 +98,10 @@ export function LandingBeams() {
                   containerRef={box}
                   fromRef={mid}
                   toRef={refAt(payRefs, i)}
-                  curvature={PAY_CURVE[i]}
-                  delay={0.4 + i * 0.2}
-                  duration={4 + i * 0.25}
+                  fromAt={(i + 1) / (PAYMENTS.length + 1)}
+                  toAt={0.5}
+                  delay={0.35 + i * 0.18}
+                  duration={4 + i * 0.2}
                 />
               ))}
               {PAYMENTS.map((n, i) => (
@@ -110,12 +110,13 @@ export function LandingBeams() {
                   containerRef={box}
                   fromRef={refAt(payRefs, i)}
                   toRef={rev}
-                  curvature={i === 0 ? 40 : i === 2 ? -40 : 0}
-                  delay={0.9 + i * 0.15}
-                  duration={3.8}
+                  fromAt={0.5}
+                  toAt={(i + 1) / (PAYMENTS.length + 1)}
+                  delay={0.8 + i * 0.14}
+                  duration={3.7}
                 />
               ))}
-            </>
+            </div>
           )}
         </div>
 
@@ -143,33 +144,27 @@ const BeamNode = forwardRef<HTMLDivElement, { def: NodeDef }>(function BeamNode(
   );
 });
 
-/** Adapted from 21st.dev / Magic UI Animated Beam (dillionverma, id 919), without motion/framer-motion. */
+/** Adapted from 21st.dev / Magic UI Animated Beam (dillionverma, id 919), without motion/framer-motion.
+ *  Paths leave and arrive on the inner edge of each node (not through the card). */
 function AnimatedBeam({
   containerRef,
   fromRef,
   toRef,
-  curvature = 0,
+  fromAt = 0.5,
+  toAt = 0.5,
   delay = 0,
   duration = 5,
-  startXOffset = 0,
-  startYOffset = 0,
-  endXOffset = 0,
-  endYOffset = 0,
 }: {
   containerRef: RefObject<HTMLElement | null>;
   fromRef: RefObject<HTMLElement | null>;
   toRef: RefObject<HTMLElement | null>;
-  curvature?: number;
+  fromAt?: number;
+  toAt?: number;
   delay?: number;
   duration?: number;
-  startXOffset?: number;
-  startYOffset?: number;
-  endXOffset?: number;
-  endYOffset?: number;
 }) {
   const gid = useId().replace(/:/g, '');
-  const [pathD, setPathD] = useState('');
-  const [box, setBox] = useState({ w: 0, h: 0 });
+  const [path, setPath] = useState({ d: '', w: 0, h: 0, sx: 0, sy: 0, ex: 0, ey: 0 });
   const [reduce, setReduce] = useState(false);
 
   useEffect(() => {
@@ -180,55 +175,90 @@ function AnimatedBeam({
       const cr = container.getBoundingClientRect();
       const ar = a.getBoundingClientRect();
       const br = b.getBoundingClientRect();
-      const startX = ar.left - cr.left + ar.width / 2 + startXOffset;
-      const startY = ar.top - cr.top + ar.height / 2 + startYOffset;
-      const endX = br.left - cr.left + br.width / 2 + endXOffset;
-      const endY = br.top - cr.top + br.height / 2 + endYOffset;
-      const dx = endX - startX;
-      const dy = endY - startY;
-      let d: string;
-      if (Math.abs(dy) > Math.abs(dx) * 0.85) {
-        const cx = (startX + endX) / 2 + curvature;
-        const cy = (startY + endY) / 2;
-        d = `M ${startX},${startY} Q ${cx},${cy} ${endX},${endY}`;
-      } else {
-        const cx = (startX + endX) / 2;
-        const cy = (startY + endY) / 2 - curvature;
-        d = `M ${startX},${startY} Q ${cx},${cy} ${endX},${endY}`;
-      }
-      setPathD(d);
-      setBox({ w: cr.width, h: cr.height });
+      const desktop = window.matchMedia('(min-width: 768px)').matches;
+      const from = pickSide(ar, br, desktop);
+      const to = opposite(from);
+      const start = edgePoint(ar, cr, from, fromAt);
+      const end = edgePoint(br, cr, to, toAt);
+      const dist = Math.hypot(end.x - start.x, end.y - start.y);
+      const pull = Math.max(28, Math.min(90, dist * 0.45));
+      const c1 = pullPoint(start, from, pull);
+      const c2 = pullPoint(end, to, pull);
+      setPath({
+        d: `M ${start.x},${start.y} C ${c1.x},${c1.y} ${c2.x},${c2.y} ${end.x},${end.y}`,
+        w: cr.width,
+        h: cr.height,
+        sx: start.x,
+        sy: start.y,
+        ex: end.x,
+        ey: end.y,
+      });
     };
     const ro = new ResizeObserver(update);
     if (containerRef.current) ro.observe(containerRef.current);
+    if (fromRef.current) ro.observe(fromRef.current);
+    if (toRef.current) ro.observe(toRef.current);
+    window.addEventListener('resize', update);
     update();
-    const t = window.setTimeout(update, 50);
-    return () => { ro.disconnect(); clearTimeout(t); };
-  }, [containerRef, fromRef, toRef, curvature, startXOffset, startYOffset, endXOffset, endYOffset]);
+    const t = window.setTimeout(update, 60);
+    return () => { ro.disconnect(); window.removeEventListener('resize', update); clearTimeout(t); };
+  }, [containerRef, fromRef, toRef, fromAt, toAt]);
 
-  if (!pathD || box.w === 0) return null;
+  if (!path.d || path.w === 0) return null;
   const style = { '--ml-beam-dur': `${duration}s`, '--ml-beam-delay': `${delay}s` } as CSSProperties;
 
   return (
     <svg
       fill="none"
-      width={box.w}
-      height={box.h}
-      viewBox={`0 0 ${box.w} ${box.h}`}
+      width={path.w}
+      height={path.h}
+      viewBox={`0 0 ${path.w} ${path.h}`}
       className="pointer-events-none absolute inset-0 overflow-visible"
       aria-hidden
     >
-      <path d={pathD} stroke="rgb(var(--ink-3))" strokeWidth={1.6} strokeOpacity={0.45} strokeLinecap="round" />
-      <path d={pathD} stroke={`url(#${gid})`} strokeWidth={2.4} strokeLinecap="round" pathLength={1} className={reduce ? undefined : 'ml-beam-glow'} style={style} />
+      <path d={path.d} stroke="rgb(var(--accent) / .28)" strokeWidth={3} strokeLinecap="round" />
+      <path d={path.d} stroke="rgb(var(--accent) / .55)" strokeWidth={2} strokeLinecap="round" />
+      <path d={path.d} stroke={`url(#${gid})`} strokeWidth={3} strokeLinecap="round" pathLength={1} className={reduce ? undefined : 'ml-beam-glow'} style={style} />
+      <circle cx={path.sx} cy={path.sy} r="5" fill="rgb(var(--accent) / .28)" />
+      <circle cx={path.ex} cy={path.ey} r="5" fill="rgb(var(--accent) / .28)" />
+      <circle cx={path.sx} cy={path.sy} r="2.4" fill="rgb(var(--accent))" />
+      <circle cx={path.ex} cy={path.ey} r="2.4" fill="rgb(var(--accent))" />
       <defs>
         <linearGradient id={gid} gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="rgb(var(--accent))" stopOpacity="0" />
-          <stop offset="35%" stopColor="rgb(var(--accent))" />
-          <stop offset="70%" stopColor="#93C5FD" />
-          <stop offset="100%" stopColor="rgb(var(--accent))" stopOpacity="0" />
+          <stop offset="30%" stopColor="#BFDBFE" />
+          <stop offset="55%" stopColor="rgb(var(--accent))" />
+          <stop offset="100%" stopColor="#BFDBFE" stopOpacity="0" />
         </linearGradient>
       </defs>
     </svg>
   );
 }
 
+function pickSide(from: DOMRect, to: DOMRect, desktop: boolean): Side {
+  const dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+  const dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+  if (desktop) return dx >= 0 ? 'right' : 'left';
+  return dy >= 0 ? 'bottom' : 'top';
+}
+
+function opposite(side: Side): Side {
+  return side === 'right' ? 'left' : side === 'left' ? 'right' : side === 'bottom' ? 'top' : 'bottom';
+}
+
+function edgePoint(rect: DOMRect, container: DOMRect, side: Side, t = 0.5) {
+  const x = rect.left - container.left;
+  const y = rect.top - container.top;
+  const u = Math.min(0.86, Math.max(0.14, t));
+  if (side === 'right') return { x: x + rect.width, y: y + rect.height * u };
+  if (side === 'left') return { x, y: y + rect.height * u };
+  if (side === 'bottom') return { x: x + rect.width * u, y: y + rect.height };
+  return { x: x + rect.width * u, y };
+}
+
+function pullPoint(pt: { x: number; y: number }, side: Side, pull: number) {
+  if (side === 'right') return { x: pt.x + pull, y: pt.y };
+  if (side === 'left') return { x: pt.x - pull, y: pt.y };
+  if (side === 'bottom') return { x: pt.x, y: pt.y + pull };
+  return { x: pt.x, y: pt.y - pull };
+}
