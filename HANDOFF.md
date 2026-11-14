@@ -114,3 +114,10 @@
 - Les chiffres des aperçus sont illustratifs, jamais présentés comme des stats en direct. Le reste de l’accueil est inchangé.
 - Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Tests 186/186, typecheck, build.
 - Captures avant/après : /workspace/minilytics-shots/landing-features/
+
+## DEPLOYED 458ad62 — 14 nov. 2026 13:38 (Europe/Paris) → https://minilytics-six.vercel.app, frontend agent — Section fonctionnalités bento v2
+- Demande owner t39u : la section bento t38u était trop basique, la retravailler. Branche `vercel-port` uniquement. n0.pub non modifié.
+- Récit inspiré de datafa.st, limité aux fonctions réellement présentes : badge et titre avec dégradé sur « dès l’installation. », sous-titre, trois étapes (balise → paiements → canaux qui font acheter), lien démo, puces (poids, cookies, SPA, bots). Carte héro à onglets (Revenus par défaut, En direct, Parcours, Trafic) ; parcours « Du premier clic à la conversion » ; installation cadrée pour les agents IA (Script / CLI / MCP) ; widgets et bots IA conservés comme différenciateurs Minilytics. Chiffres clairement illustratifs.
+- Effets adaptés de 21st.dev, sans dépendance ajoutée et avec `prefers-reduced-motion` : Border Beam (larsen66, id 21703, technique Magic UI `offset-path`) ; Number Ticker (dillionverma, id 1282, IntersectionObserver + rAF, sans framer-motion) ; motifs spotlight (variables CSS au pointeur), marquee CSS (piste dupliquée, masque, pause au survol) et grille bento variée (non récupérés séparément : quota `get_component` épuisé). Apparition échelonnée au scroll, avec repli pour ne jamais laisser la section invisible.
+- Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Tests 186/186, typecheck, build. Déploiement `dpl_9K5xY3XrDvCXaZ9MNkNLgkuBgAzZ`.
+- Captures avant/après : /workspace/minilytics-shots/landing-features-v2/
