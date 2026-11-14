@@ -45,6 +45,7 @@
     "@types/ws": "^8.18.2",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.6.1",
+    "cobe": "^0.6.4",
     "concurrently": "^10.0.6",
     "postcss": "^8.5.31",
     "react": "^18.3.1",

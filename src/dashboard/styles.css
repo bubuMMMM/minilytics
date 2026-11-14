@@ -508,3 +508,106 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
 @media (prefers-reduced-motion: reduce) {
   .ml-card-in, .ml-card-out { animation: none; }
 }
+
+/* Landing globe + attribution beams (t41u) */
+.ml-globe-stage { overflow: hidden; }
+.ml-globe-stage::before {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(var(--accent) / .2), transparent 68%);
+  pointer-events: none;
+}
+.dark .ml-globe-stage { overflow: hidden; }
+.ml-globe-stage::before { background: radial-gradient(circle, rgb(var(--accent) / .28), transparent 70%); }
+
+.ml-beam-board { min-height: 280px; }
+.ml-beam-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas: "sources" "hub" "pays" "rev";
+  gap: 28px;
+  position: relative;
+  z-index: 1;
+  padding: 8px 0 4px;
+}
+.ml-beam-sources { grid-area: sources; }
+.ml-beam-hub { grid-area: hub; }
+.ml-beam-pays { grid-area: pays; }
+.ml-beam-rev { grid-area: rev; }
+.ml-beam-col { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 12px; }
+.ml-beam-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--line));
+  background: rgb(var(--canvas));
+  box-shadow: 0 1px 2px rgb(var(--shadow-color) / .05);
+}
+.ml-beam-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.ml-beam-label { font-size: 12.5px; font-weight: 500; color: rgb(var(--ink-2)); white-space: nowrap; }
+.ml-beam-center {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  padding: 10px 16px;
+  border-radius: 18px;
+  border: 1px solid rgb(var(--line));
+  background: rgb(var(--canvas));
+  box-shadow: 0 0 0 4px rgb(var(--accent) / .08), 0 10px 28px -16px rgb(var(--accent) / .45);
+}
+.ml-beam-revenue {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 88px;
+  min-height: 64px;
+  padding: 10px 16px;
+  border-radius: 18px;
+  border: 1px solid rgb(var(--accent) / .35);
+  background: rgb(var(--accent-soft));
+  box-shadow: 0 10px 28px -16px rgb(var(--accent) / .4);
+}
+.ml-beam-glow {
+  stroke-dasharray: 0.16 0.84;
+  stroke-dashoffset: 0;
+  animation: ml-beam-run var(--ml-beam-dur, 4s) linear var(--ml-beam-delay, 0s) infinite;
+}
+@keyframes ml-beam-run { to { stroke-dashoffset: -1; } }
+
+@media (min-width: 768px) {
+  .ml-beam-board { min-height: 360px; }
+  .ml-beam-grid {
+    grid-template-columns: minmax(140px, 200px) 1fr minmax(140px, 200px) auto;
+    grid-template-areas: "sources hub pays rev";
+    align-items: center;
+    gap: 8px 12px;
+    min-height: 360px;
+    padding: 12px 4px;
+  }
+  .ml-beam-col { flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: center; gap: 14px; }
+  .ml-beam-sources .ml-beam-node { margin-right: auto; }
+  .ml-beam-pays .ml-beam-node { margin-left: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ml-beam-glow { animation: none; stroke-dasharray: none; }
+}

@@ -6,6 +6,8 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { UiIcon } from '../components/UiIcon';
 import { channelName } from '../lib/format';
 import { FeaturesBento } from './LandingFeatures';
+import { LandingLiveGlobe } from './LandingGlobe';
+import { LandingBeams } from './LandingBeams';
 
 type Group = { label: string; value: number };
 interface Preview {
@@ -294,6 +296,9 @@ export function Landing() {
         <section id="fonctionnalites" aria-labelledby="f-title" className="relative mx-auto max-w-[1200px] scroll-mt-20 px-4 py-20 sm:px-6 lg:py-28">
           <FeaturesBento />
         </section>
+
+        <LandingLiveGlobe />
+        <LandingBeams />
 
         {/* Install */}
         <section id="installation" aria-labelledby="i-title" className="scroll-mt-20 border-y border-line bg-surface">
