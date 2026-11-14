@@ -143,3 +143,15 @@
 - Lueur du canvas non rognée (marge intérieure, overflow visible). Rythme de titre et d’espacement aligné sur le bento et les faisceaux.
 - Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Tests 186/186, typecheck, build. Déploiement `dpl_Hi7XZS1Qdk3xCc2p3qLBygvTMq5k`.
 - Captures : /workspace/minilytics-shots/landing-globe-beams/globe-fix/ (1440-light-globe, 1440-dark-globe, 768-light-globe, 390-light-globe, 390-dark-globe).
+
+## DEPLOYED a10fd6f — 14 nov. 2026 20:57 (Europe/Paris) → https://minilytics-six.vercel.app, frontend agent — Landing v3 (reste de la page)
+- Demande owner t43u : continuer à travailler la landing page. Branche `vercel-port` uniquement. n0.pub non modifié.
+- Audit préalable : typographie et pastilles d’eyebrow divergentes (texte bleu accent vs pastilles `ml-feat-badge` du bento/globe), hero un peu plat, aperçu mobile sans cadre, variation « +4985 % » trompeuse, pas de bandeau de preuves, pas de comparaison, CTA et pied de page trop maigres.
+- Hero : grille animée, halo d’accent au pointeur, mot « lisibles. » en dégradé, paire de CTA avec bouton à liseré lumineux (Shimmer Button), cadre navigateur en légère perspective 3D, chiffres réels de la démo (rafraîchis toutes les 20 s, Number Ticker à l’apparition). Les variations de pourcentage aberrantes (période précédente trop faible) ne s’affichent plus.
+- Preuves honnêtes seulement : « ≈ 6 Ko compressé », « Cookies first-party uniquement », « Aucune donnée revendue », « Code source ouvert » (lien GitHub réel). Marquee d’outils réellement compatibles (HTML, WordPress, Webflow, Next.js, React, Shopify, Stripe, Lemon Squeezy, Polar, Dodo Payments). Pas de témoignages ni de logos clients inventés. « Sans cookie » et « hébergé en UE » non utilisés (cookies first-party par défaut ; déploiement actuel hors UE).
+- Nouvelle section de comparaison factuelle avec Google Analytics 4 (script, cookies, revenus, robots d’IA, carte, conservation, code source, prix, installation).
+- Tarifs : 9 € et 19 € / mois inchangés, pas de tarif annuel inventé. Carte Growth mise en avant avec Border Beam. FAQ en accordéon plus soigné, CTA final avec lueur, pied de page en quatre colonnes (Produit, Ressources, Compte). Navigation sticky, floutée, section active.
+- Typographie, pastilles et rythmes unifiés avec le bento, le globe et les faisceaux. Apparitions au scroll, `prefers-reduced-motion` respecté.
+- 21st.dev : quota `get_component` déjà à 0/2 ce jour-là ; adaptations CSS/React sans framer-motion : Shimmer Button (dillionverma, id 833), Number Ticker (dillionverma, id 1282, déjà en place), Border Beam (offset-path Magic UI, déjà en place), spotlight / grille / marquee.
+- Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Tests 186/186, typecheck, build. Déploiement `dpl_Cf1ickRGdurP7DX2GgXjm4M3LYMZ`.
+- Captures avant/après : /workspace/minilytics-shots/landing-v3/{before,after}/ (pleines pages 1440 clair/sombre et 390 clair ; gros plans hero, pricing, comparison, faq-cta à 1440 et 390).
