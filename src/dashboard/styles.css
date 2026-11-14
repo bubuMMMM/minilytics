@@ -685,3 +685,171 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
 @media (prefers-reduced-motion: reduce) {
   .ml-beam-glow { animation: none; stroke-dasharray: none; filter: none; }
 }
+
+
+/* Landing v3 (t43u) — hero, trust, comparison, pricing, FAQ, CTA, footer */
+.ml-hero-spot {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(640px 420px at var(--hx, 50%) var(--hy, 8%), rgb(var(--accent) / .16), transparent 68%),
+    radial-gradient(900px 520px at 50% -8%, rgb(var(--accent) / .1), transparent 62%);
+}
+.dark .ml-hero-spot {
+  background:
+    radial-gradient(640px 420px at var(--hx, 50%) var(--hy, 8%), rgb(var(--accent) / .22), transparent 68%),
+    radial-gradient(900px 520px at 50% -8%, rgb(var(--accent) / .12), transparent 62%);
+}
+.ml-hero-orb {
+  position: absolute; left: 18%; top: -60px; width: 64%; height: 380px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgb(var(--accent) / .2), transparent 68%);
+  filter: blur(28px);
+  animation: ml-orb 14s ease-in-out infinite alternate;
+}
+@keyframes ml-orb { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(0, 28px, 0) scale(1.06); } }
+
+.ml-text-grad {
+  background: linear-gradient(180deg, rgb(var(--ink)) 10%, rgb(var(--accent)) 130%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.dark .ml-text-grad {
+  background: linear-gradient(180deg, rgb(var(--ink)) 0%, rgb(var(--accent)) 120%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* Magic UI Shimmer Button (dillionverma, id 833) — perimeter traveling light, CSS only */
+.ml-shimmer-btn {
+  position: relative;
+  isolation: isolate;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 1.5rem;
+  overflow: hidden;
+  border-radius: 10px;
+  background: rgb(var(--ink));
+  color: rgb(var(--canvas));
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity .15s ease, transform .15s ease;
+}
+.ml-shimmer-btn:hover { opacity: .94; }
+.ml-shimmer-btn:active { transform: scale(.98); }
+.ml-shimmer-btn::before {
+  content: "";
+  position: absolute;
+  inset: -140%;
+  z-index: 0;
+  background: conic-gradient(from 0deg, transparent 0 62%, rgb(255 255 255 / .85) 72%, transparent 82%);
+  animation: ml-shimmer-spin 2.6s linear infinite;
+}
+.ml-shimmer-btn::after {
+  content: "";
+  position: absolute;
+  inset: 1.5px;
+  z-index: 0;
+  border-radius: 8.5px;
+  background: rgb(var(--ink));
+}
+@keyframes ml-shimmer-spin { to { transform: rotate(360deg); } }
+
+.ml-tilt-scene {
+  perspective: 1400px;
+  transform-style: preserve-3d;
+}
+.ml-tilt-card {
+  transform: rotateX(6deg);
+  transform-origin: center top;
+  transition: transform .45s cubic-bezier(.16, 1, .3, 1);
+  will-change: transform;
+}
+.ml-frame-glow {
+  position: relative;
+}
+.ml-frame-glow::before {
+  content: "";
+  position: absolute;
+  inset: 8% 6% auto;
+  height: 55%;
+  z-index: -1;
+  border-radius: 999px;
+  background: radial-gradient(ellipse at center, rgb(var(--accent) / .22), transparent 70%);
+  filter: blur(18px);
+  pointer-events: none;
+}
+
+.ml-trust {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+  margin: 20px auto 0;
+  max-width: 720px;
+  padding: 0;
+  list-style: none;
+}
+.ml-trust-pill {
+  display: inline-flex; align-items: center;
+  min-height: 32px; padding: 0 12px;
+  border-radius: 999px; border: 1px solid rgb(var(--line));
+  background: rgb(var(--surface) / .9);
+  font-size: 12px; font-weight: 500; color: rgb(var(--ink-2));
+  text-decoration: none;
+}
+.ml-tools-row { padding: 28px 0 8px; }
+.ml-tools-track { gap: 10px; }
+.ml-tool-chip {
+  display: inline-flex; align-items: center;
+  min-height: 36px; padding: 0 14px;
+  border-radius: 999px; border: 1px solid rgb(var(--line));
+  background: rgb(var(--surface));
+  font-size: 13px; font-weight: 500; color: rgb(var(--ink-2));
+  white-space: nowrap;
+}
+
+.ml-nav-link { border-radius: 8px; padding: .5rem .75rem; font-size: 14px; color: rgb(var(--ink-3)); transition: color .15s ease, background-color .15s ease; }
+.ml-nav-link:hover { color: rgb(var(--ink)); }
+.ml-nav-link.is-active { color: rgb(var(--ink)); font-weight: 500; }
+
+.ml-cmp thead { background: rgb(var(--well) / .6); }
+.ml-cmp th, .ml-cmp td { }
+.ml-cmp-ml { background: rgb(var(--accent) / .04); }
+.dark .ml-cmp-ml { background: rgb(var(--accent) / .07); }
+
+.ml-price-card { position: relative; isolation: isolate; overflow: hidden; border-radius: 16px; }
+.ml-faq-item summary { list-style: none; }
+.ml-faq-item summary::-webkit-details-marker { display: none; }
+.ml-faq-item[open] summary { color: rgb(var(--ink)); }
+.ml-faq-item p { display: grid; grid-template-rows: 0fr; transition: padding .25s ease; }
+.ml-faq-item[open] p { }
+
+.ml-cta-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid rgb(var(--line));
+  background: rgb(var(--surface));
+  box-shadow: 0 1px 2px rgb(var(--ink) / .04), 0 24px 64px -28px rgb(var(--accent) / .35);
+}
+.ml-cta-glow {
+  position: absolute; inset: auto 10% -40% 10%; height: 70%;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgb(var(--accent) / .28), transparent 68%);
+  filter: blur(8px);
+}
+.ml-cta-dots { position: absolute; inset: 0; pointer-events: none; opacity: .5; }
+
+.ml-reveal.is-ready:not(.is-in) { opacity: 0; transform: translateY(16px); }
+.ml-reveal.is-in { animation: ml-feat-in .7s cubic-bezier(.16, 1, .3, 1) both; }
+
+.ml-footer { background: rgb(var(--canvas)); }
+.ml-footer a { transition: color .15s ease; }
+
+@media (max-width: 639px) {
+  .ml-tilt-card { transform: none; }
+  .ml-tilt-scene { perspective: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ml-shimmer-btn::before, .ml-hero-orb, .ml-feat-beam::after { animation: none; }
+  .ml-tilt-card { transform: none !important; transition: none; }
+  .ml-reveal.is-ready:not(.is-in), .ml-reveal.is-in { opacity: 1; transform: none; animation: none; }
+  .ml-tools-track, .ml-feat-marquee-track { animation: none; }
+}

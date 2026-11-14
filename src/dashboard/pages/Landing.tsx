@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as REPointer } from 'react';
 import { Link } from '../components/Link';
 import { Logo } from '../components/Logo';
 import { TrendChart } from '../components/TrendChart';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { UiIcon } from '../components/UiIcon';
+import { NumberTicker } from '../components/NumberTicker';
 import { channelName } from '../lib/format';
 import { FeaturesBento } from './LandingFeatures';
 import { LandingLiveGlobe } from './LandingGlobe';
 import { LandingBeams } from './LandingBeams';
+import { LandingCompare } from './LandingCompare';
+import { SectionHead, ShimmerLink, TiltStage, TrustStrip, ToolsMarquee, useActiveSection, useReveal } from './LandingUi';
 
 type Group = { label: string; value: number };
 interface Preview {
@@ -28,21 +31,30 @@ function useLivePreview() {
   const [data, setData] = useState<Preview | null>(null);
   const [failed, setFailed] = useState(false);
   const [siteId, setSiteId] = useState('');
+  const siteIdRef = useRef('');
   useEffect(() => {
     const ctl = new AbortController();
-    (async () => {
+    const load = async (first: boolean) => {
       try {
-        const sites: { id: string; domain: string }[] = await fetch('/api/public/sites', { signal: ctl.signal }).then((r) => (r.ok ? r.json() : []));
-        const pick = sites.find((s) => s.domain.replace(/^www\./, '') === 'n0.pub') ?? sites[0];
-        if (!pick) { setFailed(true); return; }
-        setSiteId(pick.id);
-        const d: Preview | null = await fetch(`/api/public/demo?days=7&site=${encodeURIComponent(pick.id)}`, { signal: ctl.signal }).then((r) => (r.ok ? r.json() : null));
-        if (d) setData(d); else setFailed(true);
+        let id = siteIdRef.current;
+        if (!id) {
+          const sites: { id: string; domain: string }[] = await fetch('/api/public/sites', { signal: ctl.signal }).then((r) => (r.ok ? r.json() : []));
+          const pick = sites.find((s) => s.domain.replace(/^www\./, '') === 'n0.pub') ?? sites[0];
+          if (!pick) { if (first) setFailed(true); return; }
+          id = pick.id;
+          siteIdRef.current = id;
+          setSiteId(id);
+        }
+        const d: Preview | null = await fetch(`/api/public/demo?days=7&site=${encodeURIComponent(id)}`, { signal: ctl.signal }).then((r) => (r.ok ? r.json() : null));
+        if (d) { setData(d); setFailed(false); }
+        else if (first) setFailed(true);
       } catch {
-        if (!ctl.signal.aborted) setFailed(true);
+        if (!ctl.signal.aborted && first) setFailed(true);
       }
-    })();
-    return () => ctl.abort();
+    };
+    load(true);
+    const t = window.setInterval(() => load(false), 20000);
+    return () => { ctl.abort(); clearInterval(t); };
   }, []);
   return { data, failed, siteId };
 }
@@ -80,7 +92,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Minilytics convient-il à mon site ?', a: 'Oui, quel que soit son type : blog, landing page, boutique, SaaS, portfolio ou site vitrine. Visiteurs, sources, campagnes, objectifs et temps réel fonctionnent partout. Les vues Vidéos et Sponsors sont des options : elles restent vides si vous ne vous en servez pas.' },
   { q: 'Comment installer Minilytics ?', a: 'Ajoutez une seule balise <script> dans le <head> de votre site (HTML, WordPress, Webflow, Next.js…). Pages vues, navigation des applis monopage, scroll, temps actif et clics sortants sont mesurés automatiquement.' },
   { q: 'Comment mesurer une inscription ou un achat ?', a: 'Ajoutez data-ml-goal="inscription" sur le bouton, ou appelez minilytics(\'goal\', \'achat\') dans votre code. Les paiements peuvent aussi arriver depuis Dodo Payments ou l’API de paiements.' },
-  { q: 'Minilytics utilise-t-il des cookies ?', a: 'Oui, deux cookies first-party : un identifiant de visiteur (1 an) et un identifiant de visite (30 minutes, renouvelé à chaque action). Aucun cookie tiers, aucune donnée revendue.' },
+  { q: 'Minilytics utilise-t-il des cookies ?', a: 'Oui, deux cookies first-party : un identifiant de visiteur (1 an) et un identifiant de visite (30 minutes, renouvelé à chaque action). Aucun cookie tiers, aucune donnée revendue. Une option sans cookie est disponible sur la balise.' },
   { q: 'Les robots sont-ils comptés ?', a: 'Non. Les robots connus, les aperçus de liens et les navigateurs automatisés (headless, WebDriver) sont filtrés côté navigateur et côté serveur.' },
   { q: 'Comment savoir quel post 𝕏 m’amène des visiteurs ?', a: 'X ne transmet que « t.co » comme référent. Créez un lien traçable dans la vue Réseaux sociaux : chaque visite est attribuée à son post. Avec votre clé de l’API X, les posts qui citent votre domaine s’affichent aussi.' },
   { q: 'Puis-je m’exclure de mes propres statistiques ?', a: 'Oui : ouvrez votre site une fois avec ?ml_ignore=true dans l’adresse. Revenez avec ?ml_ignore=false pour annuler.' },
@@ -92,14 +104,9 @@ const fmtDur = (ms: number) => { const s = Math.round(ms / 1000); return s >= 60
 /** Hero product shot: the real dashboard UI, rendered with live aggregated numbers of the public demo site. */
 function ProductPreview() {
   const { data, failed, siteId } = useLivePreview();
-  const change = data?.previous.visitors ? Math.round(((data.current.visitors - data.previous.visitors) / data.previous.visitors) * 100) : null;
+  const rawChange = data?.previous.visitors ? Math.round(((data.current.visitors - data.previous.visitors) / data.previous.visitors) * 100) : null;
+  const change = rawChange !== null && data && data.previous.visitors >= 20 && Math.abs(rawChange) <= 200 ? rawChange : null;
   const demoHref = '/demo' + (siteId ? `?site=${encodeURIComponent(siteId)}` : '');
-  const kpis: [string, string | null, string | null][] = [
-    ['Visiteurs', data ? nf(data.current.visitors) : null, change !== null ? `${change >= 0 ? '+' : '−'}${Math.abs(change)} %` : null],
-    ['Pages vues', data ? nf(data.current.pageviews) : null, null],
-    ['Visites', data ? nf(data.current.sessions) : null, null],
-    ['Durée moyenne', data ? fmtDur(data.current.avgDurationMs) : null, null],
-  ];
   const lists: [string, Group[] | undefined, (l: string) => string][] = [
     ['Sources', data?.sources, channelName],
     ['Pages', data?.pages, (l) => l],
@@ -123,15 +130,13 @@ function ProductPreview() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-px bg-line md:grid-cols-4 [&>*]:bg-surface">
-            {kpis.map(([l, v, d]) => (
-              <div key={l} className="min-w-0 px-4 py-3.5 sm:px-5">
-                <div className="text-[12px] text-ink-3">{l}</div>
-                <div className="mt-1 flex items-baseline gap-2">
-                  <span className="tnum text-[20px] font-semibold tracking-tight sm:text-[22px]">{v ?? <span className="ml-skeleton inline-block h-5 w-14 align-middle" />}</span>
-                  {d && <span className={`tnum text-[12px] font-medium ${d.startsWith('+') ? 'text-success' : 'text-danger'}`}>{d}</span>}
-                </div>
-              </div>
-            ))}
+            <Kpi label="Visiteurs" value={data?.current.visitors} suffix="" change={change} />
+            <Kpi label="Pages vues" value={data?.current.pageviews} suffix="" />
+            <Kpi label="Visites" value={data?.current.sessions} suffix="" />
+            <div className="min-w-0 px-4 py-3.5 sm:px-5">
+              <div className="text-[12px] text-ink-3">Durée moyenne</div>
+              <div className="mt-1 tnum text-[20px] font-semibold tracking-tight sm:text-[22px]">{data ? fmtDur(data.current.avgDurationMs) : <span className="ml-skeleton inline-block h-5 w-14 align-middle" />}</div>
+            </div>
           </div>
           <div className="border-t border-line px-3 pb-2 pt-4 sm:px-5">
             {data && data.series.length > 1 ? (
@@ -170,17 +175,21 @@ function ProductPreview() {
   );
 }
 
-const SNIPPET = '<script defer data-website-id="VOTRE_ID"\n  src="https://minilytics-six.vercel.app/js/script.js"></script>';
-
-function SectionHead({ id, eyebrow, title, text, center = false }: { id: string; eyebrow: string; title: string; text?: string; center?: boolean }) {
+function Kpi({ label, value, suffix, change }: { label: string; value?: number; suffix: string; change?: number | null }) {
   return (
-    <div className={center ? 'mx-auto max-w-2xl text-center' : 'max-w-2xl'}>
-      <p className="text-[13px] font-medium text-accent">{eyebrow}</p>
-      <h2 id={id} className="mt-2 text-3xl font-semibold tracking-tight text-ink [text-wrap:balance] sm:text-4xl">{title}</h2>
-      {text && <p className="mt-3 text-[15px] leading-relaxed text-ink-3 [text-wrap:pretty] sm:text-base">{text}</p>}
+    <div className="min-w-0 px-4 py-3.5 sm:px-5">
+      <div className="text-[12px] text-ink-3">{label}</div>
+      <div className="mt-1 flex items-baseline gap-2">
+        {value != null
+          ? <NumberTicker value={value} suffix={suffix} className="text-[20px] font-semibold tracking-tight sm:text-[22px]" />
+          : <span className="ml-skeleton inline-block h-5 w-14 align-middle" />}
+        {change != null && <span className={`tnum text-[12px] font-medium ${change >= 0 ? 'text-success' : 'text-danger'}`}>{`${change >= 0 ? '+' : '−'}${Math.abs(change)} %`}</span>}
+      </div>
     </div>
   );
 }
+
+const SNIPPET = '<script defer data-website-id="VOTRE_ID"\n  src="https://minilytics-six.vercel.app/js/script.js"></script>';
 
 const SHOWCASE = [
   { key: 'map', kicker: 'Carte', title: 'Le monde de vos visiteurs, en direct', text: 'Globe interactif, replay des 30 dernières minutes ou des 24 dernières heures, flux en direct avec drapeau, source et page d’entrée. Et des pays à débloquer.', cta: ['/demo/map', 'Ouvrir la carte de démo'] },
@@ -189,19 +198,23 @@ const SHOWCASE = [
   { key: 'widgets', kicker: 'Widgets', title: 'Vos chiffres, sur votre site', text: 'Compteur en ligne, graphique, top pages, carte ou badge SVG à intégrer en une ligne. Thème, couleur et langue au choix, mis à jour toutes les 30 secondes.', cta: ['/signup', 'Réserver mon accès'] },
 ] as const;
 
-/** Real product captures of the features that set Minilytics apart (light / dark variants). */
 function Showcase() {
+  const ref = useReveal<HTMLElement>();
   return (
-    <section aria-labelledby="sc-title" className="mx-auto max-w-[1200px] px-4 pb-20 sm:px-6 lg:pb-28">
-      <h2 id="sc-title" className="sr-only">Le produit en images</h2>
+    <section ref={ref} aria-labelledby="sc-title" className="ml-reveal mx-auto max-w-[1200px] px-4 pb-20 sm:px-6 lg:pb-28">
+      <div className="mb-8 sm:mb-10">
+        <SectionHead center id="sc-title" eyebrow="Le produit" title="Ce que vous voyez, dès la première journée." />
+      </div>
       <div className="grid gap-5 md:grid-cols-2">
         {SHOWCASE.map((f, i) => { const wide = i === 0 || i === SHOWCASE.length - 1; return (
           <article key={f.key} className={`group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-surface ${wide ? 'md:col-span-2 md:grid md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]' : ''}`}>
             <div className={`flex flex-col p-6 sm:p-8 ${wide ? 'md:justify-center' : ''}`}>
-              <div className="text-[12px] font-medium text-accent">{f.kicker}</div>
-              <h3 className="mt-2 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-ink [text-wrap:balance] sm:text-[24px]">{f.title}</h3>
+              <div className="text-[12px] font-medium text-ink-2">
+                <span className="ml-feat-badge !min-h-[26px] !px-2.5">{f.kicker}</span>
+              </div>
+              <h3 className="mt-3 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-ink [text-wrap:balance] sm:text-[24px]">{f.title}</h3>
               <p className="mt-2.5 max-w-[46ch] text-[14px] leading-relaxed text-ink-3 [text-wrap:pretty]">{f.text}</p>
-              <a href={f.cta[0]} className="mt-4 inline-flex w-fit items-center gap-1.5 text-[14px] font-medium text-ink transition-colors duration-150 hover:text-accent">{f.cta[1]} <UiIcon name="arrow-right" size={15} /></a>
+              <a href={f.cta[0]} className="mt-4 inline-flex min-h-[44px] w-fit items-center gap-1.5 text-[14px] font-medium text-ink transition-colors duration-150 hover:text-accent">{f.cta[1]} <UiIcon name="arrow-right" size={15} /></a>
             </div>
             <div className={`relative mt-auto min-w-0 overflow-hidden border-line bg-well ${wide ? 'border-t md:border-l md:border-t-0' : 'border-t'}`}>
               <img src={`/landing/${f.key}-light.webp`} alt={`Capture de la fonction ${f.kicker} de Minilytics`} loading="lazy" decoding="async" width={1200} height={760} className="block h-auto w-full dark:hidden" />
@@ -214,12 +227,31 @@ function Showcase() {
   );
 }
 
+const NAV = [
+  ['#fonctionnalites', 'Fonctionnalités'],
+  ['#installation', 'Installation'],
+  ['#comparaison', 'Comparaison'],
+  ['#tarifs', 'Tarifs'],
+  ['#faq', 'FAQ'],
+] as const;
+
+function heroSpot(e: REPointer<HTMLElement>) {
+  const r = e.currentTarget.getBoundingClientRect();
+  e.currentTarget.style.setProperty('--hx', `${((e.clientX - r.left) / r.width) * 100}%`);
+  e.currentTarget.style.setProperty('--hy', `${((e.clientY - r.top) / r.height) * 100}%`);
+}
+
 export function Landing() {
   const [menu, setMenu] = useState(false);
+  const active = useActiveSection(['fonctionnalites', 'installation', 'comparaison', 'tarifs', 'faq']);
+  const casesRef = useReveal<HTMLElement>();
+  const installRef = useReveal<HTMLElement>();
+  const priceRef = useReveal<HTMLElement>();
+  const faqRef = useReveal<HTMLElement>();
+  const ctaRef = useReveal<HTMLElement>();
   useEffect(() => {
     document.title = 'Minilytics — Des analytics simples et précis pour votre site';
   }, []);
-  const nav = [['#fonctionnalites', 'Fonctionnalités'], ['#installation', 'Installation'], ['#tarifs', 'Tarifs'], ['#faq', 'FAQ']];
   return (
     <div className="min-h-screen bg-canvas text-ink">
       <a href="#contenu" className="ml-skip">Aller au contenu</a>
@@ -228,14 +260,16 @@ export function Landing() {
           <div className="flex items-center gap-8">
             <Link href="/" aria-label="Minilytics, accueil" className="flex min-h-[44px] items-center rounded-md"><Logo /></Link>
             <nav aria-label="Sections de la page" className="hidden items-center gap-1 lg:flex">
-              {nav.map(([h, l]) => <a key={h} href={h} className="rounded-md px-3 py-2 text-[14px] text-ink-3 transition-colors hover:text-ink">{l}</a>)}
-              <Link href="/demo" className="rounded-md px-3 py-2 text-[14px] text-ink-3 transition-colors hover:text-ink">Démo</Link>
+              {NAV.map(([h, l]) => (
+                <a key={h} href={h} className={`ml-nav-link ${active === h ? 'is-active' : ''}`} aria-current={active === h ? 'true' : undefined}>{l}</a>
+              ))}
+              <Link href="/demo" className="ml-nav-link">Démo</Link>
             </nav>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
             <Link href="/login" className="btn-ghost !text-[14px]">Se connecter</Link>
-            <Link href="/signup" className="btn-dark hidden sm:inline-flex">Commencer</Link>
+            <ShimmerLink href="/signup" className="hidden !min-h-[36px] !px-3.5 !text-[13px] sm:inline-flex">Commencer</ShimmerLink>
             <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink-2 hover:bg-well lg:hidden" aria-expanded={menu} aria-controls="landing-menu" aria-label={menu ? 'Fermer le menu' : 'Ouvrir le menu'} onClick={() => setMenu((m) => !m)}>
               <UiIcon name={menu ? 'x' : 'menu'} size={18} />
             </button>
@@ -243,45 +277,57 @@ export function Landing() {
         </div>
         {menu && (
           <nav id="landing-menu" aria-label="Sections de la page" className="border-t border-line px-4 pb-4 pt-2 lg:hidden">
-            {[...nav, ['/demo', 'Démo'], ['/login', 'Se connecter']].map(([h, l]) => <a key={h} href={h} onClick={() => setMenu(false)} className="flex min-h-[48px] items-center rounded-lg px-3 text-[15px] font-medium text-ink-2 hover:bg-well">{l}</a>)}
-            <Link href="/signup" onClick={() => setMenu(false)} className="btn-dark mt-2 w-full !min-h-[48px]">Réserver mon accès</Link>
+            {[...NAV, ['/demo', 'Démo'] as const, ['/login', 'Se connecter'] as const].map(([h, l]) => (
+              <a key={h} href={h} onClick={() => setMenu(false)} className="flex min-h-[48px] items-center rounded-lg px-3 text-[15px] font-medium text-ink-2 hover:bg-well">{l}</a>
+            ))}
+            <ShimmerLink href="/signup" className="mt-2 w-full !min-h-[48px]">Réserver mon accès</ShimmerLink>
           </nav>
         )}
       </header>
 
       <main id="contenu">
-        {/* Hero */}
-        <section className="relative overflow-hidden">
-          <div className="ml-grid-bg pointer-events-none absolute inset-x-0 top-0 h-[560px]" aria-hidden />
-          <div className="relative mx-auto max-w-[1200px] px-4 pb-16 pt-10 sm:px-6 sm:pt-20 lg:pb-24 lg:pt-24">
-            <div className="mx-auto max-w-[760px] text-center">
+        <section className="relative overflow-hidden" onPointerMove={heroSpot} style={{ ['--hx' as string]: '50%', ['--hy' as string]: '8%' }}>
+          <div className="ml-grid-bg pointer-events-none absolute inset-x-0 top-0 h-[640px]" aria-hidden />
+          <div className="ml-hero-orb" aria-hidden />
+          <div className="ml-hero-spot" aria-hidden />
+          <div className="relative mx-auto max-w-[1200px] px-4 pb-12 pt-10 sm:px-6 sm:pb-16 sm:pt-20 lg:pb-20 lg:pt-24">
+            <div className="mx-auto max-w-[780px] text-center">
               <Link href="/demo" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-line bg-surface px-3 text-[13px] text-ink-2 shadow-xs transition-colors hover:border-line-strong">
                 <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden /> Démo publique en direct <UiIcon name="arrow-right" size={13} />
               </Link>
-              <h1 className="mt-5 text-[clamp(2.75rem,10vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.045em] text-ink [text-wrap:balance] sm:mt-6 sm:text-6xl sm:leading-[1.05] sm:tracking-[-0.035em]">
-                Vos visiteurs, enfin lisibles.
+              <h1 className="mt-5 text-[clamp(2.6rem,9vw,4rem)] font-semibold leading-[1.02] tracking-[-0.045em] text-ink [text-wrap:balance] sm:mt-6 sm:leading-[1.04]">
+                Vos visiteurs, enfin <span className="ml-text-grad">lisibles.</span>
               </h1>
               <p className="mx-auto mt-4 max-w-[580px] text-[16px] leading-relaxed text-ink-3 [text-wrap:pretty] sm:mt-5 sm:text-[18px]">
                 Sources, pages, revenus, carte du monde et robots d’IA sur un seul tableau de bord, en français. Une balise à coller, les premières visites en quelques secondes.
               </p>
               <div className="mt-7 flex flex-col justify-center gap-3 sm:mt-8 sm:flex-row">
-                <Link href="/signup" className="btn-dark !h-12 !px-6 !text-[15px]">Réserver mon accès</Link>
+                <ShimmerLink href="/signup">Réserver mon accès</ShimmerLink>
                 <Link href="/demo" className="btn !h-12 !px-6 !text-[15px]">Voir la démo <UiIcon name="arrow-right" size={16} /></Link>
               </div>
               <p className="mt-3.5 text-[13px] text-ink-3 sm:mt-4">Liste d’attente gratuite · Aucune carte requise</p>
+              <TrustStrip />
             </div>
             <div className="relative mx-auto mt-10 max-w-[1040px] sm:mt-16">
-              <div className="ml-frame-bleed">
-                <ProductPreview />
+              <div className="ml-frame-glow">
+                <TiltStage>
+                  <ProductPreview />
+                </TiltStage>
               </div>
+            </div>
+            <div className="ml-tools-row mt-10">
+              <p className="mb-3 text-center text-[12px] font-medium uppercase tracking-wide text-ink-4">Fonctionne avec</p>
+              <ToolsMarquee />
             </div>
           </div>
         </section>
 
         <Showcase />
 
-        {/* Use cases */}
-        <section aria-label="Pour quels sites" className="border-y border-line bg-surface">
+        <section ref={casesRef} aria-labelledby="uc-title" className="ml-reveal border-y border-line bg-surface">
+          <div className="mx-auto max-w-[1200px] px-4 pt-10 sm:px-6">
+            <h2 id="uc-title" className="text-center text-[13px] font-medium text-ink-3">Pour tous les types de sites</h2>
+          </div>
           <ul className="mx-auto grid max-w-[1200px] grid-cols-2 gap-px bg-line sm:grid-cols-3 lg:grid-cols-5 [&>*]:bg-surface">
             {USE_CASES.map((u) => (
               <li key={u.title} className="px-4 py-6 last:col-span-2 sm:px-6 sm:last:col-span-1">
@@ -292,7 +338,6 @@ export function Landing() {
           </ul>
         </section>
 
-        {/* Features */}
         <section id="fonctionnalites" aria-labelledby="f-title" className="relative mx-auto max-w-[1200px] scroll-mt-20 px-4 py-20 sm:px-6 lg:py-28">
           <FeaturesBento />
         </section>
@@ -300,31 +345,32 @@ export function Landing() {
         <LandingLiveGlobe />
         <LandingBeams />
 
-        {/* Install */}
-        <section id="installation" aria-labelledby="i-title" className="scroll-mt-20 border-y border-line bg-surface">
-          <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:py-24">
+        <section id="installation" ref={installRef} aria-labelledby="i-title" className="ml-reveal scroll-mt-20 border-y border-line bg-surface">
+          <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:py-28">
             <div>
               <SectionHead id="i-title" eyebrow="Installation" title="Une balise. Deux minutes." text="Collez le script dans le <head> de votre site : HTML, WordPress, Webflow ou Next.js. Les pages vues, la navigation des applis monopage, le scroll, le temps actif et les clics sortants sont mesurés automatiquement." />
               <ul className="mt-6 space-y-2.5 text-[14px] text-ink-2">
-                {['Script d’environ 5 Ko compressé', 'Cookies first-party uniquement, aucune donnée revendue', 'Objectifs avec un simple attribut data-ml-goal'].map((x) => (
+                {['Script d’environ 6 Ko compressé', 'Cookies first-party uniquement, aucune donnée revendue', 'Objectifs avec un simple attribut data-ml-goal'].map((x) => (
                   <li key={x} className="flex items-center gap-2.5"><span className="text-success" aria-hidden><UiIcon name="check" size={16} /></span>{x}</li>
                 ))}
               </ul>
             </div>
-            <div className="overflow-hidden rounded-xl border border-line bg-canvas shadow-card">
+            <div className="overflow-hidden rounded-2xl border border-line bg-canvas shadow-card">
               <div className="flex h-10 items-center justify-between border-b border-line px-4 text-[12px] text-ink-3"><span className="font-mono">index.html</span><span>HTML</span></div>
               <pre className="overflow-x-auto p-5 font-mono text-[12.5px] leading-6 text-ink-2"><code>{'<head>\n  …\n  '}<span className="text-accent">{SNIPPET.split('\n')[0]}</span>{'\n  '}<span className="text-accent">{SNIPPET.split('\n')[1]}</span>{'\n</head>'}</code></pre>
             </div>
           </div>
         </section>
 
-        {/* Pricing */}
-        <section id="tarifs" aria-labelledby="p-title" className="mx-auto max-w-[1200px] scroll-mt-20 px-4 py-20 sm:px-6 lg:py-28">
+        <LandingCompare />
+
+        <section id="tarifs" ref={priceRef} aria-labelledby="p-title" className="ml-reveal mx-auto max-w-[1200px] scroll-mt-20 px-4 py-20 sm:px-6 lg:py-28">
           <SectionHead center id="p-title" eyebrow="Tarifs" title="Des prix simples, en euros." text="Prix mensuels, sans engagement. Réservez votre place dès aujourd’hui, vous ne payez qu’à l’ouverture." />
           <div className="mx-auto mt-12 grid max-w-[860px] gap-4 md:grid-cols-2">
             {PLANS.map((p) => (
-              <article key={p.name} className={`relative flex flex-col rounded-xl border bg-surface p-6 sm:p-8 ${p.highlight ? 'border-ink shadow-pop' : 'border-line shadow-card'}`} aria-labelledby={`plan-${p.name}`}>
-                <div className="flex items-center justify-between gap-2">
+              <article key={p.name} className={`ml-price-card relative flex flex-col border bg-surface p-6 sm:p-8 ${p.highlight ? 'border-ink shadow-pop' : 'border-line shadow-card'}`} aria-labelledby={`plan-${p.name}`}>
+                {p.highlight && <div className="ml-feat-beam" aria-hidden />}
+                <div className="relative flex items-center justify-between gap-2">
                   <h3 id={`plan-${p.name}`} className="text-[15px] font-semibold" translate="no">{p.name}</h3>
                   {p.highlight && <span className="rounded-full bg-ink px-2.5 py-0.5 text-[11px] font-medium text-canvas">Plusieurs sites</span>}
                 </div>
@@ -332,7 +378,9 @@ export function Landing() {
                   <span className="tnum text-5xl font-semibold tracking-tight">{p.price}&nbsp;€</span>
                   <span className="text-[14px] text-ink-3">/ mois</span>
                 </div>
-                <Link href={`/signup?plan=${p.name.toLowerCase()}`} className={`${p.highlight ? 'btn-dark' : 'btn'} mt-6 w-full !h-11`}>Choisir {p.name}</Link>
+                {p.highlight
+                  ? <ShimmerLink href={`/signup?plan=${p.name.toLowerCase()}`} className="mt-6 w-full !h-11">Choisir {p.name}</ShimmerLink>
+                  : <Link href={`/signup?plan=${p.name.toLowerCase()}`} className="btn mt-6 w-full !h-11">Choisir {p.name}</Link>}
                 {p.note && <p className="mt-2.5 text-center text-[12px] text-ink-3">{p.note}</p>}
                 <ul className="mt-6 flex-1 space-y-2.5 border-t border-line pt-6 text-[14px] text-ink-2">
                   {p.features.map((f) => (
@@ -345,42 +393,53 @@ export function Landing() {
               </article>
             ))}
           </div>
-          <p className="mx-auto mt-6 max-w-[600px] text-center text-[12px] leading-relaxed text-ink-4">Les mentions 𝕏 demandent votre propre clé de l’API X ; l’attribution des liens 𝕏 fonctionne sans clé.</p>
+          <p className="mx-auto mt-6 max-w-[600px] text-center text-[12px] leading-relaxed text-ink-4">Les mentions 𝕏 demandent votre propre clé de l’API X ; l’attribution des liens 𝕏 fonctionne sans clé. Pas de tarif annuel pour le moment : les prix affichés sont mensuels.</p>
         </section>
 
-        {/* FAQ */}
-        <section id="faq" aria-labelledby="faq-title" className="scroll-mt-20 border-t border-line">
+        <section id="faq" ref={faqRef} aria-labelledby="faq-title" className="ml-reveal scroll-mt-20 border-t border-line">
           <div className="mx-auto grid max-w-[1200px] gap-10 px-4 py-20 sm:px-6 md:grid-cols-[1fr_1.6fr] lg:py-28">
             <SectionHead id="faq-title" eyebrow="FAQ" title="Questions fréquentes" text="Une autre question ? La démo publique montre exactement ce que vous obtiendrez." />
-            <div className="divide-y divide-line border-y border-line">
-              {FAQ.map((f) => (
-                <details key={f.q} className="group">
-                  <summary className="flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-4 py-4 text-[15px] font-medium text-ink [&::-webkit-details-marker]:hidden">
+            <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+              {FAQ.map((f, i) => (
+                <details key={f.q} className={`ml-faq-item group ${i ? 'border-t border-line' : ''}`}>
+                  <summary className="flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 text-[15px] font-medium text-ink sm:px-5 [&::-webkit-details-marker]:hidden">
                     {f.q}
-                    <span className="shrink-0 text-ink-4 transition-transform group-open:rotate-45" aria-hidden><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></span>
+                    <span className="shrink-0 text-ink-4 transition-transform duration-200 group-open:rotate-45" aria-hidden><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></span>
                   </summary>
-                  <p className="pb-5 pr-8 text-[14px] leading-relaxed text-ink-3">{f.a}</p>
+                  <p className="px-4 pb-5 pr-10 text-[14px] leading-relaxed text-ink-3 sm:px-5">{f.a}</p>
                 </details>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Final CTA */}
-        <section className="border-t border-line bg-surface">
-          <div className="mx-auto flex max-w-[1200px] flex-col items-center px-4 py-20 text-center sm:px-6">
-            <h2 className="max-w-xl text-3xl font-semibold tracking-tight [text-wrap:balance] sm:text-4xl">Voyez ce qui marche vraiment sur votre site.</h2>
-            <p className="mt-3 text-[15px] text-ink-3">Une balise à coller, c’est tout.</p>
-            <div className="mt-8 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
-              <Link href="/signup" className="btn-dark !h-12 !px-6 !text-[15px]">Réserver mon accès</Link>
-              <Link href="/demo" className="btn !h-12 !px-6 !text-[15px]">Voir la démo</Link>
+        <section ref={ctaRef} className="ml-reveal px-4 py-16 sm:px-6 lg:py-24">
+          <div className="ml-cta-panel relative mx-auto max-w-[1200px] overflow-hidden px-6 py-16 text-center sm:px-10 sm:py-20">
+            <div className="ml-cta-glow" aria-hidden />
+            <svg className="ml-cta-dots" viewBox="0 0 200 200" aria-hidden>
+              <defs>
+                <radialGradient id="ml-cta-fb" cx="50%" cy="46%" r="48%">
+                  <stop offset="55%" stopColor="rgb(var(--accent) / .14)" />
+                  <stop offset="100%" stopColor="rgb(var(--accent) / 0)" />
+                </radialGradient>
+              </defs>
+              <circle cx="100" cy="100" r="84" fill="url(#ml-cta-fb)" />
+            </svg>
+            <div className="relative">
+              <p className="ml-feat-badge mx-auto">Prêt à voir clair</p>
+              <h2 className="mx-auto mt-5 max-w-xl text-[clamp(1.85rem,5vw,3rem)] font-semibold leading-[1.08] tracking-[-0.04em] [text-wrap:balance]">Voyez ce qui marche vraiment sur votre site.</h2>
+              <p className="mt-4 text-[15px] text-ink-3 sm:text-[17px]">Une balise à coller, c’est tout. Liste d’attente gratuite, aucune carte requise.</p>
+              <div className="mt-8 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row sm:justify-center">
+                <ShimmerLink href="/signup">Réserver mon accès</ShimmerLink>
+                <Link href="/demo" className="btn !h-12 !px-6 !text-[15px]">Voir la démo</Link>
+              </div>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-line">
-        <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-12 text-[13px] sm:grid-cols-[1.5fr_1fr_1fr] sm:px-6" style={{ paddingBottom: 'calc(3rem + env(safe-area-inset-bottom))' }}>
+      <footer className="ml-footer border-t border-line">
+        <div className="mx-auto grid max-w-[1200px] gap-10 px-4 py-14 text-[13px] sm:grid-cols-2 sm:px-6 lg:grid-cols-[1.6fr_1fr_1fr_1fr]" style={{ paddingBottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}>
           <div>
             <Logo small />
             <p className="mt-3 max-w-[280px] leading-relaxed text-ink-3">Des analytics simples et précis pour tout type de site web.</p>
@@ -389,18 +448,24 @@ export function Landing() {
           <nav aria-label="Produit" className="flex flex-col gap-2.5">
             <span className="font-medium text-ink">Produit</span>
             <a href="#fonctionnalites" className="text-ink-3 hover:text-ink">Fonctionnalités</a>
+            <a href="#installation" className="text-ink-3 hover:text-ink">Installation</a>
+            <a href="#comparaison" className="text-ink-3 hover:text-ink">Comparaison</a>
             <a href="#tarifs" className="text-ink-3 hover:text-ink">Tarifs</a>
             <Link href="/demo" className="text-ink-3 hover:text-ink">Démo publique</Link>
+          </nav>
+          <nav aria-label="Ressources" className="flex flex-col gap-2.5">
+            <span className="font-medium text-ink">Ressources</span>
+            <a href="#faq" className="text-ink-3 hover:text-ink">FAQ</a>
+            <Link href="/api-docs" className="text-ink-3 hover:text-ink">Documentation API</Link>
+            <a href="https://github.com/bubuMMMM/minilytics" className="text-ink-3 hover:text-ink" rel="noopener noreferrer">Code source</a>
           </nav>
           <nav aria-label="Compte" className="flex flex-col gap-2.5">
             <span className="font-medium text-ink">Compte</span>
             <Link href="/login" className="text-ink-3 hover:text-ink">Se connecter</Link>
             <Link href="/signup" className="text-ink-3 hover:text-ink">Liste d’attente</Link>
-            <a href="https://github.com/bubuMMMM/minilytics" className="text-ink-3 hover:text-ink" rel="noopener noreferrer">Code source</a>
           </nav>
         </div>
       </footer>
     </div>
   );
 }
-

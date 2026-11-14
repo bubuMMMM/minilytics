@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEve
 import { Link } from '../components/Link';
 import { Logo } from '../components/Logo';
 import { UiIcon, type UiIconName } from '../components/UiIcon';
+import { NumberTicker } from '../components/NumberTicker';
 
 const INSTALL = '<script defer data-website-id="VOTRE_ID" src="https://minilytics-six.vercel.app/js/script.js"></script>';
 
@@ -98,40 +99,6 @@ const OPTIONAL: { icon: UiIconName; title: string; when: string; text: string; v
   { icon: 'grid', title: 'Sections et contenus', when: 'Si vous mesurez ce qui est vu', text: 'Les blocs réellement affichés à l’écran, et ceux que l’on clique.', visual: <VisualContents /> },
 ];
 
-/** Adapted from 21st.dev / Magic UI Number Ticker (dillionverma), without framer-motion. */
-function NumberTicker({ value, delay = 0, decimalPlaces = 0, suffix = '', className = '' }: {
-  value: number; delay?: number; decimalPlaces?: number; suffix?: string; className?: string;
-}) {
-  const ref = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const fmt = (n: number) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: decimalPlaces, maximumFractionDigits: decimalPlaces }).format(n) + suffix;
-    el.textContent = fmt(value);
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let start = false, raf = 0, io: IntersectionObserver | undefined;
-    const run = (t0: number) => {
-      const tick = (now: number) => {
-        const p = Math.min(1, (now - t0) / 1100);
-        const eased = 1 - (1 - p) ** 3;
-        el.textContent = fmt(value * eased);
-        if (p < 1) raf = requestAnimationFrame(tick);
-        else el.textContent = fmt(value);
-      };
-      raf = requestAnimationFrame(tick);
-    };
-    io = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting || start) return;
-      start = true;
-      io?.disconnect();
-      el.textContent = fmt(0);
-      window.setTimeout(() => run(performance.now()), delay * 1000);
-    }, { threshold: 0.15 });
-    io.observe(el);
-    return () => { io?.disconnect(); cancelAnimationFrame(raf); };
-  }, [value, delay, decimalPlaces, suffix]);
-  return <span ref={ref} className={`tnum inline-block tabular-nums ${className}`} />;
-}
 
 function shine(e: REPointer<HTMLElement>) {
   const r = e.currentTarget.getBoundingClientRect();
