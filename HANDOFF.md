@@ -134,3 +134,12 @@
 - Suite t41u : les faisceaux partent et arrivent au bord intérieur de chaque carte (droite des sources, gauche/droite de Minilytics, gauche des paiements, bords de Revenus), courbes cubiques symétriques, pastilles opaques au-dessus des lignes. En mobile, sources en une rangée, lignes du bas de chaque pastille vers le haut de Minilytics, puis vers les paiements et Revenus, sans traverser une carte. Tracé plus visible, dégradé plus lumineux, points lumineux aux extrémités.
 - Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Tests 186/186, typecheck, build. Déploiement `dpl_9SDPdK7Nza6i3gQ8ot6o9cXeDwAX`.
 - Captures : /workspace/minilytics-shots/landing-globe-beams/polish/
+
+## DEPLOYED b68b5e2 — 14 nov. 2026 18:45 (Europe/Paris) → https://minilytics-six.vercel.app, frontend agent — Globe de la landing (cohérence design)
+- Demande owner t42u : incohérences de design sur le globe de l’accueil. Branche `vercel-port` uniquement. n0.pub non modifié.
+- Thème clair : le globe n’est plus une sphère bleu saturé. Base blanc/zinc, points de terre gris discrets, lueur et marqueurs bleu marque, visuellement aligné avec le thème sombre et le reste de la page.
+- Six villes d’exemple (Paris, Lisbonne, Montréal, Londres, São Paulo, Le Cap) ont un marqueur lumineux et des arcs visibles dans les deux thèmes. Rotation initiale face à l’Europe et à l’Atlantique (plus l’Asie/Australie). Compteur « 6 en ligne · exemple » calé sur le nombre de marqueurs, placé sous le globe (plus de chevauchement).
+- Quatre cartes visiteurs équilibrées autour du globe (bureau), une carte empilée en dessous (mobile), au style des cartes live/bento : avatar, nom, drapeau + ville, icône de source, page réelle (plus de « / » seul), « il y a Ns », badge revenu le cas échéant. Elles défilent avec une animation douce.
+- Lueur du canvas non rognée (marge intérieure, overflow visible). Rythme de titre et d’espacement aligné sur le bento et les faisceaux.
+- Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Tests 186/186, typecheck, build. Déploiement `dpl_Hi7XZS1Qdk3xCc2p3qLBygvTMq5k`.
+- Captures : /workspace/minilytics-shots/landing-globe-beams/globe-fix/ (1440-light-globe, 1440-dark-globe, 768-light-globe, 390-light-globe, 390-dark-globe).
