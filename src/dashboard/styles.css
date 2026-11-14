@@ -192,6 +192,71 @@ input.ml-check { width: 1.15rem; height: 1.15rem; accent-color: rgb(var(--accent
 }
 .ml-tip { position: absolute; left: 50%; bottom: calc(100% + 6px); z-index: 50; width: max-content; max-width: min(260px, 80vw); transform: translateX(-50%); border-radius: 8px; border: 1px solid rgb(var(--line)); background: rgb(var(--surface)); padding: 8px 10px; font-size: 12px; font-weight: 400; line-height: 1.45; color: rgb(var(--ink-2)); text-transform: none; letter-spacing: 0; box-shadow: 0 8px 24px -4px rgb(0 0 0 / .16); pointer-events: none; }
 
+
+/* Landing features bento */
+.ml-feat {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgb(var(--line));
+  background: rgb(var(--surface));
+  border-radius: 16px;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease, background-color .2s ease;
+}
+.ml-feat-optional { border-style: dashed; border-color: rgb(var(--line-strong)); }
+.ml-feat-ico {
+  display: inline-flex;
+  height: 32px; width: 32px;
+  align-items: center; justify-content: center;
+  border-radius: 8px;
+  border: 1px solid rgb(var(--line));
+  background: rgb(var(--well));
+  color: rgb(var(--ink-2));
+}
+.ml-feat-visual {
+  margin-top: auto;
+  min-width: 0;
+  border-radius: 12px;
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgb(var(--accent) / .06), transparent 55%),
+    rgb(var(--well));
+  overflow: hidden;
+}
+.ml-feat-glass {
+  border: 1.5px solid rgb(var(--line-strong) / .7);
+  background: rgb(var(--surface) / .72);
+  box-shadow: 0 8px 24px -12px rgb(0 0 0 / .2);
+  backdrop-filter: blur(16px);
+}
+.dark .ml-feat-glass {
+  border-color: rgb(255 255 255 / .16);
+  background: rgb(var(--surface) / .55);
+}
+.ml-feat-pulse {
+  box-shadow: 0 0 0 0 rgb(var(--accent) / .55);
+  animation: ml-feat-pulse 1.8s ease-out infinite;
+}
+@keyframes ml-feat-pulse {
+  0% { box-shadow: 0 0 0 0 rgb(var(--accent) / .5); }
+  70% { box-shadow: 0 0 0 8px rgb(var(--accent) / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(var(--accent) / 0); }
+}
+.ml-feat-bar { transform-origin: left center; }
+@media (hover: hover) and (pointer: fine) {
+  .ml-feat:hover {
+    border-color: rgb(var(--accent) / .4);
+    border-style: solid;
+    box-shadow: 0 0 0 1px rgb(var(--accent) / .12), 0 18px 40px -20px rgb(var(--accent) / .35);
+    transform: translateY(-2px);
+  }
+  .ml-feat:hover .ml-feat-bar { animation: ml-feat-bar .5s ease-out both; }
+}
+@keyframes ml-feat-bar { from { transform: scaleX(.72); opacity: .7; } to { transform: scaleX(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .ml-feat, .ml-feat:hover { transform: none; transition: none; }
+  .ml-feat-pulse, .ml-feat:hover .ml-feat-bar { animation: none; }
+}
+
 /* Landing helpers */
 .ml-grid-bg { background-image: linear-gradient(rgb(var(--line) / .6) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--line) / .6) 1px, transparent 1px); background-size: 48px 48px; -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 75%); mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 75%); }
 

@@ -5,6 +5,7 @@ import { TrendChart } from '../components/TrendChart';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { UiIcon } from '../components/UiIcon';
 import { channelName } from '../lib/format';
+import { FeaturesBento } from './LandingFeatures';
 
 type Group = { label: string; value: number };
 interface Preview {
@@ -45,27 +46,6 @@ function useLivePreview() {
 }
 
 type IconName = Parameters<typeof UiIcon>[0]['name'];
-const FEATURES: { icon: IconName; title: string; text: string }[] = [
-  { icon: 'users', title: 'Visiteurs et pages vues', text: 'Visiteurs uniques, visites, pages vues, rebond et durée, page par page. Navigation des applis React, Next.js ou Vue suivie automatiquement.' },
-  { icon: 'compass', title: 'Sources et référents', text: 'Moteurs de recherche, réseaux sociaux, assistants IA, sites référents, e-mail : chaque visite est rangée dans le bon canal.' },
-  { icon: 'filter', title: 'Campagnes UTM', text: 'utm_source, utm_medium, utm_campaign, utm_content et ?ref= pour comparer vos newsletters, pubs et partenariats.' },
-  { icon: 'globe', title: 'Pays, villes, appareils', text: 'Pays, régions et villes, navigateurs et systèmes avec leur version, mobile, tablette ou ordinateur, fuseau horaire.' },
-  { icon: 'activity', title: 'Temps réel', text: 'Les visiteurs en ligne, les pages ouvertes et chaque événement à la seconde, avec un globe des connexions.' },
-  { icon: 'target', title: 'Objectifs et entonnoirs', text: 'Inscriptions, achats, clics sur un bouton : un attribut data-ml-goal suffit. Entonnoirs étape par étape pour voir où l’on décroche.' },
-  { icon: 'arrow-up-right', title: 'Clics sortants', text: 'Chaque lien externe cliqué est compté automatiquement, même ouvert dans un nouvel onglet.' },
-  { icon: 'file-text', title: 'Scroll et temps de lecture', text: 'Profondeur de lecture (25, 50, 75, 90, 100 %) et temps réellement actif sur la page : idéal pour les articles et les pages longues.' },
-  { icon: 'bar-chart', title: 'Revenus et paiements', text: 'Stripe, Lemon Squeezy, Polar, Paddle, Shopify, WooCommerce, Dodo, Kajabi, Podia ou l’API : revenus par source, renouvellements et remboursements, conversion de devises, et une estimation des ventes à venir.' },
-  { icon: 'share', title: 'Réseaux sociaux et 𝕏', text: 'Visites par réseau, liens 𝕏 traçables attribués au post près, mentions sur 𝕏 et Reddit (avec vos clés API), commits GitHub en annotations.' },
-  { icon: 'download', title: 'API, CLI et MCP', text: 'Export CSV, API REST documentée avec bac à sable, CLI et serveur MCP pour interroger vos stats depuis Claude, Cursor ou ChatGPT.' },
-  { icon: 'lock', title: 'Léger et respectueux', text: 'Script d’environ 6 Ko compressé, servable depuis votre domaine. Cookies first-party ou mode sans cookie, aucune donnée revendue, robots ignorés.' },
-];
-
-const ADVANCED: { icon: IconName; title: string; when: string; text: string }[] = [
-  { icon: 'play', title: 'Vidéos', when: 'Si votre site a des vidéos', text: 'Lectures, temps réellement regardé, rétention à 10, 25, 50, 75 et 90 %, pauses, vitesse et plein écran, vidéo par vidéo.' },
-  { icon: 'megaphone', title: 'Emplacements sponsorisés', when: 'Si vous vendez des emplacements', text: 'Impressions vraiment vues (50 % visibles pendant 1 s), clics et taux de clic par emplacement et par sponsor, export CSV pour vos partenaires.' },
-  { icon: 'grid', title: 'Sections et contenus', when: 'Si vous voulez savoir ce qui est vu', text: 'Quelles sections, cartes ou articles mis en avant sont réellement affichés à l’écran, et lesquels sont cliqués.' },
-];
-
 const USE_CASES: { icon: IconName; title: string; text: string }[] = [
   { icon: 'file-text', title: 'Blogs et médias', text: 'Articles les plus lus, temps de lecture, scroll, sources de trafic.' },
   { icon: 'zap', title: 'Landing pages', text: 'Campagnes, clics sur vos boutons, taux de conversion.' },
@@ -313,26 +293,7 @@ export function Landing() {
         {/* Features */}
         <section id="fonctionnalites" aria-labelledby="f-title" className="mx-auto max-w-[1200px] scroll-mt-20 px-4 py-20 sm:px-6 lg:py-28">
           <SectionHead id="f-title" eyebrow="Fonctionnalités" title="Tout ce qui compte, dès l’installation." text="Chaque chiffre est mesuré, jamais extrapolé. Les robots et navigateurs automatisés sont filtrés." />
-          <div className="mt-12 grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3 [&>*]:bg-surface">
-            {FEATURES.map((f) => (
-              <article key={f.title} className="p-6">
-                <span className="flex h-8 w-8 items-center justify-center rounded-md border border-line text-ink-2" aria-hidden><UiIcon name={f.icon} size={16} /></span>
-                <h3 className="mt-4 text-[15px] font-semibold text-ink">{f.title}</h3>
-                <p className="mt-1.5 text-[14px] leading-relaxed text-ink-3">{f.text}</p>
-              </article>
-            ))}
-          </div>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {ADVANCED.map((f) => (
-              <article key={f.title} className="rounded-xl border border-dashed border-line-strong p-5">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="flex items-center gap-2 text-[14px] font-semibold"><span className="text-ink-3" aria-hidden><UiIcon name={f.icon} size={16} /></span>{f.title}</h3>
-                  <span className="rounded-full bg-well px-2 py-0.5 text-[11px] font-medium text-ink-3">En option</span>
-                </div>
-                <p className="mt-2 text-[13px] leading-relaxed text-ink-3"><span className="text-ink-2">{f.when}.</span> {f.text}</p>
-              </article>
-            ))}
-          </div>
+          <FeaturesBento />
         </section>
 
         {/* Install */}
