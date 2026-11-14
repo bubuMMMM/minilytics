@@ -291,8 +291,7 @@ export function Landing() {
         </section>
 
         {/* Features */}
-        <section id="fonctionnalites" aria-labelledby="f-title" className="mx-auto max-w-[1200px] scroll-mt-20 px-4 py-20 sm:px-6 lg:py-28">
-          <SectionHead id="f-title" eyebrow="Fonctionnalités" title="Tout ce qui compte, dès l’installation." text="Chaque chiffre est mesuré, jamais extrapolé. Les robots et navigateurs automatisés sont filtrés." />
+        <section id="fonctionnalites" aria-labelledby="f-title" className="relative mx-auto max-w-[1200px] scroll-mt-20 px-4 py-20 sm:px-6 lg:py-28">
           <FeaturesBento />
         </section>
 
