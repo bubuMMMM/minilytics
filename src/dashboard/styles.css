@@ -568,13 +568,13 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
-.ml-globe-visit-swap { animation: ml-globe-card .45s cubic-bezier(.16, 1, .3, 1) both; }
+.ml-globe-visit-swap { animation: ml-globe-card .45s cubic-bezier(.16, 1, .3, 1) forwards; }
 @keyframes ml-globe-card {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ml-globe-visit-swap { animation: none; }
+  .ml-globe-visit-swap { animation: none; opacity: 1; transform: none; }
 }
 
 .ml-beam-board { min-height: 280px; isolation: isolate; }

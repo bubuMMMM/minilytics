@@ -34,6 +34,7 @@ export function LandingLiveGlobe() {
 
 function GlobeStage() {
   const host = useRef<HTMLDivElement>(null);
+  const seenIds = useRef(new Set<string>());
   const [load, setLoad] = useState(false);
   const [idx, setIdx] = useState(0);
   const visits = useMemo(() => exampleVisits(), []);
@@ -50,26 +51,32 @@ function GlobeStage() {
   }, []);
 
   useEffect(() => {
+    if (!load) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const t = window.setInterval(() => setIdx((n) => (n + 1) % visits.length), 3800);
     return () => clearInterval(t);
-  }, [visits.length]);
+  }, [load, visits.length]);
 
   const n = visits.length;
   const desktopCards = [0, 1, 2].map((offset) => visits[(idx + offset) % n]);
   const mobileCard = visits[idx];
+  useEffect(() => {
+    for (const visit of desktopCards) seenIds.current.add(visit.id);
+    seenIds.current.add(mobileCard.id);
+  });
+  const enterClass = (id: string) => (seenIds.current.has(id) ? '' : 'ml-globe-visit-swap');
 
   const aside = (
     <div className="flex flex-col gap-3">
       <div className="hidden md:flex flex-col gap-3">
         {desktopCards.map((visit) => (
-          <div key={visit.id} className="ml-globe-visit-swap pointer-events-none">
+          <div key={visit.id} className={'pointer-events-none ' + enterClass(visit.id)}>
             <VisitorCard visit={visit} tz={EXAMPLE_TZ} />
           </div>
         ))}
       </div>
       <div className="md:hidden pointer-events-none">
-        <div key={mobileCard.id} className="ml-globe-visit-swap">
+        <div key={mobileCard.id} className={enterClass(mobileCard.id)}>
           <VisitorCard visit={mobileCard} tz={EXAMPLE_TZ} />
         </div>
       </div>
