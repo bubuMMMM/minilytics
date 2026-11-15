@@ -164,3 +164,9 @@
 - Chargement différé conservé (IntersectionObserver + Suspense) avec un disque SVG aux couleurs du globe en repli, le temps que le geojson soit prêt. `prefers-reduced-motion` respecté. Pas de régression de perf (chunk `LiveGlobe` 15,2 Ko, gzip 6,7 Ko ; plus de cobe sur la landing).
 - Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Tests 186/186, typecheck, build. Déploiement `dpl_9ttD3S2iG8yPqZq495ic7h5pxYjA`.
 - Captures référence / avant / après : /workspace/minilytics-shots/landing-live-match/{reference,before,after}/ (section globe et onglet bento à 1440 et 390, clair et sombre).
+
+## DEPLOYED 2530603 — 15 nov. 2026 10:54 (Europe/Paris) → https://minilytics-six.vercel.app, frontend agent — Contraste des cartes visiteurs de la landing
+- Suite t44u : les trois VisitorCard à droite du globe paraissaient délavées sur les captures 1440 clair/sombre. Cause : à chaque cycle (3,8 s), le défilement réordonnait les nœuds et Chrome relançait l’animation d’entrée `ml-globe-visit-swap` (`opacity: 0 → 1`, 0,45 s, `animation-fill-mode: both`) sur les trois cartes, pas seulement la nouvelle. Les captures tombaient souvent au milieu du fondu (~40 % d’opacité, texte en gris moyen). Ce n’était pas un style « visiteur inactif » du tableau de bord.
+- Correctif : l’animation d’entrée ne s’applique qu’aux cartes nouvellement montées et se termine à `opacity: 1` (`forwards`). Les cartes déjà visibles restent à pleine opacité. Le cycle ne démarre qu’une fois le globe chargé. `prefers-reduced-motion` : pas d’animation, opacité 1.
+- Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Tests 186/186. Déploiement `dpl_x6TSuiEnQwrGC6z6ZHCZYcXACALU`.
+- Captures après chargement (opacité 1) : /workspace/minilytics-shots/landing-live-match/after2/ (1440 clair/sombre et 390 clair).
