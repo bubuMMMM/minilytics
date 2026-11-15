@@ -1,8 +1,10 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent as REPointer, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent as REPointer, type ReactNode } from 'react';
 import { Link } from '../components/Link';
 import { Logo } from '../components/Logo';
 import { UiIcon, type UiIconName } from '../components/UiIcon';
 import { NumberTicker } from '../components/NumberTicker';
+
+const LandingBentoLive = lazy(() => import('./LandingBentoLive'));
 
 const INSTALL = '<script defer data-website-id="VOTRE_ID" src="https://minilytics-six.vercel.app/js/script.js"></script>';
 
@@ -259,56 +261,48 @@ function VisualChart({ rich = false }: { rich?: boolean }) {
   );
 }
 
-const VISITS = [
-  { face: '🐨', name: 'Panda calme', place: 'Lyon · Google', page: '/tarifs' },
-  { face: '🦊', name: 'Renard vif', place: 'Lisbonne · 𝕏', page: '/' },
-  { face: '🦦', name: 'Loutre curieuse', place: 'Montréal · Newsletter', page: '/blog' },
-];
-
 function VisualMap({ rich = false }: { rich?: boolean }) {
-  const [i, setI] = useState(0);
+  const host = useRef<HTMLDivElement>(null);
+  const [load, setLoad] = useState(false);
   useEffect(() => {
-    if (!rich || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const t = setInterval(() => setI((n) => (n + 1) % VISITS.length), 2800);
-    return () => clearInterval(t);
-  }, [rich]);
-  const v = VISITS[i];
-  const dots = [
-    { x: '30%', y: '42%', live: false }, { x: '46%', y: '36%', live: true }, { x: '58%', y: '48%', live: false },
-    { x: '26%', y: '58%', live: false }, { x: '68%', y: '38%', live: true }, { x: '72%', y: '62%', live: false }, { x: '40%', y: '52%', live: false },
-  ];
+    const el = host.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setLoad(true); io.disconnect(); }
+    }, { rootMargin: '160px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   return (
-    <div className={`relative overflow-hidden ${rich ? 'min-h-[220px] sm:min-h-[248px]' : 'h-[132px] sm:h-[148px]'}`}>
-      <svg viewBox="0 0 280 180" className="absolute inset-0 h-full w-full text-ink-4/45" aria-hidden>
-        <ellipse cx="140" cy="90" rx="108" ry="72" fill="rgb(var(--surface))" stroke="currentColor" strokeWidth="1.1" />
-        <ellipse cx="140" cy="90" rx="64" ry="72" fill="none" stroke="currentColor" strokeWidth="0.7" opacity="0.7" />
-        <path d="M32 90h216M140 18v144" fill="none" stroke="currentColor" strokeWidth="0.7" opacity="0.65" />
-        <path d="M54 48c36 12 72 12 108 0M58 134c32-10 72-10 112 0" fill="none" stroke="currentColor" strokeWidth="0.7" opacity="0.5" />
-        {/* stylised land masses, not a real projection */}
-        <path d="M86 70c18-18 44-14 52 2 8 14-2 28-16 30-16 4-28-10-36-32z" fill="rgb(var(--accent) / .16)" />
-        <path d="M150 78c14-8 34-4 38 12 4 14-10 22-24 18-12-4-20-16-14-30z" fill="rgb(var(--accent) / .14)" />
-        <path d="M118 112c10-4 22 2 20 12s-16 12-24 6c-6-6-4-14 4-18z" fill="rgb(var(--accent) / .12)" />
-      </svg>
-      {dots.map((d, k) => (
-        <span key={k} className={`absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full ${d.live ? 'ml-feat-pulse bg-accent' : 'bg-ink-3/70'}`} style={{ left: d.x, top: d.y }} />
-      ))}
-      <div className="absolute bottom-0 left-0 inline-flex items-center gap-1.5 rounded-md border border-line bg-surface/90 px-2 py-1 text-[11px] font-medium text-ink-2 backdrop-blur-sm">
-        <span className="ml-dot-live" /> 3 en ligne
-      </div>
-      {rich && (
-        <div className="absolute right-0 top-1 w-[min(100%,220px)] sm:top-2">
-          <div key={v.name} className="ml-feat-pop rounded-xl border border-line bg-surface/95 p-2.5 shadow-pop backdrop-blur-sm">
-            <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-well text-[15px]">{v.face}</span>
-              <div className="min-w-0">
-                <div className="truncate text-[12px] font-medium text-ink">{v.name}</div>
-                <div className="truncate text-[11px] text-ink-3">{v.place} · <span className="font-mono">{v.page}</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div ref={host} className={`relative overflow-hidden ${rich ? 'min-h-[240px] sm:min-h-[280px]' : 'h-[132px] sm:h-[148px]'}`}>
+      {load ? (
+        <Suspense fallback={<BentoGlobeFallback />}>
+          <LandingBentoLive rich={rich} />
+        </Suspense>
+      ) : (
+        <BentoGlobeFallback />
       )}
     </div>
+  );
+}
+
+function BentoGlobeFallback() {
+  return (
+    <svg viewBox="0 0 720 500" className="absolute inset-0 h-full w-full" aria-hidden>
+      <defs>
+        <radialGradient id="ml-bento-globe-glow" cx="48%" cy="49%" r="48%">
+          <stop offset="40%" stopColor="rgb(var(--accent) / .06)" />
+          <stop offset="100%" stopColor="rgb(var(--accent) / 0)" />
+        </radialGradient>
+        <radialGradient id="ml-bento-globe-ocean" cx="38%" cy="32%" r="70%">
+          <stop offset="0%" stopColor="rgb(var(--surface))" />
+          <stop offset="65%" stopColor="rgb(var(--well))" />
+          <stop offset="100%" stopColor="rgb(var(--line))" />
+        </radialGradient>
+      </defs>
+      <rect width="720" height="500" fill="url(#ml-bento-globe-glow)" />
+      <circle cx="346" cy="246" r="205" fill="url(#ml-bento-globe-ocean)" stroke="rgb(var(--line-strong))" strokeWidth="1" />
+    </svg>
   );
 }
 

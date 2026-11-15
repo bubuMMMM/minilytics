@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { Link } from './Link';
 
 type Point = [number, number];
 type Geometry = { type: 'Polygon' | 'MultiPolygon'; coordinates: Point[][] | Point[][][] };
 type Shape = { type: 'Feature'; id: string; geometry: Geometry };
 type Country = { country: string; visitors: number; lastSeenAt: number };
-type Activity = {
+export type Activity = {
   online: number;
   countries: Country[];
   recentCountries: Country[];
@@ -187,8 +187,29 @@ function drawGlobe(
   ctx.strokeStyle = rgba(P['line-strong']); ctx.lineWidth = 1; ctx.stroke();
 }
 
-export function LiveGlobe({ siteId, publicSiteId }: { siteId?: string; publicSiteId?: string }) {
-  const [data, setData] = useState<Activity | null>(null);
+export function LiveGlobe({
+  siteId,
+  publicSiteId,
+  example,
+  exampleLabel = false,
+  hideIntro = false,
+  hideMapLink = false,
+  aside,
+  compact = false,
+  className,
+}: {
+  siteId?: string;
+  publicSiteId?: string;
+  /** When set, skip API polling and render this labeled example activity. */
+  example?: Activity;
+  exampleLabel?: boolean;
+  hideIntro?: boolean;
+  hideMapLink?: boolean;
+  aside?: ReactNode;
+  compact?: boolean;
+  className?: string;
+}) {
+  const [data, setData] = useState<Activity | null>(example ?? null);
   const [world, setWorld] = useState<GlobeCountry[]>([]);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
@@ -208,6 +229,11 @@ export function LiveGlobe({ siteId, publicSiteId }: { siteId?: string; publicSit
   }, []);
 
   useEffect(() => {
+    if (example) {
+      setData(example);
+      setError('');
+      return;
+    }
     const controller = new AbortController();
     const endpoint = siteId ? '/api/sites/' + encodeURIComponent(siteId) + '/live-globe' : '/api/public/live-globe' + (publicSiteId ? '?site=' + encodeURIComponent(publicSiteId) : '');
     const poll = () => {
@@ -221,7 +247,7 @@ export function LiveGlobe({ siteId, publicSiteId }: { siteId?: string; publicSit
     const timer = window.setInterval(poll, 15000);
     document.addEventListener('visibilitychange', poll);
     return () => { controller.abort(); window.clearInterval(timer); document.removeEventListener('visibilitychange', poll); };
-  }, [siteId]);
+  }, [siteId, publicSiteId, example]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -261,74 +287,152 @@ export function LiveGlobe({ siteId, publicSiteId }: { siteId?: string; publicSit
     if (hit) setSelected(hit.country);
   };
 
+  const mapHref = siteId
+    ? `/site/${siteId}/map${typeof window !== 'undefined' ? window.location.search : ''}`
+    : `/demo/map${publicSiteId ? '?site=' + encodeURIComponent(publicSiteId) : ''}`;
+
+  const canvas = (
+    <canvas
+      ref={canvasRef}
+      className="block w-full cursor-grab select-none touch-pan-y active:cursor-grabbing"
+      style={{ aspectRatio: SIZE.width + '/' + SIZE.height }}
+      role="img"
+      aria-label="Globe animé avec les pays de connexion récents. Glisse horizontalement pour tourner le globe."
+      onPointerDown={(event) => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        pointer.current = { x: event.clientX, angle: rotation.current, dragged: false };
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }}
+      onPointerMove={(event) => {
+        if (!pointer.current) return;
+        const delta = event.clientX - pointer.current.x;
+        if (Math.abs(delta) > 3) pointer.current.dragged = true;
+        const width = event.currentTarget.getBoundingClientRect().width || 1;
+        rotation.current = pointer.current.angle - delta / width * 220;
+        stopUntil.current = Date.now() + 4500;
+      }}
+      onPointerUp={(event) => {
+        if (pointer.current && !pointer.current.dragged) selectOnGlobe(event);
+        pointer.current = null;
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      }}
+      onPointerCancel={() => { pointer.current = null; }}
+    />
+  );
+
+  const counter = compact ? (
+    <div className="rounded-lg border border-line bg-surface/90 px-2.5 py-1.5 text-right shadow-xs backdrop-blur-sm">
+      <div className="text-[11px] text-ink-3">Actifs · 5 min{exampleLabel ? ' · exemple' : ''}</div>
+      <div className="mt-0.5 flex items-center justify-end gap-1.5 text-lg font-semibold tabular-nums"><span className="h-1.5 w-1.5 rounded-full bg-success" />{data ? formatter.format(data.online) : '—'}</div>
+    </div>
+  ) : (
+    <div className="ml-auto text-right">
+      <div className="text-[12px] text-ink-3">Actifs · 5 min{exampleLabel ? ' · exemple' : ''}</div>
+      <div className="mt-0.5 flex items-center justify-end gap-2 text-2xl font-semibold tabular-nums"><span className="h-2 w-2 rounded-full bg-success" />{data ? formatter.format(data.online) : '—'}</div>
+    </div>
+  );
+
+  if (compact) {
+    return (
+      <section className={'relative h-full min-h-[220px] min-w-0 overflow-hidden text-ink ' + (className ?? '')} aria-label="Globe des visiteurs en direct">
+        <div className="pointer-events-none absolute right-2 top-2 z-10 sm:right-3 sm:top-3">{counter}</div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative h-[115%] max-h-[340px]" style={{ aspectRatio: SIZE.width + '/' + SIZE.height }}>
+            {world.length === 0 && <LiveGlobeSkeleton className="absolute inset-0 h-full w-full" />}
+            {canvas}
+          </div>
+        </div>
+        {aside && <div className="pointer-events-none absolute bottom-2 left-2 right-2 z-10 sm:left-auto sm:w-[min(100%,220px)]">{aside}</div>}
+      </section>
+    );
+  }
+
   return (
-    <section className="ml-bento relative mt-8 overflow-hidden text-ink" aria-label="Globe des visiteurs en direct">
-      <div className="relative flex flex-wrap items-start justify-between gap-4 px-4 pt-4 sm:px-5 sm:pt-5">
-        <div>
-          <div className="ml-kicker">Carte en direct</div>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight">Vos visiteurs dans le monde</h2>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-3">D’où viennent vos visiteurs. Chaque point est un pays, jamais une position précise.</p>
-          <Link href={siteId ? `/site/${siteId}/map${typeof window !== 'undefined' ? window.location.search : ''}` : `/demo/map?site=${encodeURIComponent(publicSiteId ?? '')}`} className="btn mt-3">Voir la carte <span aria-hidden>→</span></Link>
+    <section className={'ml-bento relative overflow-hidden text-ink ' + (className ?? 'mt-8')} aria-label="Globe des visiteurs en direct">
+      {!hideIntro && (
+        <div className="relative flex flex-wrap items-start justify-between gap-4 px-4 pt-4 sm:px-5 sm:pt-5">
+          <div>
+            <div className="ml-kicker">Carte en direct</div>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight">Vos visiteurs dans le monde</h2>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-3">D’où viennent vos visiteurs. Chaque point est un pays, jamais une position précise.</p>
+            {!hideMapLink && <Link href={mapHref} className="btn mt-3">Voir la carte <span aria-hidden>→</span></Link>}
+          </div>
+          {counter}
         </div>
-        <div className="text-right">
-          <div className="text-[12px] text-ink-3">Actifs · 5 min</div>
-          <div className="mt-0.5 flex items-center justify-end gap-2 text-2xl font-semibold tabular-nums"><span className="h-2 w-2 rounded-full bg-success" />{data ? formatter.format(data.online) : '—'}</div>
+      )}
+      {hideIntro && (
+        <div className="relative flex justify-end px-4 pt-4 sm:px-5 sm:pt-5">
+          {counter}
         </div>
-      </div>
+      )}
       <div className="relative grid items-center gap-1 md:grid-cols-[minmax(0,1.7fr)_minmax(240px,.7fr)]">
         <div className="relative min-w-0">
-          <canvas
-            ref={canvasRef}
-            className="block w-full cursor-grab select-none touch-pan-y active:cursor-grabbing"
-            style={{ aspectRatio: SIZE.width + '/' + SIZE.height }}
-            role="img"
-            aria-label="Globe animé avec les pays de connexion récents. Glisse horizontalement pour tourner le globe."
-            onPointerDown={(event) => {
-              if (event.pointerType === 'mouse' && event.button !== 0) return;
-              pointer.current = { x: event.clientX, angle: rotation.current, dragged: false };
-              event.currentTarget.setPointerCapture(event.pointerId);
-            }}
-            onPointerMove={(event) => {
-              if (!pointer.current) return;
-              const delta = event.clientX - pointer.current.x;
-              if (Math.abs(delta) > 3) pointer.current.dragged = true;
-              const width = event.currentTarget.getBoundingClientRect().width || 1;
-              rotation.current = pointer.current.angle - delta / width * 220;
-              stopUntil.current = Date.now() + 4500;
-            }}
-            onPointerUp={(event) => {
-              if (pointer.current && !pointer.current.dragged) selectOnGlobe(event);
-              pointer.current = null;
-              if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-            }}
-            onPointerCancel={() => { pointer.current = null; }}
-          />
+          {world.length === 0 && <LiveGlobeSkeleton className="absolute inset-0" />}
+          {canvas}
           <span className="pointer-events-none absolute bottom-4 left-5 rounded-lg border border-accent/30 bg-surface/90 px-3 py-1.5 text-xs text-ink-3 backdrop-blur-sm">↔ Glisse pour tourner</span>
         </div>
         <div className="min-w-0 px-5 pb-7 lg:pr-8">
-          <div className="flex items-center justify-between gap-3 border-b border-line pb-4">
-            <h3 className="font-semibold">Activité par pays</h3>
-            <span className="text-xs text-ink-3">{activeCountries.length ? 'Actif · 5 min' : 'Récent · 30 min'}</span>
-          </div>
-          {visibleCountries.length === 0
-            ? <div className="py-9 text-sm leading-relaxed text-ink-3"><div className="mb-3 h-9 w-9 rounded-full border border-line-strong p-2 text-center text-accent">◎</div>Aucune connexion géolocalisée pour l'instant. Les premiers visiteurs apparaîtront ici automatiquement.</div>
-            : <div className="mt-3 max-h-60 space-y-1 overflow-y-auto">
-                {visibleCountries.slice(0, 10).map((place) => (
-                  <button key={place.country} type="button" onClick={() => { setSelected(place.country); stopUntil.current = Date.now() + 6000; }} className={'flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left transition ' + (selected === place.country ? 'bg-accent-soft' : 'hover:bg-well')}>
-                    <span className="flex min-w-0 items-center gap-2.5"><span className={'h-2 w-2 shrink-0 rounded-full ' + (activeCodes.has(place.country) ? 'bg-accent' : 'bg-line-strong')} /><span className="truncate text-sm">{countryName(place.country)}</span></span>
-                    <span className="shrink-0 text-sm font-semibold tabular-nums">{formatter.format(place.visitors)}</span>
-                  </button>
-                ))}
-              </div>}
-          {unknown > 0 && <p className="mt-3 text-xs text-ink-3">+ {unknown} visiteur(s) sans pays déterminé.</p>}
+          {aside ? aside : (
+            <>
+              <div className="flex items-center justify-between gap-3 border-b border-line pb-4">
+                <h3 className="font-semibold">Activité par pays</h3>
+                <span className="text-xs text-ink-3">{activeCountries.length ? 'Actif · 5 min' : 'Récent · 30 min'}</span>
+              </div>
+              {visibleCountries.length === 0
+                ? <div className="py-9 text-sm leading-relaxed text-ink-3"><div className="mb-3 h-9 w-9 rounded-full border border-line-strong p-2 text-center text-accent">◎</div>Aucune connexion géolocalisée pour l'instant. Les premiers visiteurs apparaîtront ici automatiquement.</div>
+                : <div className="mt-3 max-h-60 space-y-1 overflow-y-auto">
+                    {visibleCountries.slice(0, 10).map((place) => (
+                      <button key={place.country} type="button" onClick={() => { setSelected(place.country); stopUntil.current = Date.now() + 6000; }} className={'flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left transition ' + (selected === place.country ? 'bg-accent-soft' : 'hover:bg-well')}>
+                        <span className="flex min-w-0 items-center gap-2.5"><span className={'h-2 w-2 shrink-0 rounded-full ' + (activeCodes.has(place.country) ? 'bg-accent' : 'bg-line-strong')} /><span className="truncate text-sm">{countryName(place.country)}</span></span>
+                        <span className="shrink-0 text-sm font-semibold tabular-nums">{formatter.format(place.visitors)}</span>
+                      </button>
+                    ))}
+                  </div>}
+              {unknown > 0 && <p className="mt-3 text-xs text-ink-3">+ {unknown} visiteur(s) sans pays déterminé.</p>}
+            </>
+          )}
           {error && <p role="status" className="mt-3 text-xs text-danger">{error}</p>}
-          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-4 text-xs text-ink-3">
-            <span><i className="mr-2 inline-block h-2 w-2 rounded-full bg-accent" />Actifs</span>
-            <span><i className="mr-2 inline-block h-2 w-2 rounded-full bg-line-strong" />Récents</span>
-          </div>
-          <p className="mt-4 text-xs leading-relaxed text-ink-3">Actualisé toutes les 15 s · Liens dessinés à titre illustratif, pas des routes réseau réelles.</p>
+          {!aside && (
+            <>
+              <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-4 text-xs text-ink-3">
+                <span><i className="mr-2 inline-block h-2 w-2 rounded-full bg-accent" />Actifs</span>
+                <span><i className="mr-2 inline-block h-2 w-2 rounded-full bg-line-strong" />Récents</span>
+              </div>
+              <p className="mt-4 text-xs leading-relaxed text-ink-3">
+                {example
+                  ? 'Exemple illustratif, pas des visiteurs en direct. Liens dessinés à titre illustratif, pas des routes réseau réelles.'
+                  : 'Actualisé toutes les 15 s · Liens dessinés à titre illustratif, pas des routes réseau réelles.'}
+              </p>
+            </>
+          )}
         </div>
       </div>
     </section>
   );
+}
+
+/** Token-coloured disc shown until the world contours are ready, matching the live canvas palette. */
+export function LiveGlobeSkeleton({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 720 500" className={className} aria-hidden>
+      <defs>
+        <radialGradient id="ml-live-skel-glow" cx="48%" cy="49%" r="48%">
+          <stop offset="40%" stopColor="rgb(var(--accent) / .06)" />
+          <stop offset="100%" stopColor="rgb(var(--accent) / 0)" />
+        </radialGradient>
+        <radialGradient id="ml-live-skel-ocean" cx="38%" cy="32%" r="70%">
+          <stop offset="0%" stopColor="rgb(var(--surface))" />
+          <stop offset="65%" stopColor="rgb(var(--well))" />
+          <stop offset="100%" stopColor="rgb(var(--line))" />
+        </radialGradient>
+      </defs>
+      <rect width="720" height="500" fill="url(#ml-live-skel-glow)" />
+      <circle cx="346" cy="246" r="205" fill="url(#ml-live-skel-ocean)" stroke="rgb(var(--line-strong))" strokeWidth="1" />
+    </svg>
+  );
+}
+
+/** Compact canvas preview for tight slots (bento tab), same renderer as the dashboard globe. */
+export function LiveGlobePreview({ example, aside, className }: { example: Activity; aside?: ReactNode; className?: string }) {
+  return <LiveGlobe example={example} exampleLabel hideIntro hideMapLink compact aside={aside} className={className} />;
 }
