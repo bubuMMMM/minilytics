@@ -155,3 +155,12 @@
 - 21st.dev : quota `get_component` déjà à 0/2 ce jour-là ; adaptations CSS/React sans framer-motion : Shimmer Button (dillionverma, id 833), Number Ticker (dillionverma, id 1282, déjà en place), Border Beam (offset-path Magic UI, déjà en place), spotlight / grille / marquee.
 - Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Tests 186/186, typecheck, build. Déploiement `dpl_Cf1ickRGdurP7DX2GgXjm4M3LYMZ`.
 - Captures avant/après : /workspace/minilytics-shots/landing-v3/{before,after}/ (pleines pages 1440 clair/sombre et 390 clair ; gros plans hero, pricing, comparison, faq-cta à 1440 et 390).
+
+## DEPLOYED 035feb5 — 15 nov. 2026 10:48 (Europe/Paris) → https://minilytics-six.vercel.app, frontend agent — Carte et visiteurs en direct de la landing = globe du tableau de bord
+- Demande owner t44u : la carte et les visiteurs en direct de la landing doivent reprendre le même design que le globe une fois connecté. Branche `vercel-port` uniquement. n0.pub non modifié.
+- Le globe 3D cobe de l’accueil (`LandingGlobeCanvas`) est retiré. La section « En direct, partout dans le monde » réutilise le vrai composant `LiveGlobe` du tableau de bord (canvas 2D orthographique, couleurs de tokens, marqueurs et arcs, compteur « Actifs · 5 min ») avec un jeu d’activité d’exemple (6 pays : FR, PT, CA, GB, BR, ZA). Aucun appel API, données clairement libellées « exemple ».
+- Les cartes visiteurs de la landing sont les vraies `VisitorCard` (avatar généré, drapeau, nom, page, source, appareil, session, badges revenu/objectif le cas échéant), en `pointer-events-none`. Plus de visages emoji / noms animaliers.
+- L’onglet bento « En direct » affiche un aperçu compact du même `LiveGlobe` + une `VisitorCard` compacte, chargé en lazy au moment où l’onglet est visible.
+- Chargement différé conservé (IntersectionObserver + Suspense) avec un disque SVG aux couleurs du globe en repli, le temps que le geojson soit prêt. `prefers-reduced-motion` respecté. Pas de régression de perf (chunk `LiveGlobe` 15,2 Ko, gzip 6,7 Ko ; plus de cobe sur la landing).
+- Vérif prod 360/390/768/1024/1440 clair et sombre : 0 erreur console, 0 débordement. Tests 186/186, typecheck, build. Déploiement `dpl_9ttD3S2iG8yPqZq495ic7h5pxYjA`.
+- Captures référence / avant / après : /workspace/minilytics-shots/landing-live-match/{reference,before,after}/ (section globe et onglet bento à 1440 et 390, clair et sombre).
