@@ -16,6 +16,8 @@ import { VideosTeaser, VideosView } from '../components/VideosView';
 import { BlocksView } from '../components/BlocksView';
 import { SocialView } from '../components/SocialView';
 import { BotsView } from '../components/BotsView';
+import { VitalsView } from '../components/VitalsView';
+import { HeatmapView } from '../components/HeatmapView';
 import { Link } from '../components/Link';
 import { PageHeader, SectionHeader } from '../components/ui';
 import { useHashScroll } from '../lib/hash';
@@ -27,7 +29,7 @@ import { useApi } from '../lib/useApi';
 import { useQueryState } from '../lib/useQueryState';
 import { useMe } from '../lib/me';
 
-export type DashView = 'overview' | 'videos' | 'sponsors' | 'content' | 'sources' | 'social' | 'bots';
+export type DashView = 'overview' | 'videos' | 'sponsors' | 'content' | 'sources' | 'social' | 'bots' | 'vitals' | 'clics';
 const VIEW_META: Record<DashView, { kicker: string; title: (name: string) => string; sub: string }> = {
   overview: { kicker: 'ANALYSE / VUE D’ENSEMBLE', title: (n) => n, sub: 'L’essentiel de votre trafic' },
   videos: { kicker: 'ANALYSE / VIDÉOS', title: () => 'Vidéos', sub: 'Lectures, temps de visionnage et rétention' },
@@ -36,6 +38,8 @@ const VIEW_META: Record<DashView, { kicker: string; title: (name: string) => str
   social: { kicker: 'ANALYSE / RÉSEAUX SOCIAUX', title: () => 'Réseaux sociaux', sub: 'Visites des réseaux, liens 𝕏 et mentions' },
   bots: { kicker: 'ANALYSE / BOTS IA', title: () => 'Bots IA', sub: 'Robots d’IA qui lisent vos pages et visiteurs envoyés par les assistants' },
   sources: { kicker: 'ANALYSE / SOURCES', title: () => 'Sources', sub: 'D’où viennent vos visiteurs et avec quoi' },
+  vitals: { kicker: 'ANALYSE / WEB VITALS', title: () => 'Web Vitals', sub: 'LCP, INP, CLS, FCP et TTFB au 75ᵉ percentile, par page' },
+  clics: { kicker: 'ANALYSE / CARTE DE CHALEUR', title: () => 'Carte de chaleur', sub: 'Clics, éléments et rage clicks par page' },
 };
 
 export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?: DashView }) {
@@ -110,6 +114,8 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
           : view === 'content' ? <div className="mt-5"><BlocksView kind="content" /></div>
           : view === 'social' ? <div className="mt-5"><SocialView /></div>
           : view === 'bots' ? <div className="mt-5"><BotsView /></div>
+          : view === 'vitals' ? <div className="mt-5"><VitalsView /></div>
+          : view === 'clics' ? <div className="mt-5"><HeatmapView /></div>
           : view === 'sources' ? <SourcesPanels full />
           : <>
         {overview && overview.current.visitors === 0 && overview.previous.visitors === 0 && !Object.keys(q.filters).length && (

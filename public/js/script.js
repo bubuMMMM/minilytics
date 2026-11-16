@@ -216,9 +216,9 @@
   }
   d.addEventListener('visibilitychange', function () {
     if (d.visibilityState === 'visible') visibleSince = Date.now();
-    else flushTime(true);
+    else { flushTime(true); flushVitals(true); }
   });
-  w.addEventListener('pagehide', function () { flushTime(true); visibleSince = 0; });
+  w.addEventListener('pagehide', function () { flushTime(true); visibleSince = 0; flushVitals(true); });
   w.addEventListener('pageshow', function (e) {
     if (!e.persisted) return;
     visibleSince = d.visibilityState === 'visible' ? Date.now() : 0;
@@ -304,7 +304,7 @@
     // React strict mode, router replaceState + pushState pairs and manual calls can fire twice in a row.
     if (page === lastViewPage && Date.now() - lastViewAt < 1500) { lastPage = page; return; }
     lastViewPage = page; lastViewAt = Date.now();
-    if (lastPage !== null) { flushTime(false); flushEngagement(true); }
+    if (lastPage !== null) { flushTime(false); flushEngagement(true); flushVitals(true); resetVitals(); resetHeat(); }
     lastPage = page;
     engagementUrl = cleanUrl(loc.href);
     engagedMs = 0;
@@ -520,6 +520,7 @@
     }
   }
   d.addEventListener('click', onClick, true);
+  d.addEventListener('click', onHeat, true);
   d.addEventListener('auxclick', onClick, true);
   d.addEventListener('click', blockClick, true);
   d.addEventListener('auxclick', blockClick, true);
@@ -564,8 +565,118 @@
     }
   } catch (e) {}
 
+
+  /* Core Web Vitals (LCP, INP, CLS, FCP, TTFB) — one `vital` event per pageview. */
+  var vitalsSent = 0, lcp = 0, inp = 0, clsMax = 0, clsWin = 0, clsTs = 0, clsStart = 0, fcp = 0, ttfb = 0, vitalsArmed = 0;
+  function resetVitals() { vitalsSent = 0; lcp = 0; inp = 0; clsMax = 0; clsWin = 0; clsTs = 0; clsStart = 0; fcp = 0; ttfb = 0; }
+  function flushVitals(keep) {
+    if (vitalsSent || !vitalsArmed) return;
+    var p = { cls: Math.round(clsMax * 10000) / 10000 };
+    if (lcp > 0) p.lcp = Math.round(lcp);
+    if (inp > 0) p.inp = Math.round(inp);
+    if (fcp > 0) p.fcp = Math.round(fcp);
+    if (ttfb > 0) p.ttfb = Math.round(ttfb);
+    try { p.vw = (w.innerWidth || (screen && screen.width) || 0); } catch (err) {}
+    vitalsSent = 1;
+    send('vital', { p: p }, !!keep);
+  }
+  function addCls(e) {
+    if (!e || e.hadRecentInput) return;
+    var t = e.startTime || 0;
+    if (!clsStart || t - clsTs > 1000 || t - clsStart > 5000) { clsWin = 0; clsStart = t; }
+    clsWin += e.value || 0;
+    clsTs = t;
+    if (clsWin > clsMax) clsMax = clsWin;
+  }
+  function armVitals() {
+    if (vitalsArmed) return;
+    vitalsArmed = 1;
+    try {
+      var nav = w.performance && w.performance.getEntriesByType && w.performance.getEntriesByType('navigation')[0];
+      if (nav && nav.responseStart > 0) ttfb = nav.responseStart;
+      var paints = w.performance && w.performance.getEntriesByType && w.performance.getEntriesByType('paint');
+      if (paints) for (var i = 0; i < paints.length; i++) if (paints[i].name === 'first-contentful-paint') fcp = paints[i].startTime;
+    } catch (err) {}
+    if (typeof PerformanceObserver === 'undefined') return;
+    function observe(type, cb) {
+      try { var po = new PerformanceObserver(cb); po.observe({ type: type, buffered: true }); } catch (err) {}
+    }
+    observe('largest-contentful-paint', function (list) {
+      var es = list.getEntries(); if (es.length) lcp = es[es.length - 1].startTime;
+    });
+    observe('paint', function (list) {
+      list.getEntries().forEach(function (e) { if (e.name === 'first-contentful-paint') fcp = e.startTime; });
+    });
+    observe('navigation', function (list) {
+      var e = list.getEntries()[0]; if (e && e.responseStart > 0) ttfb = e.responseStart;
+    });
+    observe('event', function (list) {
+      list.getEntries().forEach(function (e) { if (e.interactionId && e.duration > inp) inp = e.duration; });
+    });
+    observe('layout-shift', function (list) { list.getEntries().forEach(addCls); });
+  }
+
+  /* Click heatmap: normalised x/y, safe selector, no input text, rage = 3+ clicks / 1s / 24px. */
+  var heatN = 0, heatRecent = [];
+  function resetHeat() { heatN = 0; heatRecent = []; }
+  function cssPath(el) {
+    var parts = [];
+    for (var i = 0; el && el.nodeType === 1 && i < 5; i++, el = el.parentElement) {
+      var tag = (el.tagName || '').toLowerCase();
+      if (!tag || tag === 'html') { parts.unshift(tag || 'html'); break; }
+      if (tag === 'body') { parts.unshift('body'); break; }
+      var id = el.id && /^[A-Za-z][\w-]{0,40}$/.test(el.id) && !/@/.test(el.id) && !/[0-9a-f]{8,}/i.test(el.id) ? ('#' + el.id) : '';
+      var cls = '', cn = typeof el.className === 'string' ? el.className.trim().split(/\s+/) : [];
+      for (var j = 0; j < cn.length && j < 2; j++) if (/^[A-Za-z_][\w-]{0,24}$/.test(cn[j]) && !/^[a-f0-9]{8,}$/i.test(cn[j])) cls += '.' + cn[j];
+      var part = tag + id + cls;
+      if (!id && el.parentElement && el.parentElement.children) {
+        var sib = el.parentElement.children, n = 0, idx = 0;
+        for (var k = 0; k < sib.length; k++) if ((sib[k].tagName || '').toLowerCase() === tag) { n++; if (sib[k] === el) idx = n; }
+        if (n > 1) part += ':nth-of-type(' + idx + ')';
+      }
+      parts.unshift(part);
+      if (id) break;
+    }
+    return parts.join('>').slice(0, 160);
+  }
+  function heatText(el) {
+    for (var n = el; n && n.nodeType === 1; n = n.parentElement) {
+      var tag = (n.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || tag === 'option') return '';
+      try { if (n.isContentEditable || (n.getAttribute && n.getAttribute('contenteditable'))) return ''; } catch (err) {}
+    }
+    var txt = ((el && (el.innerText || el.textContent)) || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+    if (!txt || /@|\b\d{8,}\b/.test(txt)) return '';
+    return txt;
+  }
+  function onHeat(e) {
+    if (!e || (e.button && e.button !== 0)) return;
+    var x = e.pageX, y = e.pageY;
+    if (!isFinite(x) || !isFinite(y)) return;
+    var doc = d.documentElement, body = d.body;
+    var ww = Math.max((doc && doc.scrollWidth) || 0, (body && body.scrollWidth) || 0, (doc && doc.clientWidth) || 0, w.innerWidth || 0);
+    var hh = Math.max((doc && doc.scrollHeight) || 0, (body && body.scrollHeight) || 0, (doc && doc.clientHeight) || 0, w.innerHeight || 0);
+    if (!(ww > 0 && hh > 0)) return;
+    var nx = Math.max(0, Math.min(1, x / ww));
+    var ny = Math.max(0, Math.min(1, y / hh));
+    var now = Date.now();
+    var near = 0;
+    heatRecent.push({ x: nx, y: ny, t: now });
+    if (heatRecent.length > 8) heatRecent.shift();
+    for (var i = 0; i < heatRecent.length; i++) {
+      var pt = heatRecent[i];
+      if (now - pt.t <= 1000 && Math.abs(pt.x - nx) * ww < 24 && Math.abs(pt.y - ny) * hh < 24) near++;
+    }
+    if (heatN >= 30) return;
+    heatN++;
+    var el = e.target;
+    var sel = cssPath(el);
+    send('heat', { n: sel, p: { x: +nx.toFixed(4), y: +ny.toFixed(4), vw: w.innerWidth || (screen && screen.width) || 0, vh: w.innerHeight || 0, s: sel, t: heatText(el), r: near >= 3 ? 1 : 0 } }, true);
+  }
+
   function start() {
     pageview();
+    armVitals();
     for (var q = 0; q < queued.length; q++) api.apply(null, queued[q]);
     flushQueue();
     scanBlocks();

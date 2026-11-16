@@ -61,7 +61,7 @@ function Loading() {
   return <div className="flex min-h-screen items-center justify-center text-sm text-ink-3" aria-busy="true">{show ? 'Chargement…' : ''}</div>;
 }
 
-const SITE_VIEWS: Record<string, 'videos' | 'sponsors' | 'content' | 'sources' | 'social' | 'bots'> = { bots: 'bots', videos: 'videos', sponsors: 'sponsors', contenus: 'content', sources: 'sources', social: 'social' };
+const SITE_VIEWS: Record<string, 'videos' | 'sponsors' | 'content' | 'sources' | 'social' | 'bots' | 'vitals' | 'clics'> = { bots: 'bots', videos: 'videos', sponsors: 'sponsors', contenus: 'content', sources: 'sources', social: 'social', vitals: 'vitals', clics: 'clics' };
 
 export function App() {
   const path = usePath().replace(/\/+$/, '') || '/';

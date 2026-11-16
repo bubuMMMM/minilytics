@@ -6,7 +6,7 @@ type Cell = { ml: string; ga: string };
 
 /** Factual comparison only — no invented market share, scores or testimonials. */
 const ROWS: { label: string; cells: Cell }[] = [
-  { label: 'Script', cells: { ml: '≈ 6 Ko compressé', ga: 'Script typiquement beaucoup plus lourd (gtag ou gestionnaire de tags)' } },
+  { label: 'Script', cells: { ml: '≈ 7 Ko compressé', ga: 'Script typiquement beaucoup plus lourd (gtag ou gestionnaire de tags)' } },
   { label: 'Cookies', cells: { ml: 'First-party uniquement, avec une option sans cookie', ga: 'Cookies Google ; les données sont traitées par Google' } },
   { label: 'Données revendues', cells: { ml: 'Non', ga: 'Modèle publicitaire de Google' } },
   { label: 'Interface', cells: { ml: 'En français, centrée sur le site, les sources et les revenus', ga: 'Interface vaste, pensée pour l’écosystème Google' } },

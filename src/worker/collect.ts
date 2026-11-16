@@ -13,8 +13,9 @@ import { creditedSessionSql } from './payments.js';
 import { clip, clipChars } from '../shared/text.js';
 import { rawRequestIp, requestIp } from './lib/security.js';
 import { INGEST_LIMIT, INGEST_WINDOW_MS, applyRetryAfter, consumeRateLimit } from './lib/rate-limit.js';
+import { parseHeatProps, parseVitalProps } from '../shared/webVitals.js';
 
-const TYPES = new Set(['pageview', 'goal', 'outbound', 'ping', 'identify', 'scroll', 'engagement', 'click', 'form', 'video', 'action', 'block']);
+const TYPES = new Set(['pageview', 'goal', 'outbound', 'ping', 'identify', 'scroll', 'engagement', 'click', 'form', 'video', 'action', 'block', 'vital', 'heat']);
 /** Video player lifecycle events. `watch` carries seconds actually played since the last report. */
 export const VIDEO_ACTIONS = new Set(['start', 'play', 'pause', 'seek', 'progress', 'complete', 'watch', 'error', 'quality', 'fullscreen', 'mute', 'rate', 'rewatch']);
 export const VIDEO_MILESTONES = [10, 25, 50, 75, 90, 100];
@@ -396,6 +397,30 @@ export async function ingest(
           .bind(...uniq.flatMap((b) => [site.id, b.item, b.title, now, now])),
       );
     }
+  } else if (t === 'vital') {
+    const ev = parseVitalProps(body.p);
+    if (!ev) return;
+    stmts.push(
+      db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
+      insertEvent(db, site.id, sid, vid, now, 'vital', null, path, serializeProperties(ev)),
+    );
+  } else if (t === 'heat') {
+    const ev = parseHeatProps(body.n, body.p);
+    if (!ev) return;
+    stmts.push(
+      db.prepare('UPDATE sessions SET last_seen_at = ? WHERE site_id = ? AND id = ?').bind(now, site.id, sid),
+      insertEvent(
+        db,
+        site.id,
+        sid,
+        vid,
+        now,
+        'heat',
+        ev.selector,
+        path,
+        serializeProperties({ x: ev.x, y: ev.y, vw: ev.vw, vh: ev.vh, s: ev.selector, t: ev.text, r: ev.rage ? 1 : 0 }),
+      ),
+    );
   }
   await db.batch(stmts);
 }

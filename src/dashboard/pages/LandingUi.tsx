@@ -108,7 +108,7 @@ export function TiltStage({ children }: { children: ReactNode }) {
 }
 
 export const TRUST_ITEMS: { label: string; href?: string }[] = [
-  { label: '≈ 6 Ko compressé' },
+  { label: '≈ 7 Ko compressé' },
   { label: 'Cookies first-party uniquement' },
   { label: 'Aucune donnée revendue' },
   { label: 'Code source ouvert', href: 'https://github.com/bubuMMMM/minilytics' },

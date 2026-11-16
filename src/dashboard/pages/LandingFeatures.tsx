@@ -65,7 +65,7 @@ export function FeaturesBento() {
         <Feat span="lg:col-span-3" icon="layout" title="Widgets" text="Compteur, graphique ou carte, à coller sur votre site — ou à poser sur l’écran d’accueil." visual={<VisualPhone />} />
         <Feat span="lg:col-span-2" icon="compass" title="Sources et campagnes" text="Google, 𝕏, e-mail, assistant IA, UTM et ?ref= : chaque visite au bon canal." visual={<VisualSources />} />
         <Feat span="lg:col-span-2" icon="bot" title="Bots IA" text="GPTBot, Claude, Perplexity : qui lit vos pages, à part des humains." visual={<VisualBots />} />
-        <Feat span="lg:col-span-2" icon="lock" title="Léger et respectueux" text="≈ 6 Ko, servable depuis votre domaine. First-party ou sans cookie. Rien n’est revendu." visual={<VisualPrivacy />} />
+        <Feat span="lg:col-span-2" icon="lock" title="Léger et respectueux" text="≈ 7 Ko, servable depuis votre domaine. First-party ou sans cookie. Rien n’est revendu." visual={<VisualPrivacy />} />
         <Feat span="md:col-span-2 lg:col-span-6" icon="code" title="Pour vous, et pour les agents IA" text="Une balise sur le site. CLI et MCP pour interroger vos stats depuis Claude, Cursor ou ChatGPT." visual={<VisualInstall />} flush />
       </div>
 
@@ -92,7 +92,7 @@ export function FeaturesBento() {
   );
 }
 
-const FACTS = ['≈ 6 Ko compressé', 'First-party ou sans cookie', 'SPA React, Next, Vue', 'Bots et robots filtrés'];
+const FACTS = ['≈ 7 Ko compressé', 'First-party ou sans cookie', 'SPA React, Next, Vue', 'Bots et robots filtrés'];
 const STEPS = ['Collez une balise, en une minute.', 'Reliez Stripe, Shopify, Polar…', 'Voyez quels canaux font vraiment acheter.'];
 
 const OPTIONAL: { icon: UiIconName; title: string; when: string; text: string; visual: ReactNode }[] = [
@@ -468,7 +468,7 @@ function VisualPrivacy() {
         <UiIcon name="shield" size={22} />
       </span>
       <ul className="flex min-w-0 flex-1 flex-wrap gap-1.5">
-        {['≈ 6 Ko', 'First-party', 'Mode sans cookie', 'Aucune revente', 'Robots filtrés'].map((l) => (
+        {['≈ 7 Ko', 'First-party', 'Mode sans cookie', 'Aucune revente', 'Robots filtrés'].map((l) => (
           <li key={l} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-medium text-ink-2">
             <span className="text-success" aria-hidden><UiIcon name="check" size={11} /></span>{l}
           </li>

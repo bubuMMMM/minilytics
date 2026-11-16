@@ -4,7 +4,7 @@
  */
 import type { UiIconName } from '../components/UiIcon';
 
-export type NavKey = 'overview' | 'bots' | 'map' | 'social' | 'videos' | 'sponsors' | 'content' | 'sources' | 'realtime' | 'settings' | 'sites';
+export type NavKey = 'overview' | 'bots' | 'map' | 'social' | 'videos' | 'sponsors' | 'content' | 'sources' | 'realtime' | 'vitals' | 'clics' | 'settings' | 'sites';
 
 export interface NavItem {
   key: string;
@@ -28,6 +28,8 @@ export const NAV: NavGroup[] = [
   { id: 'analyse', label: 'Analyse', items: [
     { key: 'overview', active: 'overview', label: 'Vue d’ensemble', short: 'Aperçu', icon: 'bar-chart', path: '', keep: true, hint: 'KPI, courbe, pages, sources' },
     { key: 'realtime', active: 'realtime', label: 'Temps réel', short: 'Direct', icon: 'activity', path: '/realtime', hint: 'Visiteurs en ligne maintenant' },
+    { key: 'vitals', active: 'vitals', label: 'Web Vitals', short: 'Vitals', icon: 'zap', path: '/vitals', keep: true, hint: 'LCP, INP, CLS, FCP et TTFB par page' },
+    { key: 'clics', active: 'clics', label: 'Carte de chaleur', short: 'Clics', icon: 'mouse', path: '/clics', keep: true, hint: 'Clics, éléments et rage clicks par page' },
   ] },
   { id: 'audience', label: 'Audience', items: [
     { key: 'map', active: 'map', label: 'Carte', icon: 'globe', path: '/map', keep: true, hint: 'Globe, replay et flux en direct' },
@@ -56,7 +58,7 @@ export const NAV: NavGroup[] = [
 ];
 
 export const TITLES: Record<NavKey, string> = {
-  overview: 'Vue d’ensemble', map: 'Carte', social: 'Réseaux sociaux', videos: 'Vidéos', sponsors: 'Sponsors', content: 'Contenus', bots: 'Bots IA', sources: 'Sources', realtime: 'Temps réel', settings: 'Réglages', sites: 'Mes sites',
+  overview: 'Vue d’ensemble', map: 'Carte', social: 'Réseaux sociaux', videos: 'Vidéos', sponsors: 'Sponsors', content: 'Contenus', bots: 'Bots IA', sources: 'Sources', realtime: 'Temps réel', vitals: 'Web Vitals', clics: 'Carte de chaleur', settings: 'Réglages', sites: 'Mes sites',
 };
 
 export function navHref(siteId: string, item: NavItem) {

@@ -340,7 +340,7 @@ export function Landing() {
             <div>
               <SectionHead id="i-title" eyebrow="Installation" title="Une balise. Deux minutes." text="Collez le script dans le <head> de votre site : HTML, WordPress, Webflow ou Next.js. Les pages vues, la navigation des applis monopage, le scroll, le temps actif et les clics sortants sont mesurés automatiquement." />
               <ul className="mt-6 space-y-2.5 text-[14px] text-ink-2">
-                {['Script d’environ 6 Ko compressé', 'Cookies first-party uniquement, aucune donnée revendue', 'Objectifs avec un simple attribut data-ml-goal'].map((x) => (
+                {['Script d’environ 7 Ko compressé', 'Cookies first-party uniquement, aucune donnée revendue', 'Objectifs avec un simple attribut data-ml-goal'].map((x) => (
                   <li key={x} className="flex items-center gap-2.5"><span className="text-success" aria-hidden><UiIcon name="check" size={16} /></span>{x}</li>
                 ))}
               </ul>
