@@ -19,6 +19,7 @@ import { registerPlatform } from './platform.js';
 import { registerConnectors } from './connectors.js';
 import { registerWebQuality } from './web-quality.js';
 import { registerHeatmapPreview } from './heatmap-preview.js';
+import { registerMilestones } from './milestones.js';
 import { registerWaitlist } from './waitlist.js';
 
 const app = new Hono<AppEnv>();
@@ -55,6 +56,7 @@ registerGrowth(app);
 registerBots(app);
 registerImports(app);
 registerShare(app);
+registerMilestones(app);
 registerWidgets(app);
 registerWidgetPng(app);
 registerPhone(app);

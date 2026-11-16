@@ -21,6 +21,10 @@
       "destination": "/api"
     },
     {
+      "source": "/m/:token",
+      "destination": "/api"
+    },
+    {
       "source": "/w/:token",
       "destination": "/api"
     },

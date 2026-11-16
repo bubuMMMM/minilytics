@@ -20,6 +20,7 @@ export const SITE_DATA_TABLES = [
   'videos',
   'x_posts',
   'x_sync',
+  'milestones',
 ] as const;
 
 export function deleteSiteStatements(db: D1Database, id: string) {

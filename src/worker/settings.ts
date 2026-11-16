@@ -17,11 +17,16 @@ export interface AlertSettings {
   payments: boolean;
   mentions: boolean;
 }
+export interface MilestoneShareSettings {
+  /** When true, revenue milestones are public and appear on share cards. Default: false. */
+  shareRevenue: boolean;
+}
 export interface SiteSettings {
   allowedHostnames: string[];
   alerts: AlertSettings;
   github: { repo: string | null };
   reddit: { keywords: string[] };
+  milestones: MilestoneShareSettings;
 }
 
 export const DEFAULT_ALERTS: AlertSettings = { inApp: true, emails: [], weekly: false, monthly: false, traffic: true, newGoals: true, goals: [], payments: true, mentions: true };
@@ -53,6 +58,7 @@ export function normalizeSettings(raw: any): SiteSettings {
     },
     github: { repo: /^[\w.-]{1,100}\/[\w.-]{1,100}$/.test(repo) ? repo : null },
     reddit: { keywords: uniq(list(r.reddit?.keywords, 5).map((k) => k.slice(0, 60))) },
+    milestones: { shareRevenue: bool(r.milestones?.shareRevenue, false) },
   };
 }
 
@@ -76,6 +82,7 @@ export async function saveSettings(db: D1Database, site: Site, patch: Partial<Re
     alerts: { ...cur.alerts, ...((patch.alerts as object) ?? {}) },
     github: { ...cur.github, ...((patch.github as object) ?? {}) },
     reddit: { ...cur.reddit, ...((patch.reddit as object) ?? {}) },
+    milestones: { ...cur.milestones, ...((patch.milestones as object) ?? {}) },
   });
   await db.prepare('UPDATE sites SET settings = ? WHERE id = ?').bind(JSON.stringify(next), site.id).run();
   forgetSite(site.id);

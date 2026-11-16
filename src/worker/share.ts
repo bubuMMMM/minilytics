@@ -121,7 +121,7 @@ type ShareEnv = AppEnv & { Variables: AppEnv['Variables'] & { share: ShareRow } 
 
 
 
-export function injectShareMeta(html: string, opts: { title: string; desc: string; url: string; image: string }) {
+export function injectShareMeta(html: string, opts: { title: string; desc: string; url: string; image: string; imageWidth?: number; imageHeight?: number }) {
   const set = (s: string, re: RegExp, tag: string) => (re.test(s) ? s.replace(re, tag) : s.replace('</head>', `    ${tag}\n  </head>`));
   let out = html;
   out = out.replace(/<title>[^<]*<\/title>/, `<title>${esc(opts.title)}</title>`);
@@ -131,13 +131,16 @@ export function injectShareMeta(html: string, opts: { title: string; desc: strin
   out = set(out, /<meta property="og:title" content="[^"]*"\s*\/?>/, `<meta property="og:title" content="${esc(opts.title)}" />`);
   out = set(out, /<meta property="og:description" content="[^"]*"\s*\/?>/, `<meta property="og:description" content="${esc(opts.desc)}" />`);
   out = set(out, /<meta property="og:image" content="[^"]*"\s*\/?>/, `<meta property="og:image" content="${esc(opts.image)}" />`);
-  out = set(out, /<meta property="og:image:width" content="[^"]*"\s*\/?>/, `<meta property="og:image:width" content="1200" />`);
-  out = set(out, /<meta property="og:image:height" content="[^"]*"\s*\/?>/, `<meta property="og:image:height" content="630" />`);
+  const w = String(opts.imageWidth ?? 1200);
+  const h = String(opts.imageHeight ?? 630);
+  out = set(out, /<meta property="og:image:width" content="[^"]*"\s*\/?>/, `<meta property="og:image:width" content="${w}" />`);
+  out = set(out, /<meta property="og:image:height" content="[^"]*"\s*\/?>/, `<meta property="og:image:height" content="${h}" />`);
   out = set(out, /<meta property="og:image:type" content="[^"]*"\s*\/?>/, `<meta property="og:image:type" content="image/png" />`);
   out = set(out, /<meta property="og:image:alt" content="[^"]*"\s*\/?>/, `<meta property="og:image:alt" content="${esc(opts.title)}" />`);
   out = set(out, /<meta name="twitter:title" content="[^"]*"\s*\/?>/, `<meta name="twitter:title" content="${esc(opts.title)}" />`);
   out = set(out, /<meta name="twitter:description" content="[^"]*"\s*\/?>/, `<meta name="twitter:description" content="${esc(opts.desc)}" />`);
   out = set(out, /<meta name="twitter:image" content="[^"]*"\s*\/?>/, `<meta name="twitter:image" content="${esc(opts.image)}" />`);
+  out = set(out, /<meta name="twitter:card" content="[^"]*"\s*\/?>/, `<meta name="twitter:card" content="summary_large_image" />`);
   if (!/<meta name="robots"/.test(out)) out = out.replace('</head>', '    <meta name="robots" content="noindex, nofollow" />\n  </head>');
   else out = out.replace(/<meta name="robots" content="[^"]*"\s*\/?>/, '<meta name="robots" content="noindex, nofollow" />');
   return out;

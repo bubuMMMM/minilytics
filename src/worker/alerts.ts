@@ -13,7 +13,7 @@ import { authenticate, canAccess } from './auth.js';
 import { esc } from './lib/esc.js';
 import { ERR } from './lib/errors.js';
 
-export type NotificationKind = 'goal' | 'new_goal' | 'spike' | 'drop' | 'payment' | 'mention' | 'commit' | 'report' | 'quota';
+export type NotificationKind = 'goal' | 'new_goal' | 'spike' | 'drop' | 'payment' | 'mention' | 'commit' | 'report' | 'quota' | 'milestone';
 export interface NotifyInput { kind: NotificationKind; title: string; body?: string | null; url?: string | null; dedupe?: string | null; ts?: number }
 
 const KIND_SETTING: Partial<Record<NotificationKind, keyof SiteSettings['alerts']>> = {
@@ -255,7 +255,7 @@ export async function runDailyAlerts(env: Env, sites: Site[], now = Date.now(), 
     }
     if (a.emails.length && env.RESEND_API_KEY) {
       const pending = (
-        await env.DB.prepare("SELECT id, kind, title, body FROM notifications WHERE site_id = ? AND emailed_at IS NULL AND kind IN ('spike','drop','new_goal','goal','mention','payment','quota') AND ts > ? ORDER BY ts LIMIT 50")
+        await env.DB.prepare("SELECT id, kind, title, body FROM notifications WHERE site_id = ? AND emailed_at IS NULL AND kind IN ('spike','drop','new_goal','goal','mention','payment','quota','milestone') AND ts > ? ORDER BY ts LIMIT 50")
           .bind(site.id, now - DAY)
           .all<{ id: string; kind: string; title: string; body: string | null }>()
       ).results;
@@ -317,7 +317,7 @@ export function registerAlerts(app: Hono<AppEnv>) {
   app.patch('/api/sites/:id/settings', async (c) => {
     const b: Record<string, unknown> = await c.req.json<Record<string, unknown>>().catch(() => ({}));
     const patch: Record<string, unknown> = {};
-    for (const k of ['allowedHostnames', 'alerts', 'github', 'reddit']) if (k in b) patch[k] = b[k];
+    for (const k of ['allowedHostnames', 'alerts', 'github', 'reddit', 'milestones']) if (k in b) patch[k] = b[k];
     return c.json({ ...(await saveSettings(c.env.DB, c.get('site'), patch)), email: emailState(c.env) });
   });
   app.get('/api/sites/:id/reports/preview', async (c) => {

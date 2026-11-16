@@ -30,6 +30,7 @@ const MapPage = lazy(() => import('./map/MapPage').then((m) => ({ default: m.Map
 const Sites = lazy(() => import('./pages/Sites').then((m) => ({ default: m.Sites })));
 const Team = lazy(() => import('./pages/Team').then((m) => ({ default: m.Team })));
 const SharePage = lazy(() => import('./share/SharePage').then((m) => ({ default: m.SharePage })));
+const MilestonePage = lazy(() => import('./share/MilestonePage').then((m) => ({ default: m.MilestonePage })));
 const Invite = lazy(() => import('./pages/Team').then((m) => ({ default: m.Invite })));
 const ApiDocs = lazy(() => import('./pages/ApiDocs').then((m) => ({ default: m.ApiDocs })));
 const PublicProfile = lazy(() => import('./pages/PublicProfile').then((m) => ({ default: m.PublicProfile })));
@@ -83,6 +84,8 @@ export function App() {
   // Read-only shared dashboards: no login, the link (and its optional password) is the credential.
   const share = /^\/share\/([\w-]{20,80})(?:\/(\w+))?$/.exec(path);
   if (share) return <Suspense fallback={<Loading />}><SharePage key={share[1]} token={share[1]} view={share[2]} /></Suspense>;
+  const milestone = /^\/m\/(m[\w-]{15,80})$/.exec(path);
+  if (milestone) return <Suspense fallback={<Loading />}><MilestonePage key={milestone[1]} token={milestone[1]} /></Suspense>;
   const profile = /^\/u\/([a-z0-9][a-z0-9-]{1,30})$/.exec(path);
   if (profile) return <Suspense fallback={<Loading />}><PublicProfile slug={profile[1]} /></Suspense>;
   const invite = /^\/invite\/([\w-]{20,100})$/.exec(path);

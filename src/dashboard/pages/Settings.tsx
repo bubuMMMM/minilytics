@@ -9,6 +9,7 @@ import { PlausibleImport } from '../components/PlausibleImport';
 import { AlertsSettings, ApiAccess, ConnectorsSettings, CrossDomain, PlanUsage, TrackerOptions } from '../components/SettingsParity';
 import { useMe } from '../lib/me';
 import { ShareSettings } from '../share/ShareSettings';
+import { MilestoneSettings } from '../share/MilestoneSettings';
 import { WidgetBuilder } from '../share/WidgetBuilder';
 import { PhoneWidgets } from '../share/PhoneWidgets';
 import { Link } from '../components/Link';
@@ -344,6 +345,7 @@ curl -X POST ${origin}/api/v1/goals \\
       </>}
       {sec === 'partage' && <>
       <ShareSettings site={site} />
+      <MilestoneSettings site={site} />
       </>}
       {sec === 'widgets' && <>
       <WidgetBuilder site={site} />

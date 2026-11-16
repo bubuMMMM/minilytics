@@ -10,6 +10,7 @@ import { purgeExpiredRateLimits } from '../lib/rate-limit.js';
 import { mapBudget } from '../lib/pool.js';
 import { purgeExpiredData } from '../retention.js';
 import { maybeQuotaNotifications } from '../quota.js';
+import { scanMilestones } from '../milestones.js';
 import { PUBLIC_CACHE } from '../lib/security.js';
 import { handleDodoWebhook, handleGoalApi, handlePaymentApi } from '../payments.js';
 import { publicTopVideos } from '../videos.js';
@@ -156,12 +157,13 @@ app.get('/api/cron/daily', async (c) => {
     };
   });
   const now = Date.now();
-  const [rateLimits, retention, quota] = await Promise.all([
+  const [rateLimits, retention, quota, milestones] = await Promise.all([
     purgeExpiredRateLimits(c.env.DB).catch(() => 0),
     purgeExpiredData(c.env.DB, now).catch((e) => ({ error: String(e) })),
     maybeQuotaNotifications(c.env.DB, sites, now).catch((e) => ({ error: String(e) })),
+    scanMilestones(c.env.DB, sites, now, origin).catch((e) => ({ error: String(e) })),
   ]);
-  return c.json({ alerts: await runDailyAlerts(c.env, sites, now, origin), sources, remaining: ran.remaining, rateLimits, retention, quota });
+  return c.json({ alerts: await runDailyAlerts(c.env, sites, now, origin), sources, remaining: ran.remaining, rateLimits, retention, quota, milestones });
 });
 }
 

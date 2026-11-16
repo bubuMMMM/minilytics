@@ -8,7 +8,7 @@ import { Link } from './Link';
 /** Backend notifications (table `notifications`, see src/worker/alerts.ts). */
 export interface Notification {
   id: string;
-  kind: 'goal' | 'new_goal' | 'spike' | 'drop' | 'payment' | 'mention' | 'commit' | 'report';
+  kind: 'goal' | 'new_goal' | 'spike' | 'drop' | 'payment' | 'mention' | 'commit' | 'report' | 'quota' | 'milestone';
   title: string;
   body?: string | null;
   ts: number;
@@ -26,6 +26,8 @@ const KIND: Record<Notification['kind'], { icon: string; tone: string; label: st
   mention: { icon: '💬', tone: 'bg-accent/10', label: 'Mention' },
   commit: { icon: '◆', tone: 'bg-well', label: 'Commit' },
   report: { icon: '📬', tone: 'bg-well', label: 'Rapport' },
+  quota: { icon: '📊', tone: 'bg-warning/10', label: 'Quota' },
+  milestone: { icon: '🏅', tone: 'bg-accent/10', label: 'Jalon' },
 };
 const POLL = 60_000;
 // Remember (10 min, this tab) that the server has no notifications endpoint, to avoid a 404 on every page.
