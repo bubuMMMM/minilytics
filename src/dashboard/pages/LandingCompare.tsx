@@ -112,7 +112,7 @@ export function LandingCompare() {
           center
           id="cmp-title"
           eyebrow="Comparaison"
-          title="L’essentiel, face aux outils que l’on compare souvent."
+          title="Face aux outils que l’on compare souvent."
           text="Des faits publiés, pas un classement. Prix, cookies, script et conservation tels que les sites officiels les indiquent en novembre 2026."
         />
         <div className="ml-cmp-wrap mt-12 overflow-x-auto rounded-2xl border border-line bg-canvas shadow-xs">
@@ -136,7 +136,7 @@ export function LandingCompare() {
             </thead>
             <tbody>
               {ROWS.map((row) => (
-                <tr key={row.label} className="border-t border-line">
+                <tr key={row.label} className="border-t border-line transition-colors hover:bg-well/60">
                   <th scope="row" className="ml-cmp-sticky px-4 py-3.5 align-top text-[13px] font-medium text-ink-2 sm:px-5">{row.label}</th>
                   {COLS.map((col) => (
                     <td

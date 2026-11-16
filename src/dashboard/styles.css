@@ -327,12 +327,9 @@ input.ml-check { width: 1.15rem; height: 1.15rem; accent-color: rgb(var(--accent
 .ml-feat > * { position: relative; z-index: 1; }
 .ml-feat-optional { border-style: dashed; border-color: rgb(var(--line-strong)); background: rgb(var(--surface)); box-shadow: none; }
 .ml-feat-ico {
-  display: inline-flex; height: 32px; width: 32px;
+  display: inline-flex; height: auto; width: auto;
   align-items: center; justify-content: center;
-  border-radius: 8px;
-  border: 1px solid rgb(var(--line));
-  background: rgb(var(--well));
-  color: rgb(var(--ink-2));
+  color: rgb(var(--ink-3));
 }
 .ml-feat-visual {
   margin-top: auto; min-width: 0;
@@ -921,6 +918,9 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
 .ml-cmp thead .ml-cmp-sticky { z-index: 2; background: rgb(var(--well) / .96); }
 .ml-cmp-ml { background: rgb(var(--accent) / .04); }
 .dark .ml-cmp-ml { background: rgb(var(--accent) / .07); }
+.ml-cmp tbody tr:hover th, .ml-cmp tbody tr:hover td { background: rgb(var(--well) / .7); }
+.ml-cmp tbody tr:hover .ml-cmp-ml { background: rgb(var(--accent) / .08); }
+.ml-cmp tbody tr:hover .ml-cmp-sticky { background: rgb(var(--well) / .96); }
 
 .ml-price-card { position: relative; isolation: isolate; overflow: hidden; border-radius: var(--radius-xl); }
 .ml-price-card.is-featured {

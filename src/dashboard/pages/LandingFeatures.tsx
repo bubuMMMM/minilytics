@@ -53,7 +53,7 @@ export function FeaturesBento() {
       <div className="ml-feat-grid mt-4 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-6">
         <Feat span="md:col-span-2 lg:col-span-3" icon="users" title="Du premier clic à la conversion" text="Identité, source, pages et durée : le parcours complet de la visite, d’un coup d’œil." visual={<VisualJourney />} />
         <Feat span="lg:col-span-3" icon="layout" title="Widgets" text="Compteur, graphique ou carte, à coller sur votre site — ou à poser sur l’écran d’accueil." visual={<VisualPhone />} />
-        <Feat span="lg:col-span-2" icon="compass" title="Sources et campagnes" text="Google, 𝕏, e-mail, assistant IA, UTM et ?ref= : chaque visite au bon canal." visual={<VisualSources />} />
+        <Feat span="lg:col-span-2" icon="compass" title="Sources et campagnes" text="Google, X, e-mail, assistant IA, UTM et ?ref= : chaque visite au bon canal." visual={<VisualSources />} />
         <Feat span="lg:col-span-2" icon="bot" title="Bots IA" text="GPTBot, Claude, Perplexity : qui lit vos pages, à part des humains." visual={<VisualBots />} />
         <Feat span="lg:col-span-2" icon="lock" title="Léger et respectueux" text="≈ 7 Ko, servable depuis votre domaine. First-party ou sans cookie. Rien n’est revendu." visual={<VisualPrivacy />} />
         <Feat span="md:col-span-2 lg:col-span-6" icon="code" title="Pour vous, et pour les agents IA" text="Une balise sur le site. CLI et MCP pour interroger vos stats depuis Claude, Cursor ou ChatGPT." visual={<VisualInstall />} flush />
@@ -101,7 +101,7 @@ function Feat({ span, icon, title, text, visual, flush = false }: { span?: strin
     <article className={`ml-feat flex flex-col p-5 sm:p-6 ${span ?? ''}`} onPointerMove={shine}>
       <div className="min-w-0">
         <span className="ml-feat-ico" aria-hidden><UiIcon name={icon} size={16} /></span>
-        <h3 className="mt-3.5 text-[15px] font-semibold tracking-[-0.015em] text-ink sm:text-[16px]">{title}</h3>
+        <h3 className="mt-2.5 text-[15px] font-semibold tracking-[-0.015em] text-ink sm:text-[16px]">{title}</h3>
         <p className="mt-1.5 max-w-[52ch] text-[13px] leading-relaxed text-ink-3 [text-wrap:pretty] sm:text-[14px]">{text}</p>
       </div>
       <div className={`ml-feat-visual mt-5 ${flush ? 'p-0 sm:p-0' : 'p-3 sm:p-4'}`} aria-hidden={title !== 'Pour vous, et pour les agents IA'}>{visual}</div>
@@ -297,7 +297,7 @@ function BentoGlobeFallback() {
 function VisualSources() {
   const rows = [
     { l: 'Google', mark: 'G', color: '#4285F4', n: '1 204', w: '86%' },
-    { l: '𝕏', mark: '𝕏', color: '#171717', n: '418', w: '54%' },
+    { l: 'X', mark: 'X', color: '#171717', n: '418', w: '54%' },
     { l: 'ChatGPT', mark: 'C', color: '#10A37F', n: '196', w: '38%' },
     { l: 'E-mail', mark: '@', color: '#2563EB', n: '87', w: '22%' },
   ];

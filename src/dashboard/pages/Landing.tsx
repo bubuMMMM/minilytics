@@ -106,7 +106,7 @@ export function Landing() {
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
             <Link href="/login" className="btn-ghost !text-[14px] hidden sm:inline-flex">Se connecter</Link>
-            <ShimmerLink href="/signup" className="!min-h-[36px] !whitespace-nowrap !px-2.5 !text-[12px] sm:!px-3 sm:!text-[13px]">Réserver mon accès</ShimmerLink>
+            <ShimmerLink href="/signup" className="!hidden !min-h-[36px] !whitespace-nowrap !px-3 !text-[13px] sm:!inline-flex">Réserver mon accès</ShimmerLink>
             <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink-2 hover:bg-well lg:hidden" aria-expanded={menu} aria-controls="landing-menu" aria-label={menu ? 'Fermer le menu' : 'Ouvrir le menu'} onClick={() => setMenu((m) => !m)}>
               <UiIcon name={menu ? 'x' : 'menu'} size={18} />
             </button>

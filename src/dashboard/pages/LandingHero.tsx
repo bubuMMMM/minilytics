@@ -409,12 +409,16 @@ export function LandingHero() {
               : failed ? <span>Démo en direct</span> : <><span className="sr-only">Chargement des visiteurs en ligne</span><span className="ml-hx-skel h-3.5 w-36" aria-hidden /></>}
             <UiIcon name="arrow-right" size={13} className="text-ink-4" />
           </Link>
-          <h1 id="hero-title" className="mt-5 text-[clamp(2.75rem,11.5vw,5.25rem)] font-bold leading-[0.98] tracking-[-0.05em] text-ink sm:mt-6">
-            Votre site vit.<br />Regardez.
+          <h1 id="hero-title" className="mt-5 text-[clamp(2.5rem,10vw,4.75rem)] font-bold leading-[0.98] tracking-[-0.05em] text-ink sm:mt-6">
+            Voyez qui vient.<br />En direct.
           </h1>
           <p className="mx-auto mt-4 max-w-[460px] text-[17px] leading-snug text-ink-3 sm:mt-5 sm:text-[20px]">
-            Vos visiteurs, partout dans le monde.<br />En temps réel.
+            Vos visiteurs, partout dans le monde.<br />Sans estimation, en temps réel.
           </p>
+          <div className="mt-6 flex flex-col items-center justify-center gap-2.5 sm:mt-7 sm:flex-row sm:gap-3">
+            <ShimmerLink href="/signup" className="!min-h-11 !px-5 !text-[14px] sm:!min-h-12 sm:!px-6 sm:!text-[15px]">Réserver mon accès</ShimmerLink>
+            <Link href={`/demo${siteQuery}`} className="btn !min-h-11 !px-5 !text-[14px] sm:!min-h-12 sm:!px-6 sm:!text-[15px]">Voir la démo</Link>
+          </div>
         </div>
 
         <Globe data={globe} online={online} palette={palette} />
@@ -463,8 +467,6 @@ export function LandingHero() {
         )}
 
         <div className="mt-8 flex flex-col items-center text-center sm:mt-10">
-          <ShimmerLink href="/signup" className="ml-hx-cta">Réserver mon accès <UiIcon name="arrow-right" size={18} /></ShimmerLink>
-          <Link href={`/demo${siteQuery}`} className="mt-4 inline-flex min-h-[44px] items-center text-[16px] font-medium text-ink underline decoration-ink-4 underline-offset-[5px] transition-colors hover:decoration-accent sm:text-[17px]">Voir la démo en direct</Link>
           <p className="text-[13px] text-ink-3 sm:text-[14px]">Liste d’attente gratuite · Aucune carte requise</p>
           {!failed && <p className="mt-1 text-[12px] text-ink-4">Chiffres réels et agrégés d’un site en production.</p>}
         </div>
