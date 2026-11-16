@@ -41,6 +41,57 @@ const knownGoals = new Map<string, Set<string>>();
 const goalPing = new Map<string, number>();
 
 /** Called at ingestion before a goal is inserted: first-ever completion → "new goal"; watched goals → "goal". */
+
+const PAYMENT_RETURN_MS = 86_400_000;
+
+/**
+ * When a visitor already linked to a payment starts a new session, record an in-app
+ * notification (deduped once per visitor per 24 h). Intended to run in the same ingest
+ * batch as the session INSERT: it only fires if that session's started_at equals `now`.
+ * Existing e-mail digest includes kind `payment` when Resend is configured.
+ */
+export function payingReturnNotification(db: D1Database, site: Site, vid: string, sid: string, now: number) {
+  const a = readSettings(site).alerts;
+  if (!a.inApp || a.payments === false) return null;
+  const title = 'Un client payant est de retour';
+  const body = 'Un visiteur déjà lié à un paiement a commencé une nouvelle session.';
+  const url = `/site/${site.id}`;
+  const dedupe = `payment-return:${vid}:${now}`;
+  return db
+    .prepare(
+      `INSERT INTO notifications (id, site_id, kind, title, body, url, ts, dedupe)
+       SELECT ?, ?, 'payment', ?, ?, ?, ?, ?
+       WHERE EXISTS (
+         SELECT 1 FROM payments WHERE site_id = ? AND visitor_id = ? AND kind = 'payment' AND amount > 0
+       )
+       AND EXISTS (
+         SELECT 1 FROM sessions WHERE site_id = ? AND id = ? AND visitor_id = ? AND started_at = ?
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM notifications WHERE site_id = ? AND dedupe LIKE ? AND ts > ?
+       )
+       ON CONFLICT DO NOTHING`,
+    )
+    .bind(
+      randomId(10),
+      site.id,
+      title,
+      body,
+      url,
+      now,
+      dedupe,
+      site.id,
+      vid,
+      site.id,
+      sid,
+      vid,
+      now,
+      site.id,
+      `payment-return:${vid}:%`,
+      now - PAYMENT_RETURN_MS,
+    );
+}
+
 export async function goalAlerts(db: D1Database, site: Site, name: string, path: string, now = Date.now()) {
   const a = readSettings(site).alerts;
   if (!a.inApp) return;
@@ -203,7 +254,7 @@ export async function runDailyAlerts(env: Env, sites: Site[], now = Date.now(), 
     }
     if (a.emails.length && env.RESEND_API_KEY) {
       const pending = (
-        await env.DB.prepare("SELECT id, kind, title, body FROM notifications WHERE site_id = ? AND emailed_at IS NULL AND kind IN ('spike','drop','new_goal','goal','mention') AND ts > ? ORDER BY ts LIMIT 50")
+        await env.DB.prepare("SELECT id, kind, title, body FROM notifications WHERE site_id = ? AND emailed_at IS NULL AND kind IN ('spike','drop','new_goal','goal','mention','payment','quota') AND ts > ? ORDER BY ts LIMIT 50")
           .bind(site.id, now - DAY)
           .all<{ id: string; kind: string; title: string; body: string | null }>()
       ).results;

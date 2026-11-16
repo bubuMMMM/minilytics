@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 import type { AppEnv, Site } from './env.js';
 import { bucketLabels, bucketSql, resolveRange, tzOffset, type Range } from './lib/time.js';
 import { currencyDecimals } from './payments.js';
+import { normalizeOsVersion } from './lib/ua.js';
 
 /** Filters that live on the session row (clicking a row in the dashboard adds one of these). */
 const SESSION_FILTERS = [
@@ -483,7 +484,10 @@ export async function visitorProfile(db: D1Database, site: Site, vid: string) {
   ]);
   return {
     visitor: v.results[0] ?? null,
-    sessions: s.results,
+    sessions: (s.results as Record<string, unknown>[]).map((row) => ({
+      ...row,
+      os_version: normalizeOsVersion(typeof row.os_version === 'string' ? row.os_version : null) ?? row.os_version ?? null,
+    })),
     events: e.results,
     payments: p.results,
     currency: site.currency,

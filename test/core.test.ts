@@ -173,7 +173,7 @@ describe('video and action events', () => {
 
 import { androidAppDomain } from '../src/shared/sources';
 import { blockEvents } from '../src/worker/collect';
-import { uaDetails } from '../src/worker/lib/ua';
+import { normalizeOsVersion, uaDetails } from '../src/worker/lib/ua';
 
 describe('precision tracking', () => {
   it('maps android-app referrers and in-app browsers to their network', () => {
@@ -189,6 +189,10 @@ describe('precision tracking', () => {
     const ios = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1';
     expect(uaDetails(ios)).toEqual({ browserVersion: '18', osVersion: '18.1', model: 'iPhone' });
     expect(uaDetails(android, { m: 'Pixel 9', pv: '15.0.0', bv: '130' })).toEqual({ browserVersion: '130', osVersion: '15.0.0', model: 'Pixel 9' });
+    expect(uaDetails(ios, { pv: '15_0' })).toEqual({ browserVersion: '18', osVersion: '15.0', model: 'iPhone' });
+    expect(normalizeOsVersion('15_0')).toBe('15.0');
+    expect(normalizeOsVersion('15_0_1')).toBe('15.0.1');
+    expect(normalizeOsVersion(null)).toBeNull();
   });
   it('validates block impressions and clicks', () => {
     const views = blockEvents({ n: 'view', p: { items: [

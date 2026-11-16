@@ -20,6 +20,7 @@ class Stmt {
     return new Stmt(this.db, this.sql, params.map(sanitizeBindValue));
   }
   async all() {
+    this.db.queries++;
     const r = await this.db.pg.query(translate(this.sql), this.params, { parsers });
     return { results: r.rows as any[], success: true, meta: { changes: r.affectedRows ?? 0 } };
   }
@@ -32,11 +33,17 @@ class Stmt {
 }
 
 export class PgliteD1 {
+  /** Incremented once per statement execution or batch (one Neon HTTP round trip). */
+  queries = 0;
   constructor(readonly pg: PGlite) {}
+  resetQueries() {
+    this.queries = 0;
+  }
   prepare(sql: string) {
     return new Stmt(this, sql);
   }
   async batch(stmts: Stmt[]) {
+    this.queries++;
     return this.pg.transaction(async (tx) => {
       const out = [];
       for (const st of stmts) {

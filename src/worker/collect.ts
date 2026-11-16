@@ -7,7 +7,7 @@ import { getSite, type AppEnv, type Site } from './env.js';
 import { DEMO_SITE_ID, ensureDemoSite } from './demo.js';
 import { isBot, parseUA, uaDetails } from './lib/ua.js';
 import { hostAllowed, readSettings } from './settings.js';
-import { goalAlerts } from './alerts.js';
+import { goalAlerts, payingReturnNotification } from './alerts.js';
 import { hmacHex } from './lib/crypto.js';
 import { creditedSessionSql } from './payments.js';
 import { clip, clipChars } from '../shared/text.js';
@@ -244,24 +244,13 @@ export async function ingest(
     return;
   }
 
-  const existing = await db
-    .prepare('SELECT 1 FROM sessions WHERE site_id = ? AND id = ?')
-    .bind(site.id, sid)
-    .first();
-
-  const stmts: D1PreparedStatement[] = [];
-  if (!existing) {
-    stmts.push(...newSession(db, site, body, url, path, ua, geo, now));
-  }
+  // One batch for the whole event: INSERT OR IGNORE creates the session when needed, so we
+  // no longer pre-SELECT. On Neon HTTP that is a single round trip instead of two or three.
+  const stmts: D1PreparedStatement[] = [...newSession(db, site, body, url, path, ua, geo, now)];
+  const returned = payingReturnNotification(db, site, vid, sid, now);
+  if (returned) stmts.push(returned);
 
   if (t === 'pageview') {
-    if (existing) {
-      stmts.push(
-        db
-          .prepare('UPDATE sessions SET pageviews = pageviews + 1, exit_page = ?, last_seen_at = ? WHERE site_id = ? AND id = ?')
-          .bind(path, now, site.id, sid),
-      );
-    }
     stmts.push(insertEvent(db, site.id, sid, vid, now, 'pageview', null, path, null));
     stmts.push(...claimPayment(db, site.id, vid, url, now, body.pi));
   } else if (t === 'goal') {
@@ -690,7 +679,7 @@ function newSession(
       ),
     // Separate statement so concurrent first events (pageview + goal racing) never double count.
     ...(pageviews
-      ? [db.prepare('UPDATE sessions SET pageviews = pageviews + 1 WHERE site_id = ? AND id = ?').bind(site.id, body.sid)]
+      ? [db.prepare('UPDATE sessions SET pageviews = pageviews + 1, exit_page = ?, last_seen_at = ? WHERE site_id = ? AND id = ?').bind(path, now, site.id, body.sid)]
       : []),
   ];
 }

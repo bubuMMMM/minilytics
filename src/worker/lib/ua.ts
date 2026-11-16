@@ -61,6 +61,15 @@ export interface UADetails {
   model: string | null;
 }
 
+/** Turn UA / Client Hint OS versions into dotted form (`15_0` → `15.0`, `15_0_1` → `15.0.1`). */
+export function normalizeOsVersion(v: string | null | undefined): string | null {
+  if (typeof v !== 'string') return null;
+  const dotted = v.trim().replace(/_/g, '.');
+  if (!dotted) return null;
+  const m = /^(\d+(?:\.\d+){0,3})/.exec(dotted);
+  return m ? m[1] : dotted.slice(0, 20);
+}
+
 /** Major browser version, OS version and device model. UA client hints (`ch`) win when present. */
 export function uaDetails(ua: string, ch?: { m?: unknown; pv?: unknown; bv?: unknown } | null): UADetails {
   const str = (v: unknown, n: number) => (typeof v === 'string' && /^[\w .()+-]{1,60}$/.test(v) ? v.trim().slice(0, n) || null : null);
@@ -82,7 +91,7 @@ export function uaDetails(ua: string, ch?: { m?: unknown; pv?: unknown; bv?: unk
   return {
     browserVersion: chBv ?? bvMatch?.[1] ?? null,
     // Windows 11 reports platformVersion ≥ 13 through client hints only.
-    osVersion: chPv ?? osVersion,
+    osVersion: normalizeOsVersion(chPv) ?? osVersion,
     model: (chModel ?? model)?.slice(0, 40) ?? null,
   };
 }
