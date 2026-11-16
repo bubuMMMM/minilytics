@@ -163,8 +163,9 @@ function HeatCanvas({ points, iframeSrc }: { points: HeatmapReport['points']; if
         const r = radius * (0.6 + 0.8 * t);
         const grd = ctx.createRadialGradient(x, y, 0, x, y, r);
         const color = pt.rage ? danger : accent;
-        grd.addColorStop(0, `rgba(${color}, ${0.18 + 0.55 * t})`);
-        grd.addColorStop(1, `rgba(${color}, 0)`);
+        // Tokens are space-separated RGB triplets (e.g. "37 99 235"); slash alpha is the matching CSS syntax.
+        grd.addColorStop(0, `rgb(${color} / ${0.18 + 0.55 * t})`);
+        grd.addColorStop(1, `rgb(${color} / 0)`);
         ctx.fillStyle = grd;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
