@@ -25,7 +25,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Comment mesurer une inscription ou un achat ?', a: 'Ajoutez data-ml-goal="inscription" sur le bouton, ou appelez minilytics(\'goal\', \'achat\') dans votre code. Les paiements peuvent aussi arriver depuis Dodo Payments ou l’API de paiements.' },
   { q: 'Minilytics utilise-t-il des cookies ?', a: 'Oui, deux cookies first-party : un identifiant de visiteur (1 an) et un identifiant de visite (30 minutes, renouvelé à chaque action). Aucun cookie tiers, aucune donnée revendue. Une option sans cookie est disponible sur la balise.' },
   { q: 'Les robots sont-ils comptés ?', a: 'Non. Les robots connus, les aperçus de liens et les navigateurs automatisés (headless, WebDriver) sont filtrés côté navigateur et côté serveur.' },
-  { q: 'Comment savoir quel post 𝕏 m’amène des visiteurs ?', a: 'X ne transmet que « t.co » comme référent. Créez un lien traçable dans la vue Réseaux sociaux : chaque visite est attribuée à son post. Avec votre clé de l’API X, les posts qui citent votre domaine s’affichent aussi.' },
+  { q: 'Comment savoir quel post X m’amène des visiteurs ?', a: 'X ne transmet que « t.co » comme référent. Créez un lien traçable dans la vue Réseaux sociaux : chaque visite est attribuée à son post. Avec votre clé de l’API X, les posts qui citent votre domaine s’affichent aussi.' },
   { q: 'Puis-je m’exclure de mes propres statistiques ?', a: 'Oui : ouvrez votre site une fois avec ?ml_ignore=true dans l’adresse. Revenez avec ?ml_ignore=false pour annuler.' },
   { q: 'Dois-je payer pour commencer ?', a: 'Non. Les inscriptions ouvrent progressivement : réservez votre place sur la liste d’attente, sans carte bancaire. Vous recevrez un e-mail à l’ouverture, et la démo publique est accessible dès maintenant.' },
   quotaFaq(),
@@ -60,8 +60,8 @@ function Showcase() {
             </div>
             <div className={`relative mt-auto min-w-0 ${wide ? 'border-t border-line md:border-l md:border-t-0' : 'border-t border-line'} bg-well p-4 sm:p-5`}>
               <div className="ml-frame overflow-hidden rounded-[12px] border border-line shadow-[var(--elev-1)]">
-                <img src={`/landing/${f.key}-light.webp`} alt={`Aperçu de ${f.kicker}`} loading={i < 2 ? 'eager' : 'lazy'} decoding="async" width={1200} height={760} className="block aspect-[1200/760] h-auto w-full object-cover object-top dark:hidden" />
-                <img src={`/landing/${f.key}-dark.webp`} alt={`Aperçu de ${f.kicker}`} loading={i < 2 ? 'eager' : 'lazy'} decoding="async" width={1200} height={760} className="hidden aspect-[1200/760] h-auto w-full object-cover object-top dark:block" />
+                <img src={`/landing/${f.key}-light.webp`} alt={`Aperçu de ${f.kicker}`} loading="eager" decoding="async" width={1200} height={760} className="block aspect-[1200/760] h-auto w-full object-cover object-top dark:hidden" />
+                <img src={`/landing/${f.key}-dark.webp`} alt={`Aperçu de ${f.kicker}`} loading="eager" decoding="async" width={1200} height={760} className="hidden aspect-[1200/760] h-auto w-full object-cover object-top dark:block" />
               </div>
             </div>
           </article>
@@ -189,7 +189,7 @@ export function Landing() {
               </article>
             ))}
           </div>
-          <p className="mx-auto mt-6 max-w-[600px] text-center text-[12px] leading-relaxed text-ink-4">Les mentions 𝕏 demandent votre propre clé de l’API X ; l’attribution des liens 𝕏 fonctionne sans clé. Pas de tarif annuel pour le moment : les prix affichés sont mensuels.</p>
+          <p className="mx-auto mt-6 max-w-[600px] text-center text-[12px] leading-relaxed text-ink-4">Les mentions X demandent votre propre clé de l’API X ; l’attribution des liens X fonctionne sans clé. Pas de tarif annuel pour le moment : les prix affichés sont mensuels.</p>
         </section>
 
         <section id="faq" ref={faqRef} aria-labelledby="faq-title" className="ml-reveal scroll-mt-20 border-t border-line">

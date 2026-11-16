@@ -28,7 +28,7 @@ export function botsLabel(n: number): string {
 }
 
 export function pricingCards() {
-  const common = ['API, CLI & MCP', 'Mentions sur les réseaux sociaux', 'Attribution des liens 𝕏'] as const;
+  const common = ['API, CLI & MCP', 'Mentions sur les réseaux sociaux', 'Attribution des liens X'] as const;
   return [
     {
       id: PLANS.starter.id,
