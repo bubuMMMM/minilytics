@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { bucketLabel, fmtNumber } from '../lib/format';
+import { evenIndices } from '../lib/chartTicks';
 
 export interface TrendSeries {
   key: string;
@@ -28,10 +29,12 @@ function linear(p: [number, number][]): string {
  * Hover tooltip, crosshair, keyboard ←/→, y-axis ticks in fr-FR, hidden data table.
  * Null values are gaps (0 is a real value).
  */
-export function TrendChart({ buckets, granularity, series, height = 220, format = fmtNumber, peers = false }: {
+export function TrendChart({ buckets, granularity, series, height = 220, format = fmtNumber, peers = false, variant = 'auto' }: {
   buckets: string[]; granularity: string; series: TrendSeries[]; height?: number; format?: (n: number) => string;
   /** Series are equals (e.g. bot categories): all solid lines. Default: the first is primary, the others are dashed comparisons. */
   peers?: boolean;
+  /** Daily series of ≤ 31 points default to bars; vitals and similar stay a line. */
+  variant?: 'auto' | 'bar' | 'line';
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -53,8 +56,8 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
   }, []);
 
   const n = buckets.length;
-  const bars = granularity === 'day' && n <= 7;
-  const PAD = { l: 40, r: 8, t: 10, b: 24 };
+  const bars = variant === 'bar' || (variant === 'auto' && granularity === 'day' && n <= 31);
+  const PAD = { l: 40, r: 16, t: 10, b: 24 };
   const W = boxW;
   const H = height;
   const innerW = Math.max(1, W - PAD.l - PAD.r);
@@ -94,13 +97,7 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
     return segs;
   }
 
-  const step = Math.max(1, Math.ceil(n / (narrow ? 4 : 7)));
-  const ticks: number[] = [];
-  for (let i = 0; i < n; i += step) ticks.push(i);
-  if (n > 1 && ticks[ticks.length - 1] !== n - 1) {
-    if (n - 1 - ticks[ticks.length - 1] < step / 2 && ticks.length > 1) ticks.pop();
-    ticks.push(n - 1);
-  }
+  const ticks = evenIndices(n, narrow ? 4 : 7);
 
   function onMove(clientX: number) {
     const r = box.current?.getBoundingClientRect();
@@ -248,15 +245,19 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
           </div>
         )}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-5">
-          {ticks.map((i) => (
-            <span
-              key={buckets[i]}
-              className={`tnum absolute whitespace-nowrap text-[10px] text-ink-3 sm:text-[11px] ${i === 0 && n > 1 && !bars ? '' : i === n - 1 && n > 1 && !bars ? '-translate-x-full' : '-translate-x-1/2'}`}
-              style={{ left: bars || (n > 1 && i !== 0 && i !== n - 1) || bars ? x(i) : i === 0 ? PAD.l : n > 1 && i === n - 1 ? W - PAD.r : x(i) }}
-            >
-              {bucketLabel(buckets[i], granularity)}
-            </span>
-          ))}
+          {ticks.map((i) => {
+            const first = i === 0 && n > 1;
+            const last = i === n - 1 && n > 1;
+            return (
+              <span
+                key={buckets[i]}
+                className={`tnum absolute whitespace-nowrap text-[10px] text-ink-3 sm:text-[11px] ${first ? '' : last ? '-translate-x-full' : '-translate-x-1/2'}`}
+                style={{ left: first ? PAD.l : last ? W - 2 : x(i) }}
+              >
+                {bucketLabel(buckets[i], granularity)}
+              </span>
+            );
+          })}
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-4 text-[12px] text-ink-3">

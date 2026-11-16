@@ -109,6 +109,10 @@ export function usePinnedPeriods() {
   return { pins, toggle, isPinned: (p: PinnedPeriod) => pins.some((x) => samePin(x, p)) };
 }
 
+const SHORT_PERIOD: Record<string, string> = {
+  now: '30 min', today: 'Aujourd’hui', yesterday: 'Hier', '24h': '24 h', '48h': '2 jours',
+  '7d': '7 jours', '30d': '30 jours', '90d': '90 jours', '12m': '12 mois', all: 'Tout',
+};
 const fmtShort = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 
 const Chevron = () => (
@@ -140,6 +144,7 @@ export function Toolbar({
 }) {
   const [from, setFrom] = useState(q.from ?? '');
   const [to, setTo] = useState(q.to ?? '');
+  const narrow = useNarrow();
 
   const { pins, toggle, isPinned } = usePinnedPeriods();
   const pinLabel = (p: PinnedPeriod) =>
@@ -148,7 +153,7 @@ export function Toolbar({
         ? new Date(p.from + 'T00:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
         : `${fmtShort(p.from ?? '')} → ${fmtShort(p.to ?? '')}`
       : p.period === 'now' ? 'Maintenant' : PERIODS.find((x) => x.value === p.period)?.label ?? '30 derniers jours';
-  const label = pinLabel(q);
+  const label = narrow && q.period !== 'custom' ? (SHORT_PERIOD[q.period] ?? pinLabel(q)) : pinLabel(q);
   const isNow = q.period === 'now';
 
   function shift(dir: -1 | 1) {
@@ -173,7 +178,7 @@ export function Toolbar({
   };
 
   return (
-    <div className="flex w-full items-center gap-2 sm:w-auto sm:flex-wrap">
+    <div className="flex w-max max-w-none shrink-0 items-center gap-1.5 sm:w-auto sm:flex-wrap sm:gap-2">
       <div className="hidden lg:block"><Dropdown
         button={
           <button className="btn w-full min-w-0 justify-start px-2.5 sm:w-auto">
@@ -208,14 +213,14 @@ export function Toolbar({
         )}
       </Dropdown></div>
 
-      <div className="flex h-11 min-w-0 flex-1 items-stretch sm:flex-none rounded-lg border border-line bg-surface shadow-xs md:h-9 sm:col-auto sm:row-auto">
-        <button className="w-10 shrink-0 rounded-l-lg text-lg text-ink-3 hover:bg-well hover:text-ink disabled:opacity-30 md:w-8" onClick={() => shift(-1)} disabled={isNow} aria-label="Période précédente">
+      <div className="flex h-10 min-w-0 items-stretch rounded-lg border border-line bg-surface shadow-xs sm:h-11 md:h-9">
+        <button className="hidden w-8 shrink-0 rounded-l-lg text-lg text-ink-3 hover:bg-well hover:text-ink disabled:opacity-30 sm:inline-flex sm:items-center sm:justify-center md:w-8" onClick={() => shift(-1)} disabled={isNow} aria-label="Période précédente">
           ‹
         </button>
         <Dropdown
           grow
           button={
-            <button className="flex h-full w-full min-w-0 items-center justify-center gap-2 whitespace-nowrap border-x border-line px-3 text-[13px] font-medium hover:bg-well">
+            <button type="button" aria-label="Choisir la période" className="flex h-full w-full min-w-0 items-center justify-center gap-2 whitespace-nowrap px-3 text-[13px] font-medium hover:bg-well sm:border-x sm:border-line">
               {isNow && <span className="relative flex h-2 w-2" aria-hidden><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-success" /></span>}
               {label} <Chevron />
             </button>
@@ -275,7 +280,7 @@ export function Toolbar({
           )}
         </Dropdown>
         <button
-          className="w-10 shrink-0 rounded-r-lg text-lg text-ink-3 hover:bg-well hover:text-ink disabled:opacity-30 md:w-8"
+          className="hidden w-8 shrink-0 rounded-r-lg text-lg text-ink-3 hover:bg-well hover:text-ink disabled:opacity-30 sm:inline-flex sm:items-center sm:justify-center md:w-8"
           onClick={() => shift(1)}
           disabled={!canForward}
           aria-label="Période suivante"

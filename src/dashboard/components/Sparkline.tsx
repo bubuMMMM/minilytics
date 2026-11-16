@@ -1,3 +1,5 @@
+import { fmtNumber } from '../lib/format';
+
 /** Tiny dependency-free SVG sparkline (area + line). */
 export function Sparkline({ data, className = 'text-accent', height = 36, width = 120 }: { data: number[]; className?: string; height?: number; width?: number }) {
   if (!data.length) return null;
@@ -27,7 +29,8 @@ export function Trend({ cur, prev, invert = false }: { cur: number; prev: number
   const up = pct >= 0;
   const good = invert ? !up : up;
   const flat = Math.abs(pct) < 0.005;
-  const v = Math.abs(pct) < 0.1 ? Math.abs(pct * 100).toFixed(1).replace('.', ',') : String(Math.round(Math.abs(pct * 100)));
+  const abs = Math.abs(pct * 100);
+  const v = Math.abs(pct) < 0.1 ? abs.toFixed(1).replace('.', ',') : fmtNumber(Math.round(abs));
   return (
     <span className={`tnum inline-flex items-center gap-0.5 text-[12px] font-medium ${flat ? 'text-ink-3' : good ? 'text-success' : 'text-danger'}`} title="vs période précédente">
       {!flat && <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden className={up ? '' : 'rotate-180'}><path d="M5 2 8.5 7h-7L5 2Z" fill="currentColor" /></svg>}

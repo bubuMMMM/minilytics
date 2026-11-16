@@ -91,7 +91,7 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
   return (
     <DashContext.Provider value={dash}>
       <div className="ml-site-bg ml-has-bottom-nav min-h-screen pb-10">
-        <AppHeader siteId={site.id} active={view} online={!!overview?.online} title={site.name} />
+        <AppHeader siteId={site.id} site={site} active={view} online={!!overview?.online} title={site.name} />
         <main id="contenu" className="mx-auto max-w-[1480px] px-4 py-6 sm:px-6 lg:py-10">
           <PageHeader
             title={VIEW_META[view].title(site.name)}
@@ -101,13 +101,19 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
               <span className="font-mono text-[12px] text-ink-4" translate="no">{site.domain}</span>
               <Link href={'/site/' + site.id + '/realtime'} className="inline-flex h-6 items-center gap-1.5 rounded-full border border-line px-2 text-[12px] font-medium text-ink-2 transition-colors duration-150 hover:border-line-strong"><LiveDot on={!!overview?.online} />{overview && overview.online > 0 ? `${overview.online} ${overview.online > 1 ? 'visiteurs en ligne' : 'visiteur en ligne'}` : 'Temps réel'}</Link>
             </>}
-            actions={<>
+            actions={<div className="hidden min-w-0 items-center gap-2 md:flex">
               <Toolbar site={site} sites={sites!} q={q} update={update} overview={overview} onRefresh={() => setReloadKey((k) => k + 1)} loading={loading} />
-              {me && me.role !== 'viewer' && <Link href={`/site/${site.id}/settings/partage`} className="btn hidden sm:inline-flex" aria-label="Partager le tableau de bord"><UiIcon name="share" size={15} />Partager</Link>}
-            </>}
+              {me && me.role !== 'viewer' && <Link href={`/site/${site.id}/settings/partage`} className="btn" aria-label="Partager le tableau de bord"><UiIcon name="share" size={15} />Partager</Link>}
+            </div>}
           />
 
-        {view !== 'bots' && <FilterBar siteId={site.id} q={q} update={update} />}
+        <div className="md:hidden -mx-4 mb-4 ml-scroll-x flex items-center gap-1.5 px-4">
+          <Toolbar site={site} sites={sites!} q={q} update={update} overview={overview} onRefresh={() => setReloadKey((k) => k + 1)} loading={loading} />
+          {view !== 'bots' && <FilterBar siteId={site.id} q={q} update={update} compact />}
+        </div>
+        <div className="hidden md:block">
+          {view !== 'bots' && <FilterBar siteId={site.id} q={q} update={update} />}
+        </div>
 
         {view === 'videos' ? <div className="mt-5"><VideosView /></div>
           : view === 'sponsors' ? <div className="mt-5"><BlocksView kind="sponsor" /></div>

@@ -96,7 +96,7 @@ export function Settings({ siteId, section }: { siteId: string; section?: string
   if (me?.role === 'viewer') {
     return (
       <div className="ml-site-bg ml-has-bottom-nav min-h-screen">
-        <AppHeader siteId={site.id} active="settings" title={site.name} />
+        <AppHeader siteId={site.id} site={site} active="settings" title={site.name} />
         <main id="contenu" className="mx-auto max-w-3xl px-4 py-10 sm:px-6"><Section title="Accès en lecture seule" desc="Votre rôle (Lecteur) permet de consulter les statistiques, pas de modifier les réglages. Demandez au propriétaire de passer votre compte en Admin si besoin.">{null}</Section></main>
         <BottomNav siteId={site.id} active="settings" />
       </div>
@@ -107,7 +107,7 @@ export function Settings({ siteId, section }: { siteId: string; section?: string
 
   return (
     <div className="ml-site-bg ml-has-bottom-nav min-h-screen">
-    <AppHeader siteId={site.id} active="settings" title={site.name} />
+    <AppHeader siteId={site.id} site={site} active="settings" title={site.name} />
     <main id="contenu" className="mx-auto max-w-[1180px] px-4 py-6 sm:px-6 lg:py-10">
       <PageHeader title="Réglages" description="Installation, intégrations, partage et données du site." meta={<span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-ink-4" translate="no"><Favicon domain={site.domain} size={14} />{site.domain}</span>} />
       <div className="md:grid md:grid-cols-[180px_minmax(0,1fr)] md:gap-8 lg:grid-cols-[208px_minmax(0,1fr)] lg:gap-10">

@@ -124,7 +124,7 @@ export function Realtime({ siteId }: { siteId: string }) {
 
   return (
     <div className="ml-site-bg ml-has-bottom-nav min-h-screen pb-12">
-      <AppHeader siteId={siteId} active="realtime" online={!!rt?.online} title={site?.name} />
+      <AppHeader siteId={siteId} site={site} active="realtime" online={!!rt?.online} title={site?.name} />
       <main id="contenu" className="mx-auto max-w-[1480px] animate-fadein px-4 py-6 sm:px-6 lg:py-10">
       <PageHeader title="Temps réel" description={`Ce qui se passe sur votre site en ce moment · actualisé toutes les ${POLL_MS / 1000} s`}
         meta={site ? <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-ink-4" translate="no"><Favicon domain={site.domain} size={14} />{site.domain}</span> : undefined} />

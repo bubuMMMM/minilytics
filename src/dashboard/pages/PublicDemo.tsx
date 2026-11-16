@@ -19,7 +19,7 @@ interface LiveData {
   days: number;
   updatedAt: number;
   current: { visitors: number; sessions: number; pageviews: number; avgDurationMs: number };
-  previous: { visitors: number };
+  previous: { visitors: number; sessions: number; pageviews: number; avgDurationMs: number };
   last24h: { visitors: number };
   online: number;
   goals: number;
@@ -165,8 +165,6 @@ export function PublicDemo() {
     return () => c.abort();
   }, [siteId, reload]);
   const view = data?.days===days && (!data?.site?.id || data.site.id===siteId) ? data : null;
-  const visitorSeries = view?.series.map(d=>d.visitors) || [];
-  const pageSeries = view?.series.map(d=>d.pageviews) || [];
   useEffect(() => { document.title = `Démo en direct · ${view?.site.domain ?? 'n0.pub'} — Minilytics`; }, [view?.site.domain]);
 
   return <div className="min-h-screen bg-canvas text-ink">
@@ -208,10 +206,10 @@ export function PublicDemo() {
         </div>
         {error && <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger" role="alert"><span>{error}</span><button className="btn" onClick={refresh}>Réessayer</button></div>}
         <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4" aria-busy={busy}>
-          <MetricTile focus label="Visiteurs uniques" value={view?nf(view.current.visitors):'—'} caption={'Sur '+days+' jours'} icon="users" number="01" series={visitorSeries}/>
-          <MetricTile label="Pages vues" value={view?nf(view.current.pageviews):'—'} caption="Pages consultées" icon="eye" number="02" series={pageSeries}/>
-          <MetricTile label="Sessions" value={view?nf(view.current.sessions):'—'} caption="Visites enregistrées" icon="layers" number="03"/>
-          <MetricTile label="Durée moyenne" value={view?duration(view.current.avgDurationMs):'—'} caption="Temps par session" icon="clock" number="04"/>
+          <MetricTile focus label="Visiteurs uniques" value={view?nf(view.current.visitors):'—'} caption={'Sur '+days+' jours'} icon="users" number="01" current={view?.current.visitors} previous={view?.previous.visitors}/>
+          <MetricTile label="Pages vues" value={view?nf(view.current.pageviews):'—'} caption="Pages consultées" icon="eye" number="02" current={view?.current.pageviews} previous={view?.previous.pageviews}/>
+          <MetricTile label="Sessions" value={view?nf(view.current.sessions):'—'} caption="Visites enregistrées" icon="layers" number="03" current={view?.current.sessions} previous={view?.previous.sessions}/>
+          <MetricTile label="Durée moyenne" value={view?duration(view.current.avgDurationMs):'—'} caption="Temps par session" icon="clock" number="04" current={view?.current.avgDurationMs} previous={view?.previous.avgDurationMs}/>
         </div>
 
         <div className="mt-4 grid items-stretch gap-4 md:grid-cols-[minmax(0,1.7fr)_minmax(280px,.82fr)]">

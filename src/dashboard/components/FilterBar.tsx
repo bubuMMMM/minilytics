@@ -49,7 +49,7 @@ interface Segment {
  * Filters bar (DataFast-style): chips with « est / n’est pas / contient », a filter builder with value
  * suggestions, and saved segments (filter combinations stored per site).
  */
-export function FilterBar({ siteId, q, update }: { siteId: string; q: Query; update: (p: Partial<Query>) => void }) {
+export function FilterBar({ siteId, q, update, compact = false }: { siteId: string; q: Query; update: (p: Partial<Query>) => void; compact?: boolean }) {
   const [version, setVersion] = useState(0);
   const { data: segments } = useApi<Segment[]>(`/api/sites/${siteId}/segments`, version);
   const entries = Object.entries(q.filters);
@@ -65,22 +65,38 @@ export function FilterBar({ siteId, q, update }: { siteId: string; q: Query; upd
   };
   const active = segments?.find((s) => sameFilters(s.filters, q.filters));
 
+  const filterBuilder = (close: () => void) => <FilterBuilder siteId={siteId} q={q} onAdd={(k, v) => { update({ filters: { ...q.filters, [k]: v } }); close(); }} />;
+  const segmentMenu = (close: () => void) => (
+    <SegmentMenu
+      siteId={siteId}
+      segments={segments ?? []}
+      current={q.filters}
+      onApply={(f) => { update({ filters: f }); close(); }}
+      onChange={() => setVersion((v) => v + 1)}
+    />
+  );
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-2" aria-label="Filtres">
-      <Dropdown button={<button className="btn"><UiIcon name="filter" size={15} />Filtrer</button>}>
-        {(close) => <FilterBuilder siteId={siteId} q={q} onAdd={(k, v) => { update({ filters: { ...q.filters, [k]: v } }); close(); }} />}
-      </Dropdown>
-      <Dropdown button={<button className="btn">{active ? <><span className="h-1.5 w-1.5 rounded-full bg-accent" />{active.name}</> : 'Segments'}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink-4"><path d="m6 9 6 6 6-6" /></svg></button>}>
-        {(close) => (
-          <SegmentMenu
-            siteId={siteId}
-            segments={segments ?? []}
-            current={q.filters}
-            onApply={(f) => { update({ filters: f }); close(); }}
-            onChange={() => setVersion((v) => v + 1)}
-          />
-        )}
-      </Dropdown>
+    <div className={compact ? "flex shrink-0 items-center gap-1.5" : "mt-4 flex flex-wrap items-center gap-2"} aria-label="Filtres">
+      {compact ? (
+        <Dropdown label="Filtres" button={<button type="button" className="btn whitespace-nowrap"><UiIcon name="filter" size={15} />Filtres{entries.length ? <span className="tnum text-ink">{entries.length}</span> : null}</button>}>
+          {(close) => (
+            <>
+              {filterBuilder(close)}
+              <div className="my-2 border-t border-line" />
+              {segmentMenu(close)}
+            </>
+          )}
+        </Dropdown>
+      ) : (
+        <>
+          <Dropdown button={<button className="btn"><UiIcon name="filter" size={15} />Filtrer</button>}>
+            {(close) => filterBuilder(close)}
+          </Dropdown>
+          <Dropdown button={<button className="btn">{active ? <><span className="h-1.5 w-1.5 rounded-full bg-accent" />{active.name}</> : 'Segments'}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink-4"><path d="m6 9 6 6 6-6" /></svg></button>}>
+            {(close) => segmentMenu(close)}
+          </Dropdown>
+        </>
+      )}
       {entries.map(([k, raw]) => {
         const f = filterParts(raw);
         const meta = FILTER_LABELS[k];

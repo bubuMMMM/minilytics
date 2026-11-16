@@ -279,7 +279,7 @@ export function MapPage({ siteId, publicSiteId, share }: { siteId?: string; publ
         <div className="flex items-center gap-1"><ThemeToggle /><Link href="/signup" className="btn-dark hidden sm:inline-flex">Commencer</Link></div>
       </div>
     </header>
-  ) : <AppHeader siteId={siteId!} active="map" online={!!live?.online} title={site?.name} />;
+  ) : <AppHeader siteId={siteId!} site={site} active="map" online={!!live?.online} title={site?.name} />;
 
   const panel = (
     <Panel

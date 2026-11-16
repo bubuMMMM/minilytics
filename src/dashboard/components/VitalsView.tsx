@@ -100,7 +100,7 @@ export function VitalsView() {
               <p className="text-[13px] text-ink-3">{selected ? selected.path : 'Toutes les pages'} · {VITAL_LABEL[metric]}</p>
             </div>
           </div>
-          <TrendChart
+          <TrendChart variant="line"
             buckets={data.trend.map((r) => r.bucket)}
             granularity={q.granularity || 'day'}
             series={series}

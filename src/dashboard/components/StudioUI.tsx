@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { UiIcon } from './UiIcon';
+import { Trend } from './Sparkline';
 
 export function SegmentedTabs<T extends string | number>({ value, options, onChange, label }: {
   value: T;
@@ -31,30 +32,25 @@ export function StatusPill({ children, active = false }: { children: ReactNode; 
   );
 }
 
-export function MetricTile({ label, value, caption, icon, number, focus = false, series }: {
+export function MetricTile({ label, value, caption, icon, number, focus = false, current, previous }: {
   label: string;
   value: string;
   caption: string;
   icon: 'users' | 'eye' | 'layers' | 'clock';
   number: string;
   focus?: boolean;
-  series?: number[];
+  current?: number;
+  previous?: number;
 }) {
-  const max = Math.max(1, ...(series || []));
   return (
     <article className="ml-bento flex min-w-0 flex-col p-4 sm:p-5">
       <div className="flex items-center justify-between gap-3">
         <span className="truncate text-[12px] font-medium text-ink-3">{label}</span>
         <span className="shrink-0 text-ink-4" data-n={number} data-focus={focus || undefined}><UiIcon name={icon} size={15}/></span>
       </div>
-      <div className="mt-2 flex items-end justify-between gap-3">
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <div className="text-2xl font-semibold leading-tight tracking-tight tabular-nums text-ink">{value}</div>
-        {series && series.length > 1 &&
-          <div className="relative hidden h-[28px] w-[72px] shrink-0 items-end gap-0.5 sm:flex lg:w-[96px]" aria-hidden="true">
-            <span className="absolute inset-x-0 bottom-0 h-px bg-line" />
-            {series.slice(-12).map((n, i) =>
-              <span key={i} className="min-w-[2px] flex-1 rounded-t-[1px] bg-accent" style={{ height: n > 0 ? `${Math.max(3, (n / max) * 100)}%` : '0px' }} />)}
-          </div>}
+        {current != null && previous != null && <Trend cur={current} prev={previous} />}
       </div>
       <div className="mt-1 truncate text-[12px] text-ink-4">{caption}</div>
     </article>

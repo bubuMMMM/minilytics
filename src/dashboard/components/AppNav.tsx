@@ -47,7 +47,7 @@ function useShellClass() {
  * App chrome: grouped sidebar on desktop (≥ 1024 px), slim top bar + grouped tabs on tablets,
  * compact top bar + bottom bar on phones. Pages keep rendering <AppHeader/> + <BottomNav/>.
  */
-export function AppHeader({ siteId, active, online, title }: { siteId: string; active: NavKey; online?: boolean; title?: ReactNode }) {
+export function AppHeader({ siteId, active, online, title, site }: { siteId: string; active: NavKey; online?: boolean; title?: ReactNode; site?: Pick<Site, 'id' | 'name' | 'domain'> }) {
   const [cmd, setCmd] = useState(false);
   const nav = useNav();
   const toggle = useCallback((fn: (o: boolean) => boolean) => setCmd(fn), []);
@@ -62,7 +62,7 @@ export function AppHeader({ siteId, active, online, title }: { siteId: string; a
   return (
     <>
       <a href="#contenu" className="ml-skip">Aller au contenu</a>
-      <Sidebar siteId={siteId} active={active} online={online} nav={nav} onSearch={() => setCmd(true)} />
+      <Sidebar siteId={siteId} site={site} active={active} online={online} nav={nav} onSearch={() => setCmd(true)} />
       <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="mx-auto flex h-14 max-w-[1480px] items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-1">
@@ -70,7 +70,7 @@ export function AppHeader({ siteId, active, online, title }: { siteId: string; a
               <Logo small compact />
             </Link>
             <div className="min-w-0 md:hidden">
-              <SiteSwitcher siteId={siteId} />
+              <SiteSwitcher siteId={siteId} site={site} />
             </div>
             {/* Desktop breadcrumb: group / page */}
             <nav aria-label="Fil d’Ariane" className="hidden min-w-0 items-center gap-2 text-[13px] md:flex">
@@ -94,9 +94,9 @@ export function AppHeader({ siteId, active, online, title }: { siteId: string; a
 
 const Slash = () => <svg width="16" height="16" viewBox="0 0 24 24" className="shrink-0 text-line-strong" aria-hidden><path d="M16 3 8 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>;
 
-function Sidebar({ siteId, active, online, nav, onSearch }: { siteId: string; active: NavKey; online?: boolean; nav: NavGroup[]; onSearch: () => void }) {
+function Sidebar({ siteId, site: known, active, online, nav, onSearch }: { siteId: string; site?: Pick<Site, 'id' | 'name' | 'domain'>; active: NavKey; online?: boolean; nav: NavGroup[]; onSearch: () => void }) {
   const { data: sites } = useApi<Site[]>('/api/sites');
-  const site = sites?.find((s) => s.id === siteId);
+  const site = sites?.find((s) => s.id === siteId) ?? known;
   const hash = typeof window !== 'undefined' ? window.location.hash : '';
   const isOn = (i: NavItem) => (i.path.startsWith('#') ? active === 'overview' && hash === i.path : i.active === active && !(active === 'overview' && hash && ALL.some((x) => x.path === hash)));
   return (
@@ -255,9 +255,9 @@ export function AccountHeader({ current, width = 'max-w-[1200px]' }: { current: 
 }
 
 
-function SiteSwitcher({ siteId }: { siteId: string }) {
+function SiteSwitcher({ siteId, site: known }: { siteId: string; site?: Pick<Site, 'id' | 'name' | 'domain'> }) {
   const { data: sites } = useApi<Site[]>('/api/sites');
-  const site = sites?.find((s) => s.id === siteId);
+  const site = sites?.find((s) => s.id === siteId) ?? known;
   return (
     <Dropdown label="Changer de site" button={
       <button type="button" className="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-lg px-1.5 text-left hover:bg-well">

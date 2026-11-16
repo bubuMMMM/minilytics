@@ -1,19 +1,25 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
 
+const cache = new Map<string, unknown>();
+
 /** Fetch `url` whenever it changes (or `reloadKey` bumps). `null` skips fetching. */
 export function useApi<T>(url: string | null, reloadKey = 0) {
-  const [data, setData] = useState<T | null>(null);
+  const [data, setData] = useState<T | null>(() => (url && cache.has(url) ? (cache.get(url) as T) : null));
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!url) return;
     let alive = true;
-    setLoading(true);
+    if (cache.has(url)) setData(cache.get(url) as T);
+    else setLoading(true);
     setError(null);
     api<T>(url)
-      .then((d) => alive && setData(d))
+      .then((d) => {
+        cache.set(url, d);
+        if (alive) setData(d);
+      })
       .catch((e) => alive && setError(e.message))
       .finally(() => alive && setLoading(false));
     return () => {

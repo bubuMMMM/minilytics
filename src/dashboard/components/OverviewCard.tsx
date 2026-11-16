@@ -7,6 +7,8 @@ import type { Kpis, Overview } from '../lib/api';
 import { useDash } from '../lib/context';
 import { bucketLabel, fmtDuration, fmtNumber, fmtPct } from '../lib/format';
 import { Trend } from './Sparkline';
+import { Link } from './Link';
+import { evenIndices } from '../lib/chartTicks';
 
 type Series = 'visitors' | 'revenue' | 'prev';
 
@@ -22,7 +24,7 @@ interface KpiDef {
   hint?: string;
 }
 
-function KpiCard({ k, cur, prev, selected, onSelect }: { k: KpiDef; cur: number; prev: number; selected: boolean; onSelect: () => void }) {
+function KpiCard({ k, cur, prev, selected, onSelect, setupHref }: { k: KpiDef; cur: number; prev: number; selected: boolean; onSelect: () => void; setupHref?: string }) {
   return (
     <div
       role="button"
@@ -31,12 +33,21 @@ function KpiCard({ k, cur, prev, selected, onSelect }: { k: KpiDef; cur: number;
       onClick={onSelect}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
       title="Afficher la tendance de cet indicateur"
-      className={`relative flex min-w-0 cursor-pointer flex-col gap-1.5 px-4 py-4 outline-none transition-colors hover:bg-well/60 focus-visible:bg-well sm:px-5 ${selected ? 'after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-accent' : ''}`}
+      className={`relative flex min-w-0 cursor-pointer flex-col gap-1.5 px-4 py-3 outline-none transition-colors hover:bg-well/60 focus-visible:bg-well sm:px-5 sm:py-4 ${selected ? 'after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-accent' : ''}`}
     >
       <span className="flex min-w-0 items-center text-[12px] font-medium text-ink-3"><span className="truncate">{k.label}</span>{k.hint && <InfoTip text={k.hint} label={`Comment est calculé « ${k.label} » ?`} />}</span>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <span className="tnum text-[22px] font-semibold leading-7 tracking-tight text-ink sm:text-2xl">{k.value}</span>
-        <Trend cur={cur} prev={prev} invert={k.invert} />
+        {setupHref ? (
+          <>
+            <span className="text-[22px] font-semibold leading-7 tracking-tight text-ink-4 sm:text-2xl">—</span>
+            <Link href={setupHref} className="text-[12px] font-medium text-ink-3 underline-offset-2 hover:text-ink hover:underline" onClick={(e) => e.stopPropagation()}>Configurer</Link>
+          </>
+        ) : (
+          <>
+            <span className="tnum text-[22px] font-semibold leading-7 tracking-tight text-ink sm:text-2xl">{k.value}</span>
+            <Trend cur={cur} prev={prev} invert={k.invert} />
+          </>
+        )}
       </div>
     </div>
   );
@@ -74,6 +85,8 @@ export function OverviewCard({ data }: { data: Overview | null }) {
   const p = data?.previous;
   const s = data?.series ?? [];
   const hasRevenue = !share?.hideRevenue && !!c && (c.revenue !== 0 || (p?.revenue ?? 0) !== 0);
+  const revenueSetup = !!c && !share && c.revenue === 0 && (p?.revenue ?? 0) === 0 && c.payments === 0 && (p?.payments ?? 0) === 0;
+  const conversionSetup = !!c && !share && c.customers === 0 && (p?.customers ?? 0) === 0;
 
   const kpis: KpiDef[] = c
     ? ([
@@ -98,7 +111,8 @@ export function OverviewCard({ data }: { data: Overview | null }) {
       {c && p ? (
         <div className={`grid grid-cols-2 gap-px border-b border-line bg-line ${kpis.length === 4 ? "md:grid-cols-4" : "md:grid-cols-3 xl:grid-cols-6"} [&>*]:bg-surface`}>
           {kpis.map((k) => (
-            <KpiCard key={k.key} k={k} cur={c[k.key]} prev={p[k.key]} selected={metric === k.key} onSelect={() => setMetric(k.key as Metric)} />
+            <KpiCard key={k.key} k={k} cur={c[k.key]} prev={p[k.key]} selected={metric === k.key} onSelect={() => setMetric(k.key as Metric)}
+              setupHref={k.key === 'revenue' && revenueSetup ? `/site/${site.id}/settings/revenus` : k.key === 'conversionRate' && conversionSetup ? `/site/${site.id}/settings` : undefined} />
           ))}
         </div>
       ) : (
@@ -106,13 +120,13 @@ export function OverviewCard({ data }: { data: Overview | null }) {
       )}
 
       <div>
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4 sm:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 pt-3 sm:px-5">
           <div>
             <div className="text-[14px] font-semibold text-ink">{metric === 'visitors' ? `Trafic${hasRevenue ? ' et revenus' : ''}` : TREND[metric].label}</div>
             <div className="text-[12px] text-ink-3">{metric === 'visitors' ? 'Comparé à la période précédente de même durée' : 'Tendance sur la période · touchez un indicateur pour changer'}</div>
           </div>
-          <div className="flex flex-wrap items-center gap-1">
-            {metric !== 'visitors' && <button className="btn-ghost" onClick={() => setMetric('visitors')}>← Trafic</button>}
+          <div className="flex flex-wrap items-center gap-0.5">
+            {metric !== 'visitors' && <button className="btn-ghost !min-h-8 !px-2 !text-[12px]" onClick={() => setMetric('visitors')}>← Trafic</button>}
             {metric === 'visitors' && legend
               .filter((l) => l.show)
               .map((l) => (
@@ -120,7 +134,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
                   key={l.key}
                   onClick={() => setHidden((h) => ({ ...h, [l.key]: !h[l.key] }))}
                   aria-pressed={!hidden[l.key]}
-                  className={`flex min-h-[44px] items-center gap-2 rounded-md px-2 text-[12px] font-medium transition-colors hover:bg-well sm:min-h-[32px] ${hidden[l.key] ? 'text-ink-4 line-through' : 'text-ink-2'}`}
+                  className={`flex min-h-8 items-center gap-1.5 rounded-md px-1.5 text-[12px] font-medium transition-colors hover:bg-well ${hidden[l.key] ? 'text-ink-4 line-through' : 'text-ink-2'}`}
                 >
                   <span className={`h-2 w-2 rounded-full ${l.swatch} ${hidden[l.key] ? 'opacity-30' : ''}`} />
                   {l.label}
@@ -128,7 +142,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
               ))}
           </div>
         </div>
-        <div className="h-[260px] px-1 pb-3 pt-3 sm:h-[320px] sm:px-3">
+        <div className="h-[260px] px-1 pb-3 pt-2 sm:h-[320px] sm:px-3">
           {!data && <div className="ml-skeleton h-full w-full" />}
           {data && metric !== 'visitors' && (
             <TrendChart
@@ -141,7 +155,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
           )}
           {data && metric === 'visitors' && (
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={data.series} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+              <ComposedChart data={data.series} margin={{ top: 8, right: 16, left: 0, bottom: 2 }}>
                 <defs>
                   <linearGradient id="vis" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={col.visitorsFill} stopOpacity={0.18} />
@@ -149,7 +163,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke={col.grid} />
-                <XAxis dataKey="bucket" tickFormatter={(b) => bucketLabel(b, g)} tick={{ fill: col.tick, fontSize: 11 }} axisLine={false} tickLine={false} minTickGap={28} />
+                <XAxis dataKey="bucket" ticks={evenIndices(data.series.length, 7).map((i) => data.series[i].bucket)} interval={0} tickFormatter={(b) => bucketLabel(b, g)} tick={{ fill: col.tick, fontSize: 11 }} axisLine={false} tickLine={false} padding={{ left: 4, right: 8 }} />
                 <YAxis yAxisId="v" tick={{ fill: col.tick, fontSize: 11 }} axisLine={false} tickLine={false} width={40} allowDecimals={false} tickFormatter={(v) => fmtNumber(v)} />
                 <YAxis
                   yAxisId="r"
@@ -197,8 +211,8 @@ export function OverviewCard({ data }: { data: Overview | null }) {
                 {!hidden.prev && (
                   <Line yAxisId="v" type="linear" dataKey="prevVisitors" stroke={col.prev} strokeWidth={1.5} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} />
                 )}
-                {!hidden.visitors && (data.series.length <= 7 && g === 'day'
-                  ? <Bar yAxisId="v" dataKey="visitors" fill={col.visitors} radius={[3, 3, 0, 0]} maxBarSize={36} isAnimationActive={false} />
+                {!hidden.visitors && (data.series.length <= 31 && g === 'day'
+                  ? <Bar yAxisId="v" dataKey="visitors" fill={col.visitors} radius={[3, 3, 0, 0]} maxBarSize={data.series.length > 14 ? 18 : 36} isAnimationActive={false} />
                   : (
                     <Area
                       yAxisId="v"
