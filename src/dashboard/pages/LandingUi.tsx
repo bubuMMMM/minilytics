@@ -7,15 +7,13 @@ export function SectionHead({
   id: string; eyebrow: string; title: ReactNode; text?: string; center?: boolean;
 }) {
   return (
-    <div className={center ? 'mx-auto max-w-[760px] text-center' : 'max-w-[760px]'}>
-      {center
-        ? <div className="flex justify-center"><p className="ml-feat-badge">{eyebrow}</p></div>
-        : <p className="ml-feat-badge">{eyebrow}</p>}
-      <h2 id={id} className="ml-feat-title mt-5 text-[clamp(1.85rem,5vw,3rem)] font-semibold leading-[1.08] tracking-[-0.04em] text-ink [text-wrap:balance]">
+    <div className={center ? 'mx-auto max-w-[40rem] text-center' : 'max-w-[40rem]'}>
+      <p className={`ml-kicker ${center ? '' : ''}`}>{eyebrow}</p>
+      <h2 id={id} className="ml-title mt-3">
         {title}
       </h2>
       {text && (
-        <p className={`mt-4 max-w-[54ch] text-[15px] leading-relaxed text-ink-3 [text-wrap:pretty] sm:text-[17px] ${center ? 'mx-auto' : ''}`}>
+        <p className={`ml-lead mt-4 ${center ? 'mx-auto' : ''}`}>
           {text}
         </p>
       )}

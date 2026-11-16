@@ -30,14 +30,14 @@ export function LandingBeams() {
   useEffect(() => { setReady(true); }, []);
 
   return (
-    <section id="attribution" aria-labelledby="attr-title" className="scroll-mt-20 border-y border-line bg-surface">
-      <div className="mx-auto max-w-[1200px] px-4 py-20 sm:px-6 lg:py-28">
-        <div className="mx-auto max-w-[760px] text-center">
-          <p className="ml-feat-badge mx-auto">Attribution des revenus</p>
-          <h2 id="attr-title" className="ml-feat-title mt-5 text-[clamp(1.85rem,5vw,3rem)] font-semibold leading-[1.08] tracking-[-0.04em] text-ink [text-wrap:balance]">
+    <section id="attribution" aria-labelledby="attr-title" className="scroll-mt-20 border-y border-line">
+      <div className="mx-auto max-w-[1200px] px-4 py-[var(--section-y)] sm:px-6">
+        <div className="mx-auto max-w-[40rem] text-center">
+          <p className="ml-kicker">Attribution des revenus</p>
+          <h2 id="attr-title" className="ml-title mt-3">
             Des sources au paiement, le chemin est visible.
           </h2>
-          <p className="mx-auto mt-4 max-w-[56ch] text-[15px] leading-relaxed text-ink-3 [text-wrap:pretty] sm:text-[17px]">
+          <p className="ml-lead mx-auto mt-4">
             Google, 𝕏, ChatGPT ou une newsletter : chaque conversion est rattachée à son canal, puis à Stripe, Polar ou Lemon Squeezy.
           </p>
         </div>

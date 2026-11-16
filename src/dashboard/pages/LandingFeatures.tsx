@@ -28,14 +28,11 @@ export function FeaturesBento() {
   return (
     <div ref={root} className={`ml-feat-root${ready ? ' is-ready' : ''}${inView ? ' is-in' : ''}`}>
       <header className="ml-feat-head mx-auto max-w-[820px] text-center">
-        <p className="ml-feat-badge">
-          <span className="ml-dot-live" aria-hidden />
-          Inclus dès l’installation
-        </p>
-        <h2 id="f-title" className="ml-feat-title mt-5 text-[clamp(2rem,6vw,3.35rem)] font-semibold leading-[1.08] tracking-[-0.042em] text-ink [text-wrap:balance]">
-          Tout ce qui compte, <span className="ml-feat-grad">dès l’installation.</span>
+        <p className="ml-kicker">Inclus dès l’installation</p>
+        <h2 id="f-title" className="ml-title mt-3">
+          Tout ce qui compte, dès l’installation.
         </h2>
-        <p className="mx-auto mt-4 max-w-[58ch] text-[15px] leading-relaxed text-ink-3 [text-wrap:pretty] sm:text-[17px]">
+        <p className="ml-lead mx-auto mt-4">
           Découvrez quels canaux amènent des clients qui paient. Carte en direct, parcours visiteur, entonnoirs et revenus — chaque chiffre est mesuré, jamais extrapolé.
         </p>
         <ol className="ml-feat-steps mx-auto mt-7 flex max-w-[720px] flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">

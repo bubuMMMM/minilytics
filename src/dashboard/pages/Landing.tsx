@@ -12,15 +12,6 @@ import { LandingCompare } from './LandingCompare';
 import { LandingHero } from './LandingHero';
 import { SectionHead, ShimmerLink, ToolsMarquee, useActiveSection, useReveal } from './LandingUi';
 
-type IconName = Parameters<typeof UiIcon>[0]['name'];
-const USE_CASES: { icon: IconName; title: string; text: string }[] = [
-  { icon: 'file-text', title: 'Blogs et médias', text: 'Articles les plus lus, temps de lecture, scroll, sources de trafic.' },
-  { icon: 'zap', title: 'Landing pages', text: 'Campagnes, clics sur vos boutons, taux de conversion.' },
-  { icon: 'target', title: 'E-commerce', text: 'Ventes et revenus par source, entonnoir jusqu’au paiement.' },
-  { icon: 'code', title: 'SaaS et applis', text: 'Inscriptions, parcours dans l’appli, utilisateurs identifiés.' },
-  { icon: 'eye', title: 'Portfolios', text: 'Qui vous découvre, d’où, et quels projets sont regardés.' },
-];
-
 /** Pricing lines come from `src/shared/plans.ts` so the page stays in sync with server quotas. */
 const FEATURE_TAG: Record<string, string> = {
   [botsLabel(PLAN_LIMITS.growth.botRequests)]: 'Extrait serveur requis',
@@ -52,7 +43,7 @@ const SHOWCASE = [
 function Showcase() {
   const ref = useReveal<HTMLElement>();
   return (
-    <section ref={ref} aria-labelledby="sc-title" className="ml-reveal mx-auto max-w-[1200px] px-4 pb-20 sm:px-6 lg:pb-28">
+    <section ref={ref} aria-labelledby="sc-title" className="ml-reveal mx-auto max-w-[1200px] px-4 pb-[var(--section-y)] sm:px-6">
       <div className="mb-8 sm:mb-10">
         <SectionHead center id="sc-title" eyebrow="Le produit" title="Ce que vous voyez, dès la première journée." />
       </div>
@@ -67,9 +58,11 @@ function Showcase() {
               <p className="mt-2.5 max-w-[46ch] text-[14px] leading-relaxed text-ink-3 [text-wrap:pretty]">{f.text}</p>
               <a href={f.cta[0]} className="mt-4 inline-flex min-h-[44px] w-fit items-center gap-1.5 text-[14px] font-medium text-ink transition-colors duration-150 hover:text-accent">{f.cta[1]} <UiIcon name="arrow-right" size={15} /></a>
             </div>
-            <div className={`relative mt-auto min-w-0 overflow-hidden border-line bg-well ${wide ? 'border-t md:border-l md:border-t-0' : 'border-t'}`}>
-              <img src={`/landing/${f.key}-light.webp`} alt={`Capture de la fonction ${f.kicker} de Minilytics`} loading="lazy" decoding="async" width={1200} height={760} className="block h-auto w-full dark:hidden" />
-              <img src={`/landing/${f.key}-dark.webp`} alt={`Capture de la fonction ${f.kicker} de Minilytics`} loading="lazy" decoding="async" width={1200} height={760} className="hidden h-auto w-full dark:block" />
+            <div className={`relative mt-auto min-w-0 ${wide ? 'border-t border-line md:border-l md:border-t-0' : 'border-t border-line'} bg-well p-4 sm:p-5`}>
+              <div className="ml-frame overflow-hidden rounded-[12px] border border-line shadow-[var(--elev-1)]">
+                <img src={`/landing/${f.key}-light.webp`} alt={`Aperçu de ${f.kicker}`} loading={i < 2 ? 'eager' : 'lazy'} decoding="async" width={1200} height={760} className="block aspect-[1200/760] h-auto w-full object-cover object-top dark:hidden" />
+                <img src={`/landing/${f.key}-dark.webp`} alt={`Aperçu de ${f.kicker}`} loading={i < 2 ? 'eager' : 'lazy'} decoding="async" width={1200} height={760} className="hidden aspect-[1200/760] h-auto w-full object-cover object-top dark:block" />
+              </div>
             </div>
           </article>
         ); })}
@@ -89,7 +82,6 @@ const NAV = [
 export function Landing() {
   const [menu, setMenu] = useState(false);
   const active = useActiveSection(['fonctionnalites', 'installation', 'comparaison', 'tarifs', 'faq']);
-  const casesRef = useReveal<HTMLElement>();
   const installRef = useReveal<HTMLElement>();
   const priceRef = useReveal<HTMLElement>();
   const faqRef = useReveal<HTMLElement>();
@@ -113,8 +105,8 @@ export function Landing() {
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
-            <Link href="/login" className="btn-ghost !text-[14px]">Se connecter</Link>
-            <ShimmerLink href="/signup" className="hidden !min-h-[36px] !px-3 sm:inline-flex !text-[13px]">Réserver mon accès</ShimmerLink>
+            <Link href="/login" className="btn-ghost !text-[14px] hidden sm:inline-flex">Se connecter</Link>
+            <ShimmerLink href="/signup" className="!min-h-[36px] !whitespace-nowrap !px-2.5 !text-[12px] sm:!px-3 sm:!text-[13px]">Réserver mon accès</ShimmerLink>
             <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink-2 hover:bg-well lg:hidden" aria-expanded={menu} aria-controls="landing-menu" aria-label={menu ? 'Fermer le menu' : 'Ouvrir le menu'} onClick={() => setMenu((m) => !m)}>
               <UiIcon name={menu ? 'x' : 'menu'} size={18} />
             </button>
@@ -132,36 +124,25 @@ export function Landing() {
 
       <main id="contenu">
         <LandingHero />
-        <div className="ml-tools-row mx-auto max-w-[1200px] px-4 pb-12 sm:px-6 sm:pb-16">
-          <p className="mb-3 text-center text-[12px] font-medium uppercase tracking-wide text-ink-4">Fonctionne avec</p>
+        <div className="ml-tools-row mx-auto max-w-[1200px] px-4 pb-16 sm:px-6 sm:pb-20">
+          <p className="ml-kicker mb-4 text-center">Fonctionne avec</p>
           <ToolsMarquee />
+          <p id="uc-title" className="mx-auto mt-8 max-w-[40rem] text-center text-[13px] leading-relaxed text-ink-3 sm:text-[14px]">
+            Pour les blogs et les médias, les landing pages, l’e-commerce, le SaaS et les portfolios.
+          </p>
         </div>
 
         <Showcase />
 
-        <section ref={casesRef} aria-labelledby="uc-title" className="ml-reveal border-y border-line bg-surface">
-          <div className="mx-auto max-w-[1200px] px-4 pt-10 sm:px-6">
-            <h2 id="uc-title" className="text-center text-[13px] font-medium text-ink-3">Pour tous les types de sites</h2>
-          </div>
-          <ul className="mx-auto grid max-w-[1200px] grid-cols-2 gap-px bg-line sm:grid-cols-3 lg:grid-cols-5 [&>*]:bg-surface">
-            {USE_CASES.map((u) => (
-              <li key={u.title} className="px-4 py-6 last:col-span-2 sm:px-6 sm:last:col-span-1">
-                <div className="flex items-center gap-2 text-[14px] font-medium text-ink"><span className="text-ink-3" aria-hidden><UiIcon name={u.icon} size={16} /></span>{u.title}</div>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-ink-3">{u.text}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section id="fonctionnalites" aria-labelledby="f-title" className="relative mx-auto max-w-[1200px] scroll-mt-20 px-4 py-20 sm:px-6 lg:py-28">
+        <section id="fonctionnalites" aria-labelledby="f-title" className="relative mx-auto max-w-[1200px] scroll-mt-20 px-4 py-[var(--section-y)] sm:px-6">
           <FeaturesBento />
         </section>
 
         <LandingLiveGlobe />
         <LandingBeams />
 
-        <section id="installation" ref={installRef} aria-labelledby="i-title" className="ml-reveal scroll-mt-20 border-y border-line bg-surface">
-          <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:py-28">
+        <section id="installation" ref={installRef} aria-labelledby="i-title" className="ml-reveal scroll-mt-20 border-y border-line">
+          <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-4 py-[var(--section-y)] sm:px-6 lg:grid-cols-2 lg:gap-16">
             <div>
               <SectionHead id="i-title" eyebrow="Installation" title="Une balise. Deux minutes." text="Collez le script dans le <head> de votre site : HTML, WordPress, Webflow ou Next.js. Les pages vues, la navigation des applis monopage, le scroll, le temps actif et les clics sortants sont mesurés automatiquement." />
               <ul className="mt-6 space-y-2.5 text-[14px] text-ink-2">
@@ -179,11 +160,11 @@ export function Landing() {
 
         <LandingCompare />
 
-        <section id="tarifs" ref={priceRef} aria-labelledby="p-title" className="ml-reveal mx-auto max-w-[1200px] scroll-mt-20 px-4 py-20 sm:px-6 lg:py-28">
+        <section id="tarifs" ref={priceRef} aria-labelledby="p-title" className="ml-reveal mx-auto max-w-[1200px] scroll-mt-20 px-4 py-[var(--section-y)] sm:px-6">
           <SectionHead center id="p-title" eyebrow="Tarifs" title="Des prix simples, en euros." text="Prix mensuels, sans engagement. Réservez votre place dès aujourd’hui, vous ne payez qu’à l’ouverture." />
           <div className="mx-auto mt-12 grid max-w-[860px] gap-4 md:grid-cols-2">
             {PLANS.map((p) => (
-              <article key={p.name} className={`ml-price-card relative flex flex-col border bg-surface p-6 sm:p-8 ${p.highlight ? 'border-ink shadow-pop' : 'border-line shadow-card'}`} aria-labelledby={`plan-${p.name}`}>
+              <article key={p.name} className={`ml-price-card relative flex flex-col border bg-surface p-6 sm:p-8 ${p.highlight ? 'is-featured border-ink' : 'border-line'}`} aria-labelledby={`plan-${p.name}`}>
                 {p.highlight && <div className="ml-feat-beam" aria-hidden />}
                 <div className="relative flex items-center justify-between gap-2">
                   <h3 id={`plan-${p.name}`} className="text-[15px] font-semibold" translate="no">{p.name}</h3>
@@ -212,7 +193,7 @@ export function Landing() {
         </section>
 
         <section id="faq" ref={faqRef} aria-labelledby="faq-title" className="ml-reveal scroll-mt-20 border-t border-line">
-          <div className="mx-auto grid max-w-[1200px] gap-10 px-4 py-20 sm:px-6 md:grid-cols-[1fr_1.6fr] lg:py-28">
+          <div className="mx-auto grid max-w-[1200px] gap-10 px-4 py-[var(--section-y)] sm:px-6 md:grid-cols-[1fr_1.6fr] md:gap-16">
             <SectionHead id="faq-title" eyebrow="FAQ" title="Questions fréquentes" text="Une autre question ? La démo publique montre exactement ce que vous obtiendrez." />
             <div className="overflow-hidden rounded-2xl border border-line bg-surface">
               {FAQ.map((f, i) => (
@@ -228,22 +209,12 @@ export function Landing() {
           </div>
         </section>
 
-        <section ref={ctaRef} className="ml-reveal px-4 py-16 sm:px-6 lg:py-24">
+        <section ref={ctaRef} className="ml-reveal px-4 py-16 sm:px-6 sm:py-[var(--section-y)]">
           <div className="ml-cta-panel relative mx-auto max-w-[1200px] overflow-hidden px-6 py-16 text-center sm:px-10 sm:py-20">
-            <div className="ml-cta-glow" aria-hidden />
-            <svg className="ml-cta-dots" viewBox="0 0 200 200" aria-hidden>
-              <defs>
-                <radialGradient id="ml-cta-fb" cx="50%" cy="46%" r="48%">
-                  <stop offset="55%" stopColor="rgb(var(--accent) / .14)" />
-                  <stop offset="100%" stopColor="rgb(var(--accent) / 0)" />
-                </radialGradient>
-              </defs>
-              <circle cx="100" cy="100" r="84" fill="url(#ml-cta-fb)" />
-            </svg>
             <div className="relative">
-              <p className="ml-feat-badge mx-auto">Prêt à voir clair</p>
-              <h2 className="mx-auto mt-5 max-w-xl text-[clamp(1.85rem,5vw,3rem)] font-semibold leading-[1.08] tracking-[-0.04em] [text-wrap:balance]">Voyez ce qui marche vraiment sur votre site.</h2>
-              <p className="mt-4 text-[15px] text-ink-3 sm:text-[17px]">Une balise à coller, c’est tout. Liste d’attente gratuite, aucune carte requise.</p>
+              <p className="ml-kicker">Prêt à voir clair</p>
+              <h2 className="ml-title mx-auto mt-3 max-w-xl">Voyez ce qui marche vraiment sur votre site.</h2>
+              <p className="ml-lead mx-auto mt-4">Une balise à coller, c’est tout. Liste d’attente gratuite, aucune carte requise.</p>
               <div className="mt-8 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row sm:justify-center">
                 <ShimmerLink href="/signup">Réserver mon accès</ShimmerLink>
                 <Link href="/demo" className="btn !h-12 !px-6 !text-[15px]">Voir la démo</Link>
@@ -254,14 +225,14 @@ export function Landing() {
       </main>
 
       <footer className="ml-footer border-t border-line">
-        <div className="mx-auto grid max-w-[1200px] gap-10 px-4 py-14 text-[13px] sm:grid-cols-2 sm:px-6 lg:grid-cols-[1.6fr_1fr_1fr_1fr]" style={{ paddingBottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}>
+        <div className="mx-auto grid max-w-[1200px] gap-10 px-4 py-16 text-[13px] sm:grid-cols-2 sm:px-6 lg:grid-cols-[1.6fr_1fr_1fr_1fr]" style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))' }}>
           <div>
             <Logo small />
             <p className="mt-3 max-w-[280px] leading-relaxed text-ink-3">Des analytics simples et précis pour tout type de site web.</p>
             <p className="mt-4 text-ink-4">© {new Date().getFullYear()} Minilytics</p>
           </div>
           <nav aria-label="Produit" className="flex flex-col gap-2.5">
-            <span className="font-medium text-ink">Produit</span>
+            <span className="ml-kicker mb-3">Produit</span>
             <a href="#fonctionnalites" className="text-ink-3 hover:text-ink">Fonctionnalités</a>
             <a href="#installation" className="text-ink-3 hover:text-ink">Installation</a>
             <a href="#comparaison" className="text-ink-3 hover:text-ink">Comparaison</a>
@@ -269,13 +240,13 @@ export function Landing() {
             <Link href="/demo" className="text-ink-3 hover:text-ink">Démo publique</Link>
           </nav>
           <nav aria-label="Ressources" className="flex flex-col gap-2.5">
-            <span className="font-medium text-ink">Ressources</span>
+            <span className="ml-kicker mb-3">Ressources</span>
             <a href="#faq" className="text-ink-3 hover:text-ink">FAQ</a>
             <Link href="/api-docs" className="text-ink-3 hover:text-ink">Documentation API</Link>
             <a href="https://github.com/bubuMMMM/minilytics" className="text-ink-3 hover:text-ink" rel="noopener noreferrer">Code source</a>
           </nav>
           <nav aria-label="Compte" className="flex flex-col gap-2.5">
-            <span className="font-medium text-ink">Compte</span>
+            <span className="ml-kicker mb-3">Compte</span>
             <Link href="/login" className="text-ink-3 hover:text-ink">Se connecter</Link>
             <Link href="/signup" className="text-ink-3 hover:text-ink">Liste d’attente</Link>
           </nav>

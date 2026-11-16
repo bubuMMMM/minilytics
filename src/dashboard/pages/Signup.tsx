@@ -107,7 +107,7 @@ export function Signup() {
               </div>
               {error && <p id="wl-error" role="alert" className="text-[13px] text-danger">{error}</p>}
               <button type="submit" className="btn-dark w-full !h-11" disabled={state === 'sending'} aria-busy={state === 'sending'}>
-                {state === 'sending' ? 'Envoi…' : 'Rejoindre la liste d’attente'}
+                {state === 'sending' ? 'Envoi…' : 'Réserver mon accès'}
               </button>
               <p className="text-center text-[12px] leading-relaxed text-ink-4">Un seul e-mail à l’ouverture. Votre adresse n’est ni partagée ni revendue.</p>
             </form>

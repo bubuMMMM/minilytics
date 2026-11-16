@@ -42,7 +42,7 @@ export function pricingCards() {
         botsLabel(PLANS.starter.botRequests),
         ...common,
       ],
-      note: 'Réservez votre place : 0,00 € aujourd’hui, aucune carte requise.',
+      note: 'Aucun paiement aujourd’hui. Aucune carte requise.',
       highlight: false,
     },
     {
