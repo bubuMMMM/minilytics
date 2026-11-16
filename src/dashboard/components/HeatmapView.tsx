@@ -276,7 +276,11 @@ function HeatStage({
     return () => window.clearTimeout(t);
   }, [status, iframeSrc, iframeOk]);
 
-  const max = useMemo(() => points.reduce((m, p) => Math.max(m, p.n), 0), [points]);
+  const dots = useMemo(
+    () => (hits.length ? hits.map((p) => ({ x: p.x, y: p.y, n: 1, selector: p.selector })) : points),
+    [hits, points],
+  );
+  const max = useMemo(() => dots.reduce((m, p) => Math.max(m, p.n), 0), [dots]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -322,7 +326,7 @@ function HeatStage({
         }
       }
     }
-    if (mode === 'density' && points.length) {
+    if (mode === 'density' && dots.length) {
       const off = document.createElement('canvas');
       off.width = canvas.width;
       off.height = canvas.height;
@@ -330,8 +334,8 @@ function HeatStage({
       if (!octx) return;
       octx.setTransform(dpr, 0, 0, dpr, 0, 0);
       octx.globalCompositeOperation = 'lighter';
-      const radius = Math.max(22, Math.min(w, h) * 0.05);
-      for (const pt of points) {
+      const radius = Math.max(18, Math.min(w, 720) * 0.03);
+      for (const pt of dots) {
         const x = pt.x * w;
         const y = pt.y * h;
         const t = max ? pt.n / max : 0;
@@ -349,7 +353,7 @@ function HeatStage({
       for (let i = 0; i < d.length; i += 4) {
         const a = d[i];
         if (a === 0) { d[i + 3] = 0; continue; }
-        const t = Math.min(1, a / 255);
+        const t = Math.pow(Math.min(1, a / 255), 1.35);
         const [r, g, b] = heatRamp(t);
         d[i] = r; d[i + 1] = g; d[i + 2] = b;
         d[i + 3] = Math.min(230, Math.round(40 + t * 200));
@@ -373,7 +377,7 @@ function HeatStage({
         ctx.stroke();
       }
     }
-  }, [points, hits, max, mode, hoverSelector, status, imgOk, iframeOk, meta, opacity]);
+  }, [dots, points, hits, max, mode, hoverSelector, status, imgOk, iframeOk, meta, opacity]);
 
   function onFrameLoad() {
     const el = frameRef.current;
@@ -426,6 +430,10 @@ function HeatStage({
         <p className="px-4 pt-2 text-[12px] leading-relaxed text-ink-3">{message}</p>
       )}
       <div ref={wrapRef} className="relative max-h-[75vh] overflow-auto bg-well">
+        <div
+          className="relative mx-auto"
+          style={{ width: '100%', maxWidth: showImg && meta?.width ? meta.width : undefined }}
+        >
         {showImg && meta?.image && (
           <img
             ref={imgRef}
@@ -462,6 +470,7 @@ function HeatStage({
           style={{ opacity }}
           aria-label="Carte de chaleur des clics"
         />
+        </div>
       </div>
     </div>
   );

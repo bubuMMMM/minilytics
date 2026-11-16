@@ -652,9 +652,30 @@
     if (!txt || /@|\b\d{8,}\b/.test(txt)) return '';
     return txt;
   }
+  function layoutPoint(el, e) {
+    var x = e.pageX, y = e.pageY;
+    try {
+      if (el && el.getBoundingClientRect && isFinite(e.clientX) && isFinite(e.clientY)) {
+        var r = el.getBoundingClientRect();
+        var n = el, lx = 0, ly = 0, ok = false;
+        while (n && n !== d.documentElement && n !== d.body) {
+          lx += n.offsetLeft || 0;
+          ly += n.offsetTop || 0;
+          ok = true;
+          n = n.offsetParent;
+        }
+        if (ok && isFinite(lx) && isFinite(ly)) {
+          x = lx + (e.clientX - r.left);
+          y = ly + (e.clientY - r.top);
+        }
+      }
+    } catch (err) {}
+    return { x: x, y: y };
+  }
   function onHeat(e) {
     if (!e || (e.button && e.button !== 0)) return;
-    var x = e.pageX, y = e.pageY;
+    var loc = layoutPoint(e.target, e);
+    var x = loc.x, y = loc.y;
     if (!isFinite(x) || !isFinite(y)) return;
     var doc = d.documentElement, body = d.body;
     var ww = Math.max((doc && doc.scrollWidth) || 0, (body && body.scrollWidth) || 0, (doc && doc.clientWidth) || 0, w.innerWidth || 0);
