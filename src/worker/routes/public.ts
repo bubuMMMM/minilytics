@@ -3,7 +3,7 @@ import { cors } from 'hono/cors';
 import { handleEvent } from '../collect.js';
 import { publicDemoStats, listPublicSites, resolvePublicSite } from '../demo.js';
 import { resolveRange, tzOffset } from '../lib/time.js';
-import { liveGlobeStats } from '../live-globe.js';
+import { liveGlobeStats, publicBotStats } from '../live-globe.js';
 import { liveMap, mapReport } from '../map.js';
 import { type AppEnv, type Site } from '../env.js';
 import { purgeExpiredRateLimits } from '../lib/rate-limit.js';
@@ -60,6 +60,18 @@ app.get('/api/public/live-globe', async (c) => {
   } catch (error) {
     console.error('Live globe failed', error);
     return c.json({ error: ERR.liveUnavailable }, 503);
+  }
+});
+// Public AI crawler aggregates (requests per operator, 7 days) for the landing hero and public sites.
+app.get('/api/public/bots', async (c) => {
+  try {
+    const site = await resolvePublicSite(c.env.DB, c.req.query('site'));
+    if (!site) return c.json({ error: ERR.siteNotPublic }, 404);
+    c.header('Cache-Control', PUBLIC_CACHE);
+    return c.json(await publicBotStats(c.env.DB, site.id));
+  } catch (error) {
+    console.error('Public bots failed', error);
+    return c.json({ error: ERR.unavailable }, 503);
   }
 });
 // Public country-level map aggregates (no cities) for the demo's Carte.

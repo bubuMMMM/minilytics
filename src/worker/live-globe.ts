@@ -39,3 +39,26 @@ export async function liveGlobeStats(db: D1Database, siteId: string) {
     recentCountries: normalize(recent.results),
   };
 }
+
+type OperatorCount = { operator: string | null; hits: number };
+
+/** AI crawler requests over the last 7 days, grouped by operator (OpenAI, Anthropic…). Aggregates only: no paths, no user agents. */
+export async function publicBotStats(db: D1Database, siteId: string) {
+  const now = Date.now();
+  const from = now - 7 * 86_400_000;
+  const [operators, previous] = await db.batch([
+    db.prepare(`SELECT operator, COUNT(*) AS hits FROM bot_hits WHERE site_id = ? AND ts >= ? AND ts < ?
+      GROUP BY operator ORDER BY hits DESC LIMIT 12`).bind(siteId, from, now + 1),
+    db.prepare('SELECT COUNT(*) AS hits FROM bot_hits WHERE site_id = ? AND ts >= ? AND ts < ?').bind(siteId, from - 7 * 86_400_000, from),
+  ]);
+  const rows = (operators.results as OperatorCount[])
+    .filter((r) => r.operator)
+    .map((r) => ({ operator: String(r.operator).slice(0, 40), hits: Number(r.hits ?? 0) }));
+  return {
+    updatedAt: now,
+    days: 7,
+    hits: rows.reduce((n, r) => n + r.hits, 0),
+    previousHits: Number((previous.results[0] as { hits: number } | undefined)?.hits ?? 0),
+    operators: rows,
+  };
+}

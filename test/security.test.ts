@@ -128,9 +128,15 @@ describe('public API (PGlite)', () => {
     expect((await call('/api/public/videos?site=privsite1')).status).toBe(404);
     expect((await call('/api/public/engagement?site=privsite1')).status).toBe(404);
     expect((await call('/api/public/live-globe?site=privsite1')).status).toBe(404);
+    expect((await call('/api/public/bots?site=privsite1')).status).toBe(404);
     const ok = await call('/api/public/demo');
     expect(ok.status).toBe(200);
     expect(ok.headers.get('cache-control')).toMatch(/s-maxage=\d+/);
+    const bots = await call('/api/public/bots');
+    expect(bots.status).toBe(200);
+    const botStats = (await bots.json()) as { hits: number; operators: unknown[] };
+    expect(Array.isArray(botStats.operators)).toBe(true);
+    expect(JSON.stringify(botStats)).not.toMatch(/path|ua|user_agent/);
     const sites = (await (await call('/api/public/sites')).json()) as { id: string }[];
     expect(sites.map((s) => s.id)).not.toContain('privsite1');
     expect(JSON.stringify(sites)).not.toMatch(/api_key|ml_[a-z0-9]{32}/);
