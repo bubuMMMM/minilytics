@@ -302,19 +302,19 @@ async function verify(provider: Provider, secret: string, c: Context<AppEnv>, bo
 
 async function handleProviderWebhook(c: Context<AppEnv>, provider: Provider) {
   const site = await getSite(c.env.DB, c.req.param('siteId')!);
-  if (!site) return c.json({ error: 'unknown site' }, 404);
+  if (!site) return c.json({ error: 'Site inconnu' }, 404);
   const state = readIntegrations(site)[provider];
-  if (!state?.secret) return c.json({ error: `${provider} is not connected for this site` }, 400);
+  if (!state?.secret) return c.json({ error: `${provider} n’est pas connecté pour ce site` }, 400);
   const body = await c.req.text();
-  if (body.length > 512_000) return c.json({ error: 'payload too large' }, 413);
+  if (body.length > 512_000) return c.json({ error: 'Charge utile trop volumineuse' }, 413);
   // WooCommerce pings a new webhook once with a form body `webhook_id=…` (unsigned): acknowledge it, record nothing.
   if (provider === 'woocommerce' && /^webhook_id=\d+$/.test(body.trim())) return c.json({ ok: true, action: 'ping' });
-  if (!(await verify(provider, state.secret, c, body))) return c.json({ error: 'invalid signature' }, 401);
+  if (!(await verify(provider, state.secret, c, body))) return c.json({ error: 'Signature invalide' }, 401);
   let event: any;
   try {
     event = JSON.parse(body);
   } catch {
-    return c.json({ error: 'invalid json' }, 400);
+    return c.json({ error: 'JSON invalide' }, 400);
   }
   const actions =
     provider === 'stripe' ? [parseStripe(event, site)]
@@ -482,9 +482,9 @@ export function registerGrowth(app: Hono<AppEnv>) {
   app.post('/api/sites/:id/segments', async (c) => {
     const b = await c.req.json<{ name?: string; filters?: Record<string, unknown> }>().catch(() => ({}) as any);
     const filters = parseFilters(b.filters ?? {});
-    if (!str(b.name)?.trim() || !Object.keys(filters).length) return c.json({ error: 'A segment needs a name and at least one filter' }, 400);
+    if (!str(b.name)?.trim() || !Object.keys(filters).length) return c.json({ error: 'Un segment doit avoir un nom et au moins un filtre' }, 400);
     const n = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM segments WHERE site_id = ?').bind(c.get('site').id).first<{ n: number }>();
-    if (Number(n?.n) >= 50) return c.json({ error: 'Maximum 50 segments per site' }, 400);
+    if (Number(n?.n) >= 50) return c.json({ error: 'Maximum 50 segments par site' }, 400);
     const seg = { id: randomId(8), name: b.name!.trim().slice(0, 80), filters, created_at: Date.now() };
     await c.env.DB.prepare('INSERT INTO segments (id, site_id, name, filters, created_at) VALUES (?, ?, ?, ?, ?)')
       .bind(seg.id, c.get('site').id, seg.name, JSON.stringify(filters), seg.created_at)
@@ -508,7 +508,7 @@ export function registerGrowth(app: Hono<AppEnv>) {
     const b = await c.req.json<{ ts?: number; text?: string }>().catch(() => ({}) as any);
     const text = str(b.text)?.trim().slice(0, 280);
     const ts = Number(b.ts);
-    if (!text || !Number.isFinite(ts) || ts < 946684800000 || ts > Date.now() + 366 * 86_400_000) return c.json({ error: 'A note needs a text and a valid date' }, 400);
+    if (!text || !Number.isFinite(ts) || ts < 946684800000 || ts > Date.now() + 366 * 86_400_000) return c.json({ error: 'Une note doit avoir un texte et une date valide' }, 400);
     const note = { id: randomId(8), ts: Math.trunc(ts), text };
     await c.env.DB.prepare('INSERT INTO notes (id, site_id, ts, text, created_at) VALUES (?, ?, ?, ?, ?)').bind(note.id, c.get('site').id, note.ts, text, Date.now()).run();
     return c.json(note);
@@ -531,7 +531,7 @@ export function registerGrowth(app: Hono<AppEnv>) {
   app.get('/api/sites/:id/integrations', (c) => c.json(integrationStatus(c.get('site'), new URL(c.req.url).origin)));
   app.put('/api/sites/:id/integrations/:provider', async (c) => {
     const provider = c.req.param('provider') as Provider;
-    if (!PROVIDERS.includes(provider)) return c.json({ error: 'unknown provider' }, 404);
+    if (!PROVIDERS.includes(provider)) return c.json({ error: 'Fournisseur inconnu' }, 404);
     const b = await c.req.json<{ secret?: string }>().catch(() => ({}) as any);
     if (TOKEN_PROVIDERS.has(provider)) {
       // No signature exists for these: we mint the secret and put it in the URL (shown only now).
@@ -544,8 +544,8 @@ export function registerGrowth(app: Hono<AppEnv>) {
       return c.json({ ...integrationStatus({ ...site, integrations: JSON.stringify(all) }, origin), secretUrl: `${origin}/api/webhooks/${provider}/${site.id}?token=${token}` });
     }
     const secret = str(b.secret)?.trim();
-    if (!secret || secret.length < 8 || secret.length > 300 || /\s/.test(secret)) return c.json({ error: 'Paste the webhook signing secret from your provider' }, 400);
-    if (provider === 'stripe' && !secret.startsWith('whsec_')) return c.json({ error: 'A Stripe signing secret starts with whsec_' }, 400);
+    if (!secret || secret.length < 8 || secret.length > 300 || /\s/.test(secret)) return c.json({ error: 'Collez le secret de signature du webhook de votre fournisseur' }, 400);
+    if (provider === 'stripe' && !secret.startsWith('whsec_')) return c.json({ error: 'Un secret de signature Stripe commence par whsec_' }, 400);
     const site = c.get('site');
     const all = readIntegrations(site);
     all[provider] = { secret, connected_at: Date.now() };
@@ -562,7 +562,7 @@ export function registerGrowth(app: Hono<AppEnv>) {
 
   app.get('/api/sites/:id/goals/:name', async (c) => {
     const name = c.req.param('name');
-    if (!/^[\w:.\-]{1,64}$/.test(name)) return c.json({ error: 'invalid goal' }, 400);
+    if (!/^[\w:.\-]{1,64}$/.test(name)) return c.json({ error: 'Objectif invalide' }, 400);
     return c.json(await goalDetail(makeCtx(c), name));
   });
   app.get('/api/sites/:id/paths', async (c) => c.json(await userPaths(makeCtx(c), Number(c.req.query('depth')) || 4)));

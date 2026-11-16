@@ -10,6 +10,8 @@ import { breakdown, overview, parseFilters, type Ctx } from './stats.js';
 import { resolveRange, startOfDay, tzOffset } from './lib/time.js';
 import { currencyDecimals } from './payments.js';
 import { authenticate, canAccess } from './auth.js';
+import { esc } from './lib/esc.js';
+import { ERR } from './lib/errors.js';
 
 export type NotificationKind = 'goal' | 'new_goal' | 'spike' | 'drop' | 'payment' | 'mention' | 'commit' | 'report' | 'quota';
 export interface NotifyInput { kind: NotificationKind; title: string; body?: string | null; url?: string | null; dedupe?: string | null; ts?: number }
@@ -179,7 +181,6 @@ export function reportRange(kind: ReportKind, site: Site, now = Date.now()) {
   return { from, to: monthStart, key: `monthly:${new Date(from + 12 * HOUR).toISOString().slice(0, 7)}` };
 }
 
-const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const pct = (a: number, b: number) => (b ? `${a >= b ? '+' : ''}${Math.round(((a - b) / b) * 100)} %` : '—');
 
 export async function buildReport(db: D1Database, site: Site, kind: ReportKind, now = Date.now(), origin = '') {
@@ -306,7 +307,7 @@ export function registerAlerts(app: Hono<AppEnv>) {
   });
   app.get('/api/notifications', async (c) => {
     const p = await authenticate(c);
-    if (!p) return c.json({ error: 'unauthorized' }, 401);
+    if (!p) return c.json({ error: ERR.unauthorized }, 401);
     const sites = (await c.env.DB.prepare('SELECT id FROM sites').all<{ id: string }>()).results.map((s) => s.id).filter((id) => canAccess(p, id));
     c.header('Cache-Control', 'no-store');
     return c.json(await list(c.env.DB, sites));

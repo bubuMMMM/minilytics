@@ -13,6 +13,7 @@ import { hashPassword, passwordsMatch, randomId, randomToken, sha256Hex, signTok
 import { cookieSecure, requestIp, sessionKey } from './lib/security.js';
 import { AUTH_LIMIT, AUTH_WINDOW_MS, INVITE_LIMIT, INVITE_WINDOW_MS, applyRetryAfter, consumeRateLimit } from './lib/rate-limit.js';
 import { currentPlan } from './platform.js';
+import { ERR } from './lib/errors.js';
 
 export const AUTH_COOKIE = 'ml_auth';
 const AUTH_DAYS = 30;
@@ -128,7 +129,7 @@ export async function authenticate(c: Context<AppEnv>): Promise<Principal | null
 
 export const requireAuth = async (c: Context<AppEnv>, next: Next) => {
   const p = await authenticate(c);
-  if (!p) return c.json({ error: 'unauthorized' }, 401);
+  if (!p) return c.json({ error: ERR.unauthorized }, 401);
   c.set('principal', p);
   // Read-only members: any write under /api/sites is refused server-side (the UI also hides the buttons).
   if (p.role === 'viewer' && c.req.method !== 'GET' && c.req.method !== 'HEAD') return c.json({ error: 'Accès en lecture seule' }, 403);
@@ -138,7 +139,7 @@ export const requireAuth = async (c: Context<AppEnv>, next: Next) => {
 
 export const requireOwner = async (c: Context<AppEnv>, next: Next) => {
   const p = await authenticate(c);
-  if (!p) return c.json({ error: 'unauthorized' }, 401);
+  if (!p) return c.json({ error: ERR.unauthorized }, 401);
   if (p.role !== 'owner') return c.json({ error: 'Réservé au propriétaire' }, 403);
   c.set('principal', p);
   await next();
@@ -171,23 +172,23 @@ function sitesInput(v: unknown, known: Set<string>): '*' | string[] | null {
 
 export function registerAuth(app: Hono<AppEnv>) {
   app.post('/api/auth/login', async (c) => {
-    if (!c.env.ADMIN_PASSWORD || !c.env.SESSION_SECRET) return c.json({ error: 'Set ADMIN_PASSWORD and SESSION_SECRET (see README).' }, 500);
+    if (!c.env.ADMIN_PASSWORD || !c.env.SESSION_SECRET) return c.json({ error: ERR.setSecrets }, 500);
     const ip = requestIp(c);
     const now = Date.now();
     const burst = await consumeRateLimit(c.env.DB, 'auth-login', ip, AUTH_LIMIT, AUTH_WINDOW_MS, now);
     if (!burst.allowed) {
       applyRetryAfter(c, burst.retryAfterSec);
-      return c.json({ error: 'Too many attempts. Try again in a moment.' }, 429);
+      return c.json({ error: ERR.tooManyAttempts }, 429);
     }
     if (await lockedOut(c, ip, now)) {
       applyRetryAfter(c, Math.ceil(LOCKOUT_MS / 1000));
-      return c.json({ error: 'Too many wrong attempts. Try again in 15 minutes.' }, 429);
+      return c.json({ error: ERR.tooManyWrong }, 429);
     }
     const b = await c.req.json<{ password?: unknown; email?: unknown }>().catch(() => ({}) as { password?: unknown; email?: unknown });
     const password = b.password;
     if (typeof password !== 'string' || password.length > MAX_PASSWORD_LENGTH) {
       await fail(c, ip, now);
-      return c.json({ error: 'Wrong password' }, 401);
+      return c.json({ error: ERR.wrongPassword }, 401);
     }
     const email = cleanEmail(b.email);
     let userId: string | null = null;
@@ -197,7 +198,7 @@ export function registerAuth(app: Hono<AppEnv>) {
     } else if (await passwordsMatch(password, c.env.ADMIN_PASSWORD)) userId = 'owner';
     if (!userId) {
       await fail(c, ip, now);
-      return c.json({ error: email ? 'Wrong email or password' : 'Wrong password' }, 401);
+      return c.json({ error: email ? ERR.wrongEmailOrPassword : ERR.wrongPassword }, 401);
     }
     await c.env.DB.prepare('DELETE FROM login_failures WHERE ip = ?').bind(ip).run();
     if (userId !== 'owner') await c.env.DB.prepare('UPDATE users SET last_login_at = ? WHERE id = ?').bind(now, userId).run();
@@ -225,7 +226,7 @@ export function registerAuth(app: Hono<AppEnv>) {
   // Your own sessions (devices), with server-side revocation.
   app.get('/api/auth/sessions', async (c) => {
     const p = await authenticate(c);
-    if (!p) return c.json({ error: 'unauthorized' }, 401);
+    if (!p) return c.json({ error: ERR.unauthorized }, 401);
     const r = await c.env.DB.prepare('SELECT id, created_at, last_seen_at, expires_at, ip, ua FROM auth_sessions WHERE user_id = ? AND revoked_at IS NULL AND expires_at > ? ORDER BY last_seen_at DESC LIMIT 50')
       .bind(p.userId, Date.now()).all<SessionRow>();
     c.header('Cache-Control', 'private, no-store');
@@ -233,9 +234,9 @@ export function registerAuth(app: Hono<AppEnv>) {
   });
   app.delete('/api/auth/sessions/:short', async (c) => {
     const p = await authenticate(c);
-    if (!p) return c.json({ error: 'unauthorized' }, 401);
+    if (!p) return c.json({ error: ERR.unauthorized }, 401);
     const short = c.req.param('short');
-    if (!/^[\w-]{8}$/.test(short)) return c.json({ error: 'bad id' }, 400);
+    if (!/^[\w-]{8}$/.test(short)) return c.json({ error: ERR.badId }, 400);
     if (p.sessionId.startsWith(short)) return c.json({ error: 'Utilisez « Déconnexion » pour cette session.' }, 400);
     await c.env.DB.prepare(`UPDATE auth_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL AND substr(id, 1, 8) = ?`).bind(Date.now(), p.userId, short).run();
     forgetSessions();
@@ -244,7 +245,7 @@ export function registerAuth(app: Hono<AppEnv>) {
   /** Log out every other device. For the owner this also invalidates pre-upgrade cookies. Never the current session. */
   app.post('/api/auth/sessions/revoke-others', async (c) => {
     const p = await authenticate(c);
-    if (!p) return c.json({ error: 'unauthorized' }, 401);
+    if (!p) return c.json({ error: ERR.unauthorized }, 401);
     const now = Date.now();
     const stmts = [c.env.DB.prepare('UPDATE auth_sessions SET revoked_at = ? WHERE user_id = ? AND id <> ? AND revoked_at IS NULL').bind(now, p.userId, p.sessionId)];
     if (p.role === 'owner') stmts.push(c.env.DB.prepare('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value').bind(OWNER_REVOKED_KEY, String(now)));

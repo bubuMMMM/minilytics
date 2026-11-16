@@ -1,5 +1,6 @@
 // Fills the LOCAL database with 30 days of fake traffic so you can see the dashboard.
-// Usage: node scripts/seed-demo.mjs && npx wrangler d1 execute minilytics --local --file .wrangler/seed.sql
+// Usage: node scripts/seed-demo.mjs
+// Writes .data/seed.sql — apply it only on a local/dev database, never production.
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const DAY = 86_400_000;
@@ -94,6 +95,6 @@ for (let i = 0; i < 3; i++) {
   out.push(`INSERT INTO sessions (site_id, id, visitor_id, started_at, last_seen_at, duration, pageviews, goals, hostname, entry_page, exit_page, referrer_domain, source, channel, country, browser, os, device) VALUES ('${siteId}', '${sid}', '${vid}', ${now - 90_000}, ${now - 20_000}, 60000, 2, 0, 'shipkit.dev', '/', '/pricing', 't.co', 'X', 'Organic Social', 'US', 'Chrome', 'Mac OS', 'Desktop');`);
 }
 
-mkdirSync('.wrangler', { recursive: true });
-writeFileSync('.wrangler/seed.sql', out.join('\n'));
-console.log(`Wrote .wrangler/seed.sql (${out.length} statements, ${payN} payments)`);
+mkdirSync('.data', { recursive: true });
+writeFileSync('.data/seed.sql', out.join('\n'));
+console.log(`Wrote .data/seed.sql (${out.length} statements, ${payN} payments)`);

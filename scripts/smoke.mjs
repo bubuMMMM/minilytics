@@ -1,4 +1,4 @@
-// End-to-end smoke test against a running `wrangler dev` (default http://localhost:8787).
+// End-to-end smoke test against a running `npm run dev:api` (default http://localhost:8787).
 import crypto from 'node:crypto';
 
 const BASE = process.env.BASE ?? 'http://localhost:8787';

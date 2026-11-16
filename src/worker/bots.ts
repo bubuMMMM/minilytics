@@ -108,19 +108,19 @@ function parseBody(raw: string): unknown[] {
 
 async function handleBotIngest(c: Context<AppEnv>) {
   const site = await getSite(c.env.DB, c.req.param('siteId') ?? '');
-  if (!site) return c.json({ error: 'unknown site' }, 404);
+  if (!site) return c.json({ error: 'Site inconnu' }, 404);
   const given = (c.req.header('authorization')?.replace(/^Bearer\s+/i, '') || c.req.header('x-minilytics-token') || c.req.query('token') || '').trim();
-  if (!given || !constantTimeEqual(given, await botToken(site))) return c.json({ error: 'invalid token' }, 401);
+  if (!given || !constantTimeEqual(given, await botToken(site))) return c.json({ error: 'Jeton invalide' }, 401);
   const botHit = await consumeRateLimit(c.env.DB, 'bot-ingest', site.id, BOT_INGEST_LIMIT, INGEST_WINDOW_MS);
   if (!botHit.allowed) {
     applyRetryAfter(c, botHit.retryAfterSec);
-    return c.json({ error: 'rate limited' }, 429);
+    return c.json({ error: 'Trop de requêtes' }, 429);
   }
-  if (Number(c.req.header('content-length') ?? 0) > MAX_BODY) return c.json({ error: 'body too large' }, 413);
+  if (Number(c.req.header('content-length') ?? 0) > MAX_BODY) return c.json({ error: 'Corps trop volumineux' }, 413);
   const raw = await c.req.text();
-  if (raw.length > MAX_BODY) return c.json({ error: 'body too large' }, 413);
+  if (raw.length > MAX_BODY) return c.json({ error: 'Corps trop volumineux' }, 413);
   const items = parseBody(raw);
-  if (items.length > MAX_HITS_PER_REQUEST) return c.json({ error: `max ${MAX_HITS_PER_REQUEST} hits per request` }, 413);
+  if (items.length > MAX_HITS_PER_REQUEST) return c.json({ error: `${MAX_HITS_PER_REQUEST} éléments maximum par requête` }, 413);
   const hits = items.map(normalizeHit).filter((h): h is BotHitInput => !!h);
   return c.json(await recordBotHits(c.env.DB, site, hits, 'forward'), 202);
 }

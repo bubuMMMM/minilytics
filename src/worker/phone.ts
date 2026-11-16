@@ -10,6 +10,7 @@ import { randomId, randomToken } from './lib/crypto.js';
 import { widgetData, widgetSite, type WidgetData } from './share.js';
 import { WIDGET_TYPES, widgetOpts, renderWidget, type WidgetOpts, type WidgetStyle } from './widgets.js';
 import { parsePngSize, pngResponse, renderBoardPng, renderWidgetPng, type BoardPngItem } from './widget-png.js';
+import { esc } from './lib/esc.js';
 
 const BOARD_RE = /^wp[\w-]{15,40}$/;
 const MAX_ITEMS = 6;
@@ -40,7 +41,6 @@ interface BoardRow {
   updated_at: number;
 }
 
-const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
 const cleanName = (s: unknown) => String(s ?? '').replace(/\s+/g, ' ').trim().slice(0, 60);
 
 export function parseBoardItems(raw: unknown): BoardItem[] | { error: string } {
@@ -567,7 +567,7 @@ export function registerWidgetPng(app: Hono<AppEnv>) {
     c.header('Access-Control-Allow-Origin', '*');
     const site = await widgetSite(c.env.DB, c.req.param('t'));
     if (!site) {
-      return new Response(JSON.stringify({ error: 'widget not found' }), {
+      return new Response(JSON.stringify({ error: 'Widget introuvable' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json', 'Cache-Control': NO_STORE, 'Access-Control-Allow-Origin': '*' },
       });

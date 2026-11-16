@@ -1,9 +1,10 @@
 node_modules
 dist
+dist-ssr
 .wrangler
 .dev.vars
 *.log
 .vercel
 .env*
-
-dist-ssr
+!.env.example
+.data

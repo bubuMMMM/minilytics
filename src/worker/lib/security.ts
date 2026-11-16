@@ -1,4 +1,5 @@
 import type { Context, Next } from 'hono';
+import { ERR } from './errors.js';
 
 /**
  * Security helpers shared by the API routes. Kept framework-light so they are easy to unit test.
@@ -69,7 +70,7 @@ export function isCrossSite(method: string, header: HeaderGetter, requestUrl: st
 
 /** Reject cross-site state-changing requests to cookie-authenticated routes (defence in depth on top of SameSite). */
 export const csrfGuard = async (c: Context, next: Next) => {
-  if (isCrossSite(c.req.method, (n) => c.req.header(n), c.req.url)) return c.json({ error: 'cross-site request blocked' }, 403);
+  if (isCrossSite(c.req.method, (n) => c.req.header(n), c.req.url)) return c.json({ error: ERR.csrf }, 403);
   await next();
 };
 

@@ -14,6 +14,7 @@ import { liveMap, mapReport } from './map.js';
 import { breakdown, makeCtx, overview, parseFilters, type Ctx } from './stats.js';
 import { OG_PNG_HEADERS, renderOgPng } from './og-image.js';
 import { SPA_SHELL } from './spa-shell.gen.js';
+import { esc } from './lib/esc.js';
 
 export const SHARE_VIEWS = ['overview', 'sources', 'pages', 'map', 'tech', 'goals'] as const;
 export type ShareView = (typeof SHARE_VIEWS)[number];
@@ -119,7 +120,6 @@ const expired = (l: ShareRow) => l.expires_at != null && num(l.expires_at) <= Da
 type ShareEnv = AppEnv & { Variables: AppEnv['Variables'] & { share: ShareRow } };
 
 
-const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
 
 export function injectShareMeta(html: string, opts: { title: string; desc: string; url: string; image: string }) {
   const set = (s: string, re: RegExp, tag: string) => (re.test(s) ? s.replace(re, tag) : s.replace('</head>', `    ${tag}\n  </head>`));

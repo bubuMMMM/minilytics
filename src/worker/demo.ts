@@ -1,4 +1,3 @@
-import type { D1Database } from '@cloudflare/workers-types';
 import { forgetSite, getSite, type Site } from './env.js';
 
 // A fixed, public demonstration site. Never expose its API key or individual visitor records.

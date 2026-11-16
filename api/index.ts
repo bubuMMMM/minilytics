@@ -1,16 +1,9 @@
 import app from '../src/worker/index.js';
-import { getDb } from '../src/server/pgd1.js';
+import { workerBindings } from '../src/server/bindings.js';
 
 export const config = { runtime: 'nodejs' };
 
-const handler = (req: Request) =>
-  app.fetch(req, {
-    DB: getDb() as unknown as D1Database,
-    ADMIN_PASSWORD: process.env.ADMIN_PASSWORD ?? '',
-    SESSION_SECRET: process.env.SESSION_SECRET ?? '',
-    X_BEARER_TOKEN: process.env.X_BEARER_TOKEN || undefined,
-    CRON_SECRET: process.env.CRON_SECRET || undefined,
-  } as any);
+const handler = (req: Request) => app.fetch(req, workerBindings());
 
 export const GET = handler;
 export const POST = handler;

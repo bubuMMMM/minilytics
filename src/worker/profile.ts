@@ -15,6 +15,8 @@ import { widgetData, type WidgetData } from './share.js';
 import { renderWidget, widgetOpts, WIDGET_STYLES, WIDGET_TYPES, type WidgetOpts } from './widgets.js';
 import { SPA_SHELL } from './spa-shell.gen.js';
 import { OG_PNG_HEADERS, renderOgPng } from './og-image.js';
+import { esc } from './lib/esc.js';
+import { ERR } from './lib/errors.js';
 
 export const RESERVED_SLUGS = new Set([
   'admin', 'api', 'login', 'signup', 'sites', 'site', 'team', 'demo', 'share', 'invite', 'settings',
@@ -38,7 +40,6 @@ const SOCIAL: Record<string, RegExp> = {
 };
 export const SOCIAL_KEYS = Object.keys(SOCIAL);
 
-const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
 
 function isPrivateHost(host: string) {
   const h = host.toLowerCase().replace(/\.$/, '');
@@ -367,7 +368,7 @@ export function registerProfile(app: Hono<AppEnv>) {
   });
   app.get('/api/public/page/:slug/widget/:i/data', async (c) => {
     const b = await widgetBundle(c, c.req.param('slug'), c.req.param('i'));
-    if (!b) return c.json({ error: 'not found' }, 404);
+    if (!b) return c.json({ error: ERR.notFound }, 404);
     c.header('Cache-Control', 'public, max-age=30');
     return c.json(b.d);
   });

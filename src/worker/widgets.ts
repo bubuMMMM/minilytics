@@ -11,6 +11,8 @@ import type { AppEnv } from './env.js';
 import { widgetData, widgetSite, type WidgetData } from './share.js';
 import { DOT_ALPHA, DOT_CODES, DOT_H, DOT_LAT0, DOT_ROWS, DOT_STEP, DOT_W } from './dotmap.gen.js';
 import { COUNTRY_ROWS } from '../dashboard/map/countries.gen.js';
+import { esc } from './lib/esc.js';
+import { ERR } from './lib/errors.js';
 
 export const WIDGET_TYPES = ['live', 'counter', 'chart', 'pages', 'map'] as const;
 export const WIDGET_STYLES = ['classic', 'minimal', 'editorial', 'glass', 'gradient', 'compact'] as const;
@@ -51,7 +53,6 @@ const T = {
   },
 };
 
-const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
 const fmt = (n: number, l: Locale) => new Intl.NumberFormat(l === 'fr' ? 'fr-FR' : 'en-US', { notation: n >= 100_000 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(n);
 
 // ---------- dot map
@@ -255,7 +256,7 @@ export function badgeSvg(kind: 'live' | 'visitors' | 'pageviews', d: WidgetData,
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${lw + rw}" height="20" role="img" aria-label="${left} ${right}"><title>${left} ${right} · ${esc(d.site.domain)}</title><clipPath id="r"><rect width="${lw + rw}" height="20" rx="4"/></clipPath><g clip-path="url(#r)"><rect width="${lw}" height="20" fill="${o.accent}"/><rect x="${lw}" width="${rw}" height="20" fill="${bgR}"/></g>${dot ? `<circle cx="10" cy="10" r="3" fill="#fff"/>` : ''}<g font-family="Geist,Verdana,DejaVu Sans,sans-serif" font-size="11" font-weight="600"><text x="${dot + cw(left) / 2}" y="14" fill="#fff" text-anchor="middle">${left}</text><text x="${lw + rw / 2}" y="14" fill="${inkR}" text-anchor="middle" font-weight="500">${right}</text></g></svg>`;
 }
 
-const notFound = (c: Context) => { c.header('Cache-Control', 'public, max-age=60'); return c.json({ error: 'widget not found' }, 404); };
+const notFound = (c: Context) => { c.header('Cache-Control', 'public, max-age=60'); return c.json({ error: ERR.notFound }, 404); };
 
 export function registerWidgets(app: Hono<AppEnv>) {
   app.get('/api/widget/:t/data', async (c) => {

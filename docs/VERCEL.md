@@ -1,10 +1,13 @@
-# Deploying on Vercel + Neon Postgres
+# Déploiement Vercel + Neon
 
-This branch runs the same Hono app as a Vercel Function (`api/index.ts`) with Neon Postgres instead of Cloudflare D1.
-`src/server/pgd1.ts` is a tiny D1-compatible wrapper over Postgres, so the worker code is mostly unchanged.
+Minilytics tourne comme une fonction Node Vercel (`api/index.ts`) avec Postgres Neon. Le schéma vit uniquement dans `migrations-pg/`.
 
-1. Import the repo in Vercel (framework: Vite, output: `dist`; `vercel.json` handles routing).
-2. Add **Neon** from the Vercel Marketplace and connect it to the project (sets `DATABASE_URL`).
-3. Add env vars `ADMIN_PASSWORD` and `SESSION_SECRET` (`openssl rand -hex 32`).
-4. Run migrations once: `DATABASE_URL=... npm run db:migrate:pg` (Postgres versions live in `migrations-pg/`).
-5. Deploy. Tracking snippet: `<script defer data-website-id="SITE_ID" src="https://YOUR-APP.vercel.app/js/script.js"></script>`
+Les étapes détaillées (variables d’environnement, migrations, domaine, développement local) sont dans le [README](../README.md).
+
+En bref :
+
+1. Importer le dépôt dans Vercel (framework Vite, sortie `dist` ; `vercel.json` gère le routage). Branche : `vercel-port`.
+2. Ajouter **Neon** depuis le Marketplace Vercel (définit `DATABASE_URL`).
+3. Définir `ADMIN_PASSWORD`, `SESSION_SECRET` et `CRON_SECRET`.
+4. Appliquer les migrations : `npm run db:migrate:pg`.
+5. Déployer : `npx vercel deploy --prod`.

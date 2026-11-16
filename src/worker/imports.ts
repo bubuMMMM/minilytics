@@ -42,7 +42,7 @@ export function registerImports(app: Hono<AppEnv>) {
 
   app.post('/api/sites/:id/imports/:iid/rows', async (c) => {
     const site = c.get('site');
-    const imp = await c.env.DB.prepare('SELECT id FROM imports WHERE id = ? AND site_id = ?').bind(c.req.param('iid'), site.id).first();
+    const imp = await c.env.DB.prepare('SELECT id FROM imports WHERE id = ? AND site_id = ?').bind(c.req.param('iid'), site.id).first<{ id: string }>();
     if (!imp) return c.json({ error: 'import introuvable' }, 404);
     const b = await c.req.json<{ rows?: unknown[] }>().catch(() => ({}) as { rows?: unknown[] });
     if (!Array.isArray(b.rows) || b.rows.length > MAX_ROWS) return c.json({ error: `rows: tableau de ${MAX_ROWS} lignes maximum` }, 400);

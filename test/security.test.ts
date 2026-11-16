@@ -240,7 +240,7 @@ describe('/api/sites requires authentication (Hono wildcard middleware)', () => 
   it.each(paths)('GET %s → 401', async (path) => {
     const r = await call(path);
     expect(r.status).toBe(401);
-    expect(await r.json()).toEqual({ error: 'unauthorized' });
+    expect(await r.json()).toEqual({ error: 'Non autorisé' });
   });
   it.each(['/api/sites/abc', '/api/sites/abc/', '/api/sites/abc/funnels'])('POST %s → 401', async (path) => {
     const r = await call(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });

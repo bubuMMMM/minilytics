@@ -1,4 +1,3 @@
-import type { D1Database } from '@cloudflare/workers-types';
 import { filterSql, type Ctx } from './stats.js';
 import { bucketSql } from './lib/time.js';
 

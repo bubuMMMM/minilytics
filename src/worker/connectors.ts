@@ -373,7 +373,7 @@ export function registerConnectors(app: Hono<AppEnv>) {
     app.patch(`/api/sites/:id/oauth/${p}`, async (c) => {
       const b = await c.req.json<{ property?: string; ad_account?: string }>().catch(() => ({}) as any);
       const raw = readRaw(c.get('site'))[p];
-      if (!raw) return c.json({ error: 'not connected' }, 400);
+      if (!raw) return c.json({ error: 'Non connecté' }, 400);
       if (p === 'google' && typeof b.property === 'string' && (raw.properties ?? []).includes(b.property)) await patchRaw(c.env.DB, c.get('site').id, p, { property: b.property });
       if (p === 'meta' && typeof b.ad_account === 'string' && (raw.accounts ?? []).some((a: any) => a.id === b.ad_account)) await patchRaw(c.env.DB, c.get('site').id, p, { ad_account: b.ad_account });
       return c.json({ ok: true });

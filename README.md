@@ -1,10 +1,8 @@
 # Minilytics
 
-Revenue-first web analytics for your own websites, inspired by DataFast. It shows where visitors came from (which
-tweet, article, Google page or AI assistant), what they did, and **which source made you money**. It runs on
-Cloudflare's free plan.
+Analytique web orientée revenu pour vos propres sites, inspirée de DataFast. Elle montre d’où viennent les visiteurs (tweet, article, page Google ou assistant IA), ce qu’ils ont fait, et **quelle source vous a rapporté de l’argent**. L’application tourne sur [Vercel](https://vercel.com) avec une base [Neon](https://neon.tech) (Postgres).
 
-![Dashboard](docs/dashboard.png)
+![Tableau de bord](docs/dashboard.png)
 
 ## Sponsors
 
@@ -32,119 +30,96 @@ Cloudflare's free plan.
   <a href="https://checkout.dodopayments.com/buy/pdt_0NqWPM98xzStsrTUMLyxE?quantity=1"><img src="https://img.shields.io/badge/Become%20a%20sponsor-%2419%2Fmonth%20early%20price-e07b5f?style=for-the-badge" alt="Become a sponsor: $19/month early price"></a>
 </p>
 
-## What it tracks
+## Ce qui est mesuré
 
-- **Visitors, revenue, conversion rate, revenue per visitor, bounce rate, session time, online now**, each with a % change against the previous period
-- A chart of visitors (line) and revenue (bars), hourly, daily, weekly or monthly
-- Date ranges: today, yesterday, last 24h, last 2 days, 7/30/90 days, 12 months, all time and custom, with ‹ › to step back and forward
-- **Where visitors come from**: channel, referrer (X, Google, ChatGPT, Reddit…), campaign (`utm_campaign`), keyword (`utm_term`), `?ref=` tags
-- **Where they are and what they use**: country, region, city, browser, OS, device
-- **What they did**: pages, entry pages, exit links (outbound clicks), button clicks and custom goals, funnels
-- **Who paid**: a Journey list of every customer with their source, amount, time to convert, and a full visitor timeline (visit → pages → clicks → payment)
-- Click any row to filter the whole dashboard (for example "only visitors from the launch tweet")
-- Multiple websites, one login
+- **Visiteurs, revenu, taux de conversion, revenu par visiteur, taux de rebond, durée de session, en ligne maintenant**, chacun avec un % d’évolution par rapport à la période précédente
+- Un graphique des visiteurs (ligne) et du revenu (barres), à l’heure, au jour, à la semaine ou au mois
+- Plages de dates : aujourd’hui, hier, 24 h, 2 jours, 7/30/90 jours, 12 mois, tout, et plage personnalisée, avec ‹ › pour reculer et avancer
+- **D’où viennent les visiteurs** : canal, référent (X, Google, ChatGPT, Reddit…), campagne (`utm_campaign`), mot-clé (`utm_term`), étiquettes `?ref=`
+- **Où ils sont et ce qu’ils utilisent** : pays, région, ville, navigateur, OS, appareil
+- **Ce qu’ils ont fait** : pages, pages d’entrée, liens de sortie (clics sortants), clics sur boutons et objectifs personnalisés, entonnoirs
+- **Qui a payé** : une liste Parcours de chaque client avec sa source, le montant, le délai de conversion, et une timeline (visite → pages → clics → paiement)
+- Cliquez une ligne pour filtrer tout le tableau de bord (par exemple « uniquement les visiteurs du tweet de lancement »)
+- Plusieurs sites, une seule connexion
 
-## Deploy for free (about 10 minutes)
+## Déployer sur Vercel + Neon
 
-Every person deploys **their own copy** on their own free Cloudflare account. Your data stays on your account, and you
-get your own dashboard with its own password.
+Vous déployez **votre propre copie**. Les données restent dans votre projet Neon, et le tableau de bord a son propre mot de passe.
 
-You need a free [Cloudflare account](https://dash.cloudflare.com/sign-up), [Node.js 20+](https://nodejs.org) and Git.
-Run these commands in a terminal on your computer. You only do this once; afterwards the app runs on Cloudflare.
+Il vous faut un compte [Vercel](https://vercel.com/signup), un compte [Neon](https://neon.tech), [Node.js 20+](https://nodejs.org) et Git.
 
-**1. Download the code and log in to Cloudflare**
+**1. Récupérer le code**
 
 ```bash
-git clone https://github.com/surendrapandar/minilytics.git
+git clone https://github.com/bubuMMMM/minilytics.git
 cd minilytics
 npm install
-npx wrangler login          # opens your browser; click "Allow"
 ```
 
-**2. Create the database**
+La branche de travail est `vercel-port` (pas `main`).
+
+**2. Créer la base Neon**
+
+Créez un projet Postgres sur Neon et copiez l’URL de connexion. Placez-la dans `.env.local` (voir `.env.example`) :
 
 ```bash
-npx wrangler d1 create minilytics
+cp .env.example .env.local
+# Renseignez DATABASE_URL, ADMIN_PASSWORD et SESSION_SECRET
+npm run db:migrate:pg
 ```
 
-If Wrangler asks *"Would you like Wrangler to add it on your behalf?"*, answer **No**. Answer **No** to the optional
-"Cloudflare skills" questions too. Then copy the printed `database_id` and paste it into `wrangler.jsonc`, replacing
-`00000000-0000-0000-0000-000000000000`. There must be exactly **one** entry under `d1_databases`, with `"binding": "DB"`.
+`SESSION_SECRET` doit être une longue chaîne aléatoire, par exemple la sortie de `openssl rand -hex 32`.
 
-**3. Set your password and a signing secret**
+**3. Variables d’environnement Vercel**
+
+Dans le projet Vercel, définissez au minimum :
+
+- `DATABASE_URL` — URL Neon (ou `POSTGRES_URL`)
+- `ADMIN_PASSWORD` — mot de passe du tableau de bord
+- `SESSION_SECRET` — signature des cookies de session
+- `CRON_SECRET` — secret envoyé par Vercel Cron en `Authorization: Bearer …`
+
+Optionnel : `X_BEARER_TOKEN`, `RESEND_API_KEY`, `REPORT_FROM_EMAIL`, jetons GitHub / Reddit / Google / Meta (voir `.env.example`).
+
+**4. Déployer**
 
 ```bash
-npx wrangler secret put ADMIN_PASSWORD     # the password you'll log in with (use a strong one)
-npx wrangler secret put SESSION_SECRET     # any long random text, e.g. the output of: openssl rand -hex 32
+npx vercel deploy --prod
 ```
 
-Typing is hidden; that's normal. If asked *"There doesn't seem to be a Worker called minilytics… create it?"*, answer **Yes**.
+Ouvrez l’URL affichée, connectez-vous, ajoutez un site et copiez sa balise de script. La page Réglages d’un site propose aussi **Copier le prompt IA** pour faire installer le script par un assistant dans votre code.
 
-**4. Deploy**
+Vous pouvez attacher un domaine personnalisé du type `analytics.votre-domaine.com` dans Vercel → Project → Settings → Domains.
 
-```bash
-npm run deploy
-```
+Les migrations se jouent avec `npm run db:migrate:pg` (dossier `migrations-pg/`, source unique du schéma). Appliquez-les à la même base que celle utilisée en production **avant** ou juste après un déploiement qui en dépend.
 
-This builds the dashboard, creates the database tables and deploys. It prints your link, e.g.
-`https://minilytics.<you>.workers.dev`. Open it, log in, add a website and copy its script tag. Each site's Settings
-page also has a **Copy AI prompt** button that lets Claude Code / Cursor do the install in your codebase for you.
-
-If you see `fetch failed`, it's a network hiccup (VPN, proxy, Wi-Fi). Run `npm run deploy` again.
-
-You can attach a custom domain such as `analytics.yourdomain.com` in Cloudflare → Workers & Pages → minilytics →
-Settings → Domains & Routes.
-
-**Updating later**
-
-```bash
-git stash          # keeps your database_id edit in wrangler.jsonc safe
-git pull
-git stash pop
-npm run deploy
-```
-
-### What the free plan covers
-
-| Cloudflare free limit | What it means here |
-| --- | --- |
-| 100,000 Worker requests/day | About 100k tracked events per day across all sites. The script and dashboard files are static and don't count. |
-| 100,000 D1 rows written/day | About 10k pageviews per day |
-| 5M D1 rows read/day | A dashboard load reads roughly 10 times the sessions in the range, so with 10k visitors/month that's hundreds of loads a day |
-| 5 GB D1 storage | Years of data at side-project traffic |
-
-At 5–10k visitors a month you'll use a few percent of this. If you outgrow it, Cloudflare's Workers Paid plan is $5/month.
-
-## Install on a website
+## Installer sur un site
 
 ```html
-<script defer data-website-id="SITE_ID" src="https://YOUR-MINILYTICS-HOST/js/script.js"></script>
+<script defer data-website-id="SITE_ID" src="https://VOTRE-HOTE-MINILYTICS/js/script.js"></script>
 ```
 
-- **Button clicks / goals:** `<button data-ml-goal="signup_click">`, or `window.minilytics('goal', 'signup', { plan: 'pro' })`
-- **Identify logged-in users:** `window.minilytics('identify', { user_id, email, name })`
-- **Ignore your own visits:** open `https://yoursite.com/?ml_ignore=true` once per browser
-- **Single-page apps** (Next.js, React Router…) are handled automatically
-- **Subdomains:** `app.yoursite.com` and `yoursite.com` share the same visitor, because the cookie is set on the root domain
+- **Clics / objectifs :** `<button data-ml-goal="signup_click">`, ou `window.minilytics('goal', 'signup', { plan: 'pro' })`
+- **Identifier un utilisateur connecté :** `window.minilytics('identify', { user_id, email, name })`
+- **Ignorer vos propres visites :** ouvrez une fois `https://votresite.com/?ml_ignore=true` dans le navigateur
+- **Applications monopage** (Next.js, React Router…) : prises en charge automatiquement
+- **Sous-domaines :** `app.votresite.com` et `votresite.com` partagent le même visiteur, le cookie étant posé sur le domaine racine
 
-### Tracking a specific tweet / article
+### Suivre un tweet ou un article précis
 
-X, Medium, LinkedIn and others hide which exact post sent someone; the referrer only says `t.co` or `medium.com`.
-To see the exact post, tag each link. Settings has a link builder for this:
+X, Medium, LinkedIn et d’autres masquent le contenu exact qui a envoyé quelqu’un ; le référent dit seulement `t.co` ou `medium.com`. Pour voir le post précis, étiquetez chaque lien. Les réglages proposent un constructeur d’URL :
 
 ```
-https://yoursite.com/?utm_source=x&utm_medium=social&utm_campaign=launch-tweet
-https://yoursite.com/?ref=launch-tweet            (short version)
+https://votresite.com/?utm_source=x&utm_medium=social&utm_campaign=launch-tweet
+https://votresite.com/?ref=launch-tweet            (version courte)
 ```
 
-For SEO, Google never shares the search keyword, but **Entry page** with the **Google** referrer tells you which
-article people found you through.
+Pour le SEO, Google ne transmet jamais le mot-clé, mais la **page d’entrée** combinée au référent **Google** indique par quel article on vous a trouvés.
 
-## Revenue attribution with Dodo Payments
+## Attribution des revenus avec Dodo Payments
 
-1. In Dodo → Developer → Webhooks, add `https://YOUR-HOST/api/webhooks/dodo/SITE_ID` and subscribe to
-   `payment.succeeded` and `refund.succeeded`. Paste the signing secret (`whsec_…`) into the site settings.
-2. Pass the visitor cookies as metadata when creating a checkout:
+1. Dans Dodo → Developer → Webhooks, ajoutez `https://VOTRE-HOTE/api/webhooks/dodo/SITE_ID` et abonnez-vous à `payment.succeeded` et `refund.succeeded`. Collez le secret de signature (`whsec_…`) dans les réglages du site.
+2. Passez les cookies visiteur en métadonnées à la création du checkout :
 
 ```ts
 const jar = await cookies(); // next/headers
@@ -154,72 +129,69 @@ await dodo.checkoutSessions.create({
 });
 ```
 
-Using Dodo **payment links**? The script adds `metadata_ml_visitor_id` / `metadata_ml_session_id` to any
-`checkout.dodopayments.com` link when it's clicked. That metadata doesn't always reach the payment, so also do step 3.
+Vous utilisez des **liens de paiement** Dodo ? Le script ajoute `metadata_ml_visitor_id` / `metadata_ml_session_id` à tout lien `checkout.dodopayments.com` cliqué. Ces métadonnées n’arrivent pas toujours jusqu’au paiement : faites aussi l’étape 3.
 
-3. Recommended: set the checkout's return / redirect URL to a page on your site (e.g. `/thanks`) that loads the
-   script. Dodo adds `?payment_id=…` to it, and Minilytics uses that to link the payment to the exact visitor even when
-   metadata doesn't come through.
+3. Recommandé : l’URL de retour du checkout doit être une page de votre site (par ex. `/thanks`) qui charge le script. Dodo ajoute `?payment_id=…`, et Minilytics s’en sert pour relier le paiement au visiteur même si les métadonnées manquent.
 
-**How credit is given:** a payment goes to the paying visitor's last visit that came from a real source (last non-direct
-touch). So "clicked a tweet, came back directly 17 days later and paid" is credited to the tweet. If metadata is
-missing, Minilytics tries, in order: the return page (`?payment_id=`), an earlier payment by the same customer
-(renewals), an email you `identify()`'d, and finally checkout timing (used only when exactly one visitor clicked a Dodo
-checkout link in the 3 hours before the payment). The Journey tab shows how each payment was matched, and **Try
-matching again** re-runs this for older payments.
-Refunds are subtracted from revenue.
+**Règle d’attribution :** un paiement est crédité à la dernière visite du client issue d’une vraie source (dernier touché non direct). Donc « a cliqué un tweet, est revenu en direct 17 jours plus tard et a payé » est attribué au tweet. Si les métadonnées manquent, Minilytics essaie, dans l’ordre : la page de retour (`?payment_id=`), un paiement antérieur du même client (renouvellements), un e-mail passé à `identify()`, enfin le moment du checkout (uniquement s’il n’y a qu’un visiteur qui a cliqué un lien Dodo dans les 3 heures avant le paiement). L’onglet Parcours montre comment chaque paiement a été apparié ; **Réessayer l’appariement** relance ça pour les anciens paiements. Les remboursements sont soustraits du revenu.
 
-Other providers can use the generic API (the key is in site settings):
+Les autres prestataires peuvent utiliser l’API générique (la clé est dans les réglages du site) :
 
 ```bash
-curl -X POST https://YOUR-HOST/api/v1/payments -H "Authorization: Bearer ml_..." -H "Content-Type: application/json" \
-  -d '{"transaction_id":"txn_1","amount":29.99,"currency":"USD","visitor_id":"<ml_vid cookie>","email":"jane@acme.com"}'
+curl -X POST https://VOTRE-HOTE/api/v1/payments -H "Authorization: Bearer ml_..." -H "Content-Type: application/json" \
+  -d '{"transaction_id":"txn_1","amount":29.99,"currency":"USD","visitor_id":"<cookie ml_vid>","email":"jane@acme.com"}'
 ```
 
-## Tracker reliability
+## Fiabilité du script de suivi
 
-- Duplicate script tags for the same website are ignored to prevent duplicate listeners and pageviews.
-- When cookies are blocked or throw, IDs remain stable in memory for the current document. Reloads and other tabs may still count as different visitors; no fingerprinting is used.
-- Browser back/forward-cache restores count a new pageview without adding time spent away to engaged time.
-- Outbound links use exact domain/subdomain boundaries, and right-clicking is not counted as a click-through.
-- Sensitive query parameters, URL credentials and fragments are stripped from collected page URLs and referrers. This is not a guarantee against personal data embedded in paths or custom parameters.
-- Custom goal properties retain valid JSON within a 1,000-byte budget. Oversized properties are shortened or omitted instead of truncating JSON mid-string.
+- Les balises de script en double pour le même site sont ignorées, pour éviter les écouteurs et pages vues en double.
+- Si les cookies sont bloqués ou lèvent une erreur, les identifiants restent stables en mémoire pour le document courant. Un rechargement ou un autre onglet peut encore compter comme un autre visiteur ; aucun fingerprinting n’est utilisé.
+- Une restauration depuis le cache aller/retour du navigateur compte une nouvelle page vue, sans ajouter le temps passé ailleurs au temps d’engagement.
+- Les liens sortants respectent les frontières exactes de domaine / sous-domaine ; un clic droit n’est pas compté comme un passage.
+- Les paramètres de requête sensibles, les identifiants d’URL et les fragments sont retirés des pages et référents collectés. Ce n’est pas une garantie contre des données personnelles placées dans un chemin ou un paramètre personnalisé.
+- Les propriétés d’objectifs personnalisés conservent du JSON valide dans une limite de 1 000 octets. Les propriétés trop grandes sont raccourcies ou omises, plutôt que de couper le JSON au milieu.
 
-## Accuracy notes
+## Limites de précision
 
-No analytics tool is 100% accurate. These are the main gaps and how this project handles them:
+Aucun outil d’analytique n’est exact à 100 %. Principaux écarts et la façon dont ce projet les traite :
 
-- **Ad blockers** block some analytics domains. Proxy the script through your own domain (Settings shows a Next.js
-  rewrite). Payments are always recorded by the webhook, even when the visitor's browser blocked tracking.
-- **Safari** keeps cookies set by JavaScript for at most 7 days. A Safari visitor who returns after more than a week counts as new. The
-  email fallback above recovers most of these payments.
-- **Bots** are filtered by user agent and the `navigator.webdriver` flag.
-- Revenue in a different currency than the site's is converted only when Dodo gives a settlement amount in the site's currency.
+- **Bloqueurs de pub** : certains domaines d’analytique sont bloqués. Proxifiez le script via votre propre domaine (les réglages montrent une rewrite Next.js). Les paiements sont toujours enregistrés par le webhook, même si le navigateur a bloqué le suivi.
+- **Safari** conserve au plus 7 jours les cookies posés en JavaScript. Un visiteur Safari qui revient après plus d’une semaine compte comme nouveau. L’e-mail ci-dessus permet de rattacher la plupart de ces paiements.
+- **Bots** filtrés d’après l’user-agent et le drapeau `navigator.webdriver`.
+- Un revenu dans une autre devise que celle du site n’est converti que lorsque Dodo fournit un montant de règlement dans la devise du site.
 
-## Local development
+## Développement local
 
 ```bash
-cp .dev.vars.example .dev.vars        # password: change-me
-npm run db:migrate:local
-npm run build && npm run dev:api      # http://localhost:8787
-npm run dev:web                       # optional: hot-reloading dashboard on http://localhost:5173
+cp .env.example .env.local    # mot de passe : change-me (à modifier)
+npm run db:migrate:pg         # applique migrations-pg/ sur DATABASE_URL
+npm run dev                   # API http://localhost:8787 + tableau de bord http://localhost:5173
+# ou séparément : npm run dev:api  et  npm run dev:web
 
-npm run seed                          # optional: 30 days of demo data ("ShipKit" site)
-npm test                              # unit tests
-npm run smoke                         # end-to-end test against the running dev server
+npm run seed                  # optionnel : écrit .data/seed.sql (30 jours de démo « ShipKit »)
+                              # appliquez ce fichier uniquement à une base locale, jamais la production
+npm test                      # tests unitaires
+npm run typecheck
+npm run lint                  # ESLint du serveur
+npm run check                 # typecheck + lint
+npm run smoke                 # test de bout en bout contre l’API de dev
 ```
 
-## How it's built
+## Architecture
 
-- `public/js/script.js`: the tracker, 9 KB (about 3.5 KB gzipped). It handles cookies, pageviews, engaged time, goals, outbound links and Dodo link tagging
-- `src/worker`: a Hono app on Cloudflare Workers that handles event ingestion, the Dodo webhook, the payments and goals API, and stats queries on D1 (SQLite)
-- `src/dashboard`: the React dashboard (Vite, Tailwind, Recharts), served as static files by the same Worker
-- `migrations/`: the database schema
+- `public/js/script.js` : le tracker, ~9 Ko (environ 3,5 Ko gzip). Cookies, pages vues, temps d’engagement, objectifs, liens sortants et étiquetage des liens Dodo
+- `src/worker` : application Hono (ingestion, webhooks, API paiements / objectifs, requêtes de stats)
+- `src/server` : adaptation D1 → Postgres (Neon) et liaisons d’environnement Node
+- `api/index.ts` : fonction Node Vercel qui sert l’API
+- `src/dashboard` : tableau de bord React (Vite, Tailwind, Recharts), fichiers statiques
+- `migrations-pg/` : schéma Postgres, unique source de vérité
 
-## Contributing
+Voir aussi [SECURITY.md](SECURITY.md) et [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Issues and pull requests are welcome. Before opening a PR, run `npm run typecheck && npm test`.
+## Contribution
 
-## License
+Les issues et les pull requests sont les bienvenues. Avant d’ouvrir une PR, lancez `npm run check && npm test`. Détails dans [CONTRIBUTING.md](CONTRIBUTING.md).
 
-[MIT](LICENSE): free to use, modify and self-host, including commercially.
+## Licence
+
+[MIT](LICENSE) : libre d’utilisation, de modification et d’auto-hébergement, y compris en usage commercial.

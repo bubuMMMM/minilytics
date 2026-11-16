@@ -20,6 +20,7 @@ import { goalDetail } from './growth.js';
 import { DEFAULT_PLAN, PLANS, type Plan } from '../shared/plans.js';
 import { BOT_MONTHLY_LIMIT } from './bots.js';
 import { clip } from '../shared/text.js';
+import { ERR } from './lib/errors.js';
 
 const MAX_TOKENS = 20;
 
@@ -141,7 +142,7 @@ async function callTool(c: Context<AppEnv>, caller: ApiCaller, name: string, arg
     return { sites: all.filter((s) => canAccess(caller.principal, s.id)).map(siteView) };
   }
   const site = await siteFor(c, caller, String(args.site_id ?? ''));
-  if (!site) throw new Error('site not found or not accessible with this token');
+  if (!site) throw new Error(ERR.siteNotFound);
   switch (name) {
     case 'get_stats':
       return runQuery(db, site, 'overview', args);
@@ -333,15 +334,15 @@ export function registerPlatform(app: Hono<AppEnv>) {
   app.use('/api/mcp', cors({ origin: '*', allowMethods: ['POST', 'GET', 'OPTIONS'], allowHeaders: ['Authorization', 'Content-Type', 'Mcp-Session-Id', 'Mcp-Protocol-Version'], maxAge: 86400 }));
   app.get('/api/v1/openapi.json', (c) => c.json(openApi(new URL(c.req.url).origin)));
   app.post('/api/mcp', handleMcp);
-  app.get('/api/mcp', (c) => c.json({ error: 'This MCP server answers POST requests with JSON (no SSE stream).', tools: MCP_TOOLS.map((t) => t.name) }, 405));
+  app.get('/api/mcp', (c) => c.json({ error: 'Ce serveur MCP répond aux requêtes POST en JSON (pas de flux SSE).', tools: MCP_TOOLS.map((t) => t.name) }, 405));
 
   const auth = async (c: Context<AppEnv>) => {
     const caller = await apiCaller(c);
-    if (!caller) return { err: c.json({ error: 'invalid or missing token (Authorization: Bearer mlt_… or ml_…)' }, 401) };
+    if (!caller) return { err: c.json({ error: 'Jeton invalide ou manquant (Authorization: Bearer mlt_… ou ml_…)' }, 401) };
     const apiHit = await consumeRateLimit(c.env.DB, 'api-v1', caller.principal.sessionId, API_LIMIT, API_WINDOW_MS);
     if (!apiHit.allowed) {
       applyRetryAfter(c, apiHit.retryAfterSec);
-      return { err: c.json({ error: 'rate limited (240 requests/min)' }, 429) };
+      return { err: c.json({ error: 'Trop de requêtes (240/min)' }, 429) };
     }
     return { caller };
   };
@@ -349,7 +350,7 @@ export function registerPlatform(app: Hono<AppEnv>) {
     const a = await auth(c);
     if (a.err) return a;
     const site = await siteFor(c, a.caller!, c.req.param('siteId') ?? '');
-    if (!site) return { err: c.json({ error: 'site not found' }, 404) };
+    if (!site) return { err: c.json({ error: ERR.siteNotFound }, 404) };
     return { caller: a.caller!, site };
   };
 
@@ -368,7 +369,7 @@ export function registerPlatform(app: Hono<AppEnv>) {
     const a = await withSite(c);
     if (a.err) return a.err;
     const g = c.req.param('goal');
-    if (!/^[\w:.\-]{1,64}$/.test(g)) return c.json({ error: 'invalid goal' }, 400);
+    if (!/^[\w:.\-]{1,64}$/.test(g)) return c.json({ error: 'Objectif invalide' }, 400);
     return c.json(await goalDetail(ctxFor(c.env.DB, a.site!, c.req.query()), g));
   });
   app.get('/api/v1/sites/:siteId/funnels', async (c) => {
@@ -399,7 +400,7 @@ export function registerPlatform(app: Hono<AppEnv>) {
     const a = await withSite(c);
     if (a.err) return a.err;
     const b = await c.req.json<{ text?: string; date?: string }>().catch(() => ({}) as any);
-    if (!b.text?.trim()) return c.json({ error: 'text is required' }, 400);
+    if (!b.text?.trim()) return c.json({ error: 'Le texte est requis' }, 400);
     try {
       return c.json(await callTool(c, a.caller!, 'notes', { site_id: a.site!.id, add_text: b.text, date: b.date }));
     } catch (e) {
@@ -428,7 +429,7 @@ export function registerPlatform(app: Hono<AppEnv>) {
   app.post('/api/v1/identify', async (c) => {
     const a = await auth(c);
     if (a.err) return a.err;
-    if (!a.caller!.siteKey) return c.json({ error: 'use the site API key (ml_…) to write' }, 403);
+    if (!a.caller!.siteKey) return c.json({ error: 'Utilisez la clé API du site (ml_…) pour écrire' }, 403);
     const siteId = (a.caller!.principal.sites as string[])[0];
     const b = await c.req.json<Record<string, unknown>>().catch(() => ({}) as Record<string, unknown>);
     const vid = typeof b.visitor_id === 'string' && /^[\w-]{8,64}$/.test(b.visitor_id) ? b.visitor_id : null;
@@ -443,7 +444,7 @@ export function registerPlatform(app: Hono<AppEnv>) {
 
   app.get('/api/usage', async (c) => {
     const p = await authenticate(c);
-    if (!p) return c.json({ error: 'unauthorized' }, 401);
+    if (!p) return c.json({ error: ERR.unauthorized }, 401);
     return c.json(await usage(c.env.DB));
   });
   app.put('/api/usage/plan', async (c) => {
@@ -459,13 +460,13 @@ export function registerPlatform(app: Hono<AppEnv>) {
   const session = async (c: Context<AppEnv>) => authenticate(c);
   app.get('/api/tokens', async (c) => {
     const p = await session(c);
-    if (!p) return c.json({ error: 'unauthorized' }, 401);
+    if (!p) return c.json({ error: ERR.unauthorized }, 401);
     const r = await c.env.DB.prepare('SELECT id, name, role, sites, prefix, created_at, last_used_at FROM api_tokens WHERE user_id = ? AND revoked_at IS NULL ORDER BY created_at DESC').bind(p.userId).all<any>();
     return c.json({ tokens: r.results.map((t) => ({ ...t, sites: parseSites(t.sites), created_at: Number(t.created_at), last_used_at: t.last_used_at ? Number(t.last_used_at) : null })) });
   });
   app.post('/api/tokens', async (c) => {
     const p = await session(c);
-    if (!p) return c.json({ error: 'unauthorized' }, 401);
+    if (!p) return c.json({ error: ERR.unauthorized }, 401);
     const b = await c.req.json<{ name?: string; readOnly?: boolean; sites?: string[] }>().catch(() => ({}) as any);
     const name = (typeof b.name === 'string' && b.name.trim() ? b.name.trim() : 'Jeton API').slice(0, 60);
     const n = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM api_tokens WHERE user_id = ? AND revoked_at IS NULL').bind(p.userId).first<{ n: number }>();
@@ -483,7 +484,7 @@ export function registerPlatform(app: Hono<AppEnv>) {
   });
   app.delete('/api/tokens/:tid', async (c) => {
     const p = await session(c);
-    if (!p) return c.json({ error: 'unauthorized' }, 401);
+    if (!p) return c.json({ error: ERR.unauthorized }, 401);
     await c.env.DB.prepare('UPDATE api_tokens SET revoked_at = ? WHERE id = ? AND user_id = ? AND revoked_at IS NULL').bind(Date.now(), c.req.param('tid'), p.userId).run();
     return c.json({ ok: true });
   });

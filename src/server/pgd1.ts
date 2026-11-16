@@ -1,6 +1,6 @@
 /**
- * A tiny D1-compatible wrapper over Postgres, so the Worker code (written for Cloudflare D1)
- * runs unchanged on Vercel + Neon. Translates `?` placeholders and a few SQLite-isms.
+ * A tiny D1-compatible wrapper over Postgres, so the Hono app can run on Vercel + Neon.
+ * Translates `?` placeholders and a few SQLite-isms.
  */
 import { Pool, neon, neonConfig, types, type NeonQueryFunction, type PoolClient } from '@neondatabase/serverless';
 import { sanitizeBindValue } from '../shared/text.js';

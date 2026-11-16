@@ -268,8 +268,8 @@ function pickMeta(meta: Record<string, unknown> | undefined, keys: string[]): st
 /** Dodo Payments webhook: POST /api/webhooks/dodo/:siteId */
 export async function handleDodoWebhook(c: Context<AppEnv>) {
   const site = await getSite(c.env.DB, c.req.param('siteId')!);
-  if (!site) return c.json({ error: 'unknown site' }, 404);
-  if (!site.dodo_webhook_secret) return c.json({ error: 'webhook secret not configured for this site' }, 400);
+  if (!site) return c.json({ error: 'Site inconnu' }, 404);
+  if (!site.dodo_webhook_secret) return c.json({ error: 'Secret de webhook non configuré pour ce site' }, 400);
 
   const body = await c.req.text();
   const ok = await verifyStandardWebhook(
@@ -281,7 +281,7 @@ export async function handleDodoWebhook(c: Context<AppEnv>) {
     },
     body,
   );
-  if (!ok) return c.json({ error: 'invalid signature' }, 401);
+  if (!ok) return c.json({ error: 'Signature invalide' }, 401);
 
   const event = JSON.parse(body) as { type: string; timestamp?: string; data: Record<string, any> };
   const data = event.data ?? {};
@@ -358,10 +358,10 @@ async function siteFromApiKey(c: Context<AppEnv>): Promise<Site | null> {
  */
 export async function handlePaymentApi(c: Context<AppEnv>) {
   const site = await siteFromApiKey(c);
-  if (!site) return c.json({ error: 'invalid api key' }, 401);
+  if (!site) return c.json({ error: 'Clé API invalide' }, 401);
   const b = await c.req.json<Record<string, unknown>>().catch(() => null);
   if (!b || !str(b.transaction_id) || typeof b.amount !== 'number') {
-    return c.json({ error: 'transaction_id (string) and amount (number, e.g. 29.99) are required' }, 400);
+    return c.json({ error: 'transaction_id (chaîne) et amount (nombre, ex. 29,99) sont requis' }, 400);
   }
   const currency = (str(b.currency) ?? site.currency).toUpperCase();
   const minor = Math.round((b.amount as number) * 10 ** currencyDecimals(currency));
@@ -389,17 +389,17 @@ export async function handlePaymentApi(c: Context<AppEnv>) {
  */
 export async function handleGoalApi(c: Context<AppEnv>) {
   const site = await siteFromApiKey(c);
-  if (!site) return c.json({ error: 'invalid api key' }, 401);
+  if (!site) return c.json({ error: 'Clé API invalide' }, 401);
   const b = await c.req.json<Record<string, unknown>>().catch(() => null);
   const vid = str(b?.visitor_id);
   const name = str(b?.name)?.slice(0, 64);
-  if (!vid || !name) return c.json({ error: 'visitor_id and name are required' }, 400);
+  if (!vid || !name) return c.json({ error: 'visitor_id et name sont requis' }, 400);
   const s = await c.env.DB.prepare(
     'SELECT id, exit_page FROM sessions WHERE site_id = ? AND visitor_id = ? ORDER BY started_at DESC LIMIT 1',
   )
     .bind(site.id, vid)
     .first<{ id: string; exit_page: string }>();
-  if (!s) return c.json({ error: 'visitor not found' }, 404);
+  if (!s) return c.json({ error: 'Visiteur introuvable' }, 404);
   const now = Date.now();
   await c.env.DB.batch([
     c.env.DB.prepare('UPDATE sessions SET goals = goals + 1 WHERE site_id = ? AND id = ?').bind(site.id, s.id),

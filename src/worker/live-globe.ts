@@ -1,4 +1,3 @@
-import type { D1Database } from '@cloudflare/workers-types';
 
 type CountryCount = { country: string | null; visitors: number; last_seen_at: number };
 type TotalCount = { visitors: number };

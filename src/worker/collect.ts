@@ -183,7 +183,7 @@ export function coord(v: string | null | undefined, max: number): number | null 
 
 /**
  * Visitor location. When the script is proxied through your own domain (to dodge ad blockers),
- * Cloudflare sees the proxy's location, so trust the proxy's geo headers when present (Vercel sets these).
+ * the edge sees the proxy's location, so trust the proxy's geo headers when present (Vercel sets these).
  */
 export function geoOf(c: Context<AppEnv>): Geo {
   const h = (n: string) => {
@@ -200,10 +200,10 @@ export function geoOf(c: Context<AppEnv>): Geo {
       lat: coord(h('x-vercel-ip-latitude'), 90), lon: coord(h('x-vercel-ip-longitude'), 180),
     };
   }
-  const cf = (c.req.raw as { cf?: IncomingRequestCfProperties }).cf;
+  const cf = (c.req.raw as { cf?: { country?: string; region?: string; city?: string; latitude?: string; longitude?: string } }).cf;
   return {
-    country: (cf?.country as string) ?? null, region: (cf?.region as string) ?? null, city: (cf?.city as string) ?? null,
-    lat: coord(cf?.latitude as string | undefined, 90), lon: coord(cf?.longitude as string | undefined, 180),
+    country: cf?.country ?? null, region: cf?.region ?? null, city: cf?.city ?? null,
+    lat: coord(cf?.latitude, 90), lon: coord(cf?.longitude, 180),
   };
 }
 

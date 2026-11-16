@@ -2,7 +2,7 @@
   "name": "minilytics",
   "version": "0.1.0",
   "private": true,
-  "description": "Revenue-first, self-hosted web analytics on Cloudflare Workers + D1. Free to host.",
+  "description": "Analytique web orient\u00e9e revenu, auto-h\u00e9berg\u00e9e sur Vercel + Neon.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -10,19 +10,17 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n api,web \"wrangler dev --port 8787\" \"vite\"",
-    "dev:api": "wrangler dev --port 8787",
+    "dev": "concurrently -k -n api,web \"npm run dev:api\" \"vite\"",
+    "dev:api": "node --experimental-strip-types scripts/dev-api.ts",
     "dev:web": "vite",
     "build": "vite build && node scripts/prerender.mjs && node scripts/minify-tracker.mjs && node scripts/spa-shell.mjs",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint src/worker src/server src/dashboard src/shared api scripts/dev-api.ts",
+    "check": "tsc --noEmit && eslint src/worker src/server src/dashboard src/shared api scripts/dev-api.ts",
     "test": "vitest run",
-    "db:migrate:local": "wrangler d1 migrations apply minilytics --local",
-    "db:migrate": "wrangler d1 migrations apply minilytics --remote",
-    "deploy": "vite build && wrangler d1 migrations apply minilytics --remote && wrangler deploy",
-    "seed": "node scripts/seed-demo.mjs && wrangler d1 execute minilytics --local --file .wrangler/seed.sql",
-    "smoke": "node scripts/smoke.mjs",
     "db:migrate:pg": "node scripts/migrate-pg.mjs",
-    "lint": "eslint src/dashboard src/shared",
+    "seed": "node scripts/seed-demo.mjs",
+    "smoke": "node scripts/smoke.mjs",
     "prerender": "node scripts/prerender.mjs"
   },
   "dependencies": {
@@ -36,7 +34,6 @@
     "ws": "^8.22.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20261023.1",
     "@electric-sql/pglite": "^0.5.13",
     "@eslint/js": "^9.39.5",
     "@testing-library/dom": "^10.4.2",
@@ -63,8 +60,7 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "8.72.2",
     "vite": "^6.4.5",
-    "vitest": "^4.1.12",
-    "wrangler": "^4.152.0"
+    "vitest": "^4.1.12"
   },
   "overrides": {
     "fflate": "$fflate"

@@ -1,9 +1,10 @@
 export interface Env {
   DB: D1Database;
-  ASSETS: Fetcher;
-  /** Dashboard login password (set with `wrangler secret put ADMIN_PASSWORD`). */
+  /** Present only when a local/dev server serves the dashboard from this process. */
+  ASSETS?: Fetcher;
+  /** Dashboard login password (Vercel env `ADMIN_PASSWORD`). */
   ADMIN_PASSWORD: string;
-  /** Random string used to sign the login cookie (`wrangler secret put SESSION_SECRET`). */
+  /** Random string used to sign the login cookie (Vercel env `SESSION_SECRET`). */
   SESSION_SECRET: string;
   /** X API v2 app Bearer token (recent search). Optional: enables « Mentions sur 𝕏 ». */
   X_BEARER_TOKEN?: string;
