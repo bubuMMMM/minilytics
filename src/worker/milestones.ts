@@ -152,6 +152,76 @@ function monthSql(col: string) {
   return `to_char(to_timestamp(${col} / 1000.0) AT TIME ZONE ?, 'YYYY-MM')`;
 }
 
+export interface VisitorGrowthSeries {
+  points: { t: number; n: number }[];
+  firstSeen: number | null;
+  total: number;
+}
+
+/** Daily cumulative unique visitors up to `reachedAt` (inclusive). Real counts only. */
+export async function visitorGrowthSeries(
+  db: D1Database,
+  site: Pick<Site, 'id' | 'timezone'>,
+  reachedAt: number,
+): Promise<VisitorGrowthSeries> {
+  const r = await db
+    .prepare(
+      `SELECT ${daySql('first_seen')} AS day, MIN(first_seen) AS t, COUNT(*) AS n
+       FROM visitors
+       WHERE site_id = ? AND first_seen <= ?
+       GROUP BY 1
+       ORDER BY 1`,
+    )
+    .bind(site.timezone || 'UTC', site.id, reachedAt)
+    .all<{ t: number; n: number }>();
+  const points: { t: number; n: number }[] = [];
+  let total = 0;
+  for (const row of r.results ?? []) {
+    const t0 = Number(row.t);
+    const n = Number(row.n);
+    if (!Number.isFinite(t0) || !Number.isFinite(n)) continue;
+    total += n;
+    points.push({ t: t0, n: total });
+  }
+  return { points, firstSeen: points[0]?.t ?? null, total };
+}
+
+/** Inclusive timestamp the sparkline / chips should read as-of, in the site timezone. */
+export async function seriesAsOf(
+  db: D1Database,
+  site: Pick<Site, 'id' | 'timezone'>,
+  row: Pick<MilestoneRow, 'kind' | 'threshold' | 'reached_at'>,
+  now = Date.now(),
+): Promise<number> {
+  if (row.kind === 'visitors_month_record' || row.kind === 'best_day') {
+    const expr = row.kind === 'visitors_month_record' ? monthSql('first_seen') : daySql('first_seen');
+    const r = await db
+      .prepare(`SELECT MAX(first_seen) AS t FROM visitors WHERE site_id = ? AND ${expr} = ? AND first_seen <= ?`)
+      .bind(site.id, site.timezone || 'UTC', row.threshold, now)
+      .first<{ t: number | null }>();
+    if (r?.t) return Number(r.t);
+  }
+  return Number(row.reached_at);
+}
+
+export function milestoneChips(
+  row: Pick<MilestoneRow, 'kind' | 'value' | 'reached_at'>,
+  series: Pick<VisitorGrowthSeries, 'firstSeen' | 'total'>,
+  asOf = Number(row.reached_at),
+): string[] {
+  const chips: string[] = [];
+  if (series.firstSeen != null && series.firstSeen <= asOf) {
+    const days = Math.max(0, Math.round((asOf - series.firstSeen) / 86_400_000));
+    if (days <= 1) chips.push('dès le 1er visiteur');
+    else chips.push(`en ${fmtVisitors(days)} jours depuis le 1er visiteur`);
+  }
+  if (row.kind !== 'visitors_total' && series.total > 0 && series.total !== Number(row.value)) {
+    const noun = series.total > 1 ? 'visiteurs' : 'visiteur';
+    chips.push(`${fmtVisitors(series.total)} ${noun} au total`);
+  }
+  return chips;
+}
+
 async function insertMilestone(
   db: D1Database,
   site: Site,
@@ -435,7 +505,11 @@ export function registerMilestones(app: Hono<AppEnv>) {
     const copy = milestoneCopy(found.row);
     const theme = parseTheme(c.req.query('theme'));
     const size = parseSize(c.req.query('size'));
-    const favicon = await fetchFaviconDataUri(found.site.domain);
+    const asOf = await seriesAsOf(c.env.DB, found.site, found.row);
+    const [favicon, series] = await Promise.all([
+      fetchFaviconDataUri(found.site.domain),
+      visitorGrowthSeries(c.env.DB, found.site, asOf),
+    ]);
     const png = await renderMilestonePng({
       kicker: copy.kicker,
       headline: copy.title,
@@ -447,6 +521,8 @@ export function registerMilestones(app: Hono<AppEnv>) {
       favicon,
       theme,
       size,
+      series: series.points,
+      chips: milestoneChips(found.row, series, asOf),
     });
     const headers: Record<string, string> = { ...OG_PNG_HEADERS, 'X-Robots-Tag': 'noindex' };
     if (c.req.query('download') === '1') {

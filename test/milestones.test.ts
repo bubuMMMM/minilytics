@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import app from '../src/worker/index';
 import { SITE_DATA_TABLES } from '../src/worker/site-data';
-import { scanSiteMilestones, milestoneCopy, NOTIFY_WINDOW_MS, xIntentUrl } from '../src/worker/milestones';
+import { scanSiteMilestones, milestoneCopy, milestoneChips, visitorGrowthSeries, seriesAsOf, NOTIFY_WINDOW_MS, xIntentUrl } from '../src/worker/milestones';
 import { renderMilestonePng } from '../src/worker/milestone-og';
 import { makeDb, type PgliteD1 } from './helpers/pglite-d1';
 import type { Site } from '../src/worker/env';
@@ -127,6 +127,21 @@ describe('milestone detection', () => {
     expect(listed.items.some((i) => i.kind === 'revenue')).toBe(true);
   });
 
+  it('builds a real cumulative visitor series up to the milestone date', async () => {
+    const row = await db.prepare("SELECT reached_at FROM milestones WHERE site_id = ? AND kind = 'visitors_total' AND threshold = '100'").bind(SITE.id).first<{ reached_at: number }>();
+    expect(row).toBeTruthy();
+    const series = await visitorGrowthSeries(db as unknown as D1Database, SITE, Number(row!.reached_at));
+    expect(series.total).toBe(100);
+    expect(series.points.at(-1)?.n).toBe(100);
+    expect(series.points[0]?.n).toBeGreaterThan(0);
+    expect(series.points[0]?.n).toBeLessThanOrEqual(100);
+    expect(series.firstSeen).toBeTruthy();
+    expect(series.firstSeen).toBeLessThanOrEqual(Number(row!.reached_at));
+    const chips = milestoneChips({ kind: 'visitors_total', value: 100, reached_at: Number(row!.reached_at) }, series);
+    expect(chips.some((c) => /depuis le 1er visiteur/.test(c))).toBe(true);
+    expect(chips.join(' ')).not.toMatch(/€|revenu/i);
+  });
+
   it('serves OG PNGs and twitter:card summary_large_image on the share page', async () => {
     const row = await db.prepare("SELECT share_token FROM milestones WHERE site_id = ? AND kind = 'visitors_total' AND threshold = '100'").bind(SITE.id).first<{ share_token: string }>();
     expect(row).toBeTruthy();
@@ -136,9 +151,14 @@ describe('milestone detection', () => {
     expect(png.headers.get('content-type')).toBe('image/png');
     const buf = new Uint8Array(await png.arrayBuffer());
     expect([...buf.slice(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    const sizeOf = (b: Uint8Array) => ({ w: new DataView(b.buffer, b.byteOffset, b.byteLength).getUint32(16), h: new DataView(b.buffer, b.byteOffset, b.byteLength).getUint32(20) });
+    expect(sizeOf(buf)).toEqual({ w: 1200, h: 675 });
 
     const square = await call(`/api/public/milestone/${token}/og.png?size=square&theme=light`);
     expect(square.status).toBe(200);
+    const sq = new Uint8Array(await square.arrayBuffer());
+    const sqSize = { w: new DataView(sq.buffer, sq.byteOffset, sq.byteLength).getUint32(16), h: new DataView(sq.buffer, sq.byteOffset, sq.byteLength).getUint32(20) };
+    expect(sqSize).toEqual({ w: 1080, h: 1080 });
     const html = await call(`/m/${token}`);
     expect(html.status).toBe(200);
     const text = await html.text();
@@ -161,26 +181,37 @@ describe('milestone card copy and rendering', () => {
   });
 
   it('writes preview PNGs for visual review', async () => {
-    const dir = '/workspace/minilytics-shots/milestones';
+    const dir = '/workspace/minilytics-shots/milestones/v2';
     mkdirSync(dir, { recursive: true });
+    const rows = (await db.prepare("SELECT kind, threshold, value, reached_at, currency FROM milestones WHERE site_id = ?").bind(SITE.id).all() as { results: { kind: 'visitors_total' | 'visitors_month_record' | 'best_day' | 'revenue'; threshold: string; value: number; reached_at: number; currency: string | null }[] }).results;
+    const pick = (kind: string, threshold?: string) => {
+      const matches = rows.filter((r) => r.kind === kind && (threshold == null || r.threshold === threshold));
+      return matches.sort((a, b) => Number(b.value) - Number(a.value) || b.threshold.localeCompare(a.threshold))[0]!;
+    };
     const samples = [
-      { name: 'visitors-1000-wide-dark', size: 'wide' as const, theme: 'dark' as const, number: '1 000', unit: 'visiteurs', kicker: 'Jalon', headline: '1 000 visiteurs' },
-      { name: 'visitors-1000-wide-light', size: 'wide' as const, theme: 'light' as const, number: '1 000', unit: 'visiteurs', kicker: 'Jalon', headline: '1 000 visiteurs' },
-      { name: 'visitors-1000-square-dark', size: 'square' as const, theme: 'dark' as const, number: '1 000', unit: 'visiteurs', kicker: 'Jalon', headline: '1 000 visiteurs' },
-      { name: 'record-month-wide-dark', size: 'wide' as const, theme: 'dark' as const, number: '12 345', unit: 'visiteurs en octobre 2026', kicker: 'Record mensuel', headline: 'Record mensuel' },
-      { name: 'revenue-100-wide-dark', size: 'wide' as const, theme: 'dark' as const, number: '100 €', unit: 'de revenus', kicker: 'Revenus', headline: '100 € de revenus' },
+      { name: 'visitors-100-wide-dark', size: 'wide' as const, theme: 'dark' as const, row: pick('visitors_total', '100') },
+      { name: 'visitors-100-wide-light', size: 'wide' as const, theme: 'light' as const, row: pick('visitors_total', '100') },
+      { name: 'visitors-100-square-dark', size: 'square' as const, theme: 'dark' as const, row: pick('visitors_total', '100') },
+      { name: 'record-month-wide-dark', size: 'wide' as const, theme: 'dark' as const, row: pick('visitors_month_record') },
+      { name: 'best-day-wide-dark', size: 'wide' as const, theme: 'dark' as const, row: pick('best_day') },
+      { name: 'revenue-100-wide-dark', size: 'wide' as const, theme: 'dark' as const, row: pick('revenue', '10000') },
     ];
     for (const s of samples) {
+      const copy = milestoneCopy(s.row);
+      const asOf = await seriesAsOf(db as unknown as D1Database, SITE, s.row, now);
+      const series = await visitorGrowthSeries(db as unknown as D1Database, SITE, asOf);
       const png = await renderMilestonePng({
-        kicker: s.kicker,
-        headline: s.headline,
-        number: s.number,
-        unit: s.unit,
-        date: '16 novembre 2026',
+        kicker: copy.kicker,
+        headline: copy.title,
+        number: copy.number,
+        unit: copy.unit,
+        date: copy.date,
         siteName: 'n0.pub',
         domain: 'n0.pub',
         theme: s.theme,
         size: s.size,
+        series: series.points,
+        chips: milestoneChips(s.row, series, asOf),
       });
       expect(png[0]).toBe(0x89);
       writeFileSync(`${dir}/${s.name}.png`, png);
