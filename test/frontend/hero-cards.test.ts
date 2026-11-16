@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { barWidth, change, dayTick, monogram, pct, periodDelta } from '../../src/dashboard/lib/heroCards';
+import { barWidth, change, dayTick, formatFr, monogram, pct, periodDelta } from '../../src/dashboard/lib/heroCards';
 
 const NBSP = String.fromCharCode(160);
 
@@ -72,5 +72,18 @@ describe('periodDelta', () => {
   });
   it('returns null when the previous period is too small', () => {
     expect(periodDelta(80, 10, 20)).toBeNull();
+  });
+});
+
+describe('formatFr', () => {
+  const NBSP = '\u00a0';
+  it('groups thousands with a visible no-break space, including four-digit values', () => {
+    expect(formatFr(8477)).toBe(`8${NBSP}477`);
+    expect(formatFr(83318)).toBe(`83${NBSP}318`);
+    expect(formatFr(89604)).toBe(`89${NBSP}604`);
+  });
+  it('leaves a three-digit value ungrouped and preserves a minus sign', () => {
+    expect(formatFr(113)).toBe('113');
+    expect(formatFr(-8477)).toBe(`−8${NBSP}477`);
   });
 });

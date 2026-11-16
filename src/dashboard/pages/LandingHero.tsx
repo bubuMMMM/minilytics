@@ -4,7 +4,7 @@ import { NumberTicker } from '../components/NumberTicker';
 import { SourceIcon } from '../components/Icons';
 import { UiIcon } from '../components/UiIcon';
 import { channelName, countryName, flag } from '../lib/format';
-import { barWidth, CHANNEL_ICON, dayTick, monogram, pct, periodDelta, type PeriodDelta } from '../lib/heroCards';
+import { barWidth, CHANNEL_ICON, dayTick, formatFr, monogram, pct, periodDelta, type PeriodDelta } from '../lib/heroCards';
 import { DOT_H, DOT_W, cellOf, centroidOf, landDots } from '../lib/dotmap';
 import type { GlobeData, GlobeHandle, GlobePalette } from './hero/globe';
 import { ShimmerLink, TrustStrip } from './LandingUi';
@@ -288,10 +288,10 @@ function Rows({ rows, total, mono, sources }: { rows: Group[] | undefined; total
         <li key={r.label} className="ml-hx-row">
           <span className="ml-hx-row-bar" style={{ width: `${barWidth(r.value, total)}%` }} />
           {sources ? <span className="ml-hx-row-ico"><SourceMark label={r.raw ?? r.label} /></span> : null}
-          <span className={`relative min-w-0 truncate ${mono ? 'ml-hx-path' : 'text-ink-2'}`} title={r.label}>
+          <span className={`relative min-w-0 flex-1 truncate ${mono ? 'ml-hx-path' : 'text-ink-2'}`} title={r.label}>
             {r.short ? <><span className="sm:hidden">{r.short}</span><span className="hidden sm:inline">{r.label}</span></> : r.label}
           </span>
-          <span className="relative tnum shrink-0 font-medium text-ink">{pct(r.value, total)}</span>
+          <span className="ml-hx-row-val">{pct(r.value, total)}</span>
         </li>
       ))}
     </ul>
@@ -303,7 +303,7 @@ function Delta({ value }: { value: PeriodDelta | null }) {
   const up = value.value >= 0;
   const text = value.kind === 'pct'
     ? `${up ? '+' : '−'}${Math.abs(value.value)} %`
-    : `${up ? '+' : '−'}${nf(Math.abs(value.value))}`;
+    : `${up ? '+' : '−'}${formatFr(Math.abs(value.value))}`;
   return (
     <span className={`ml-hx-delta ${up ? '' : 'is-down'}`}>
       <span aria-hidden>{up ? '↑' : '↓'}</span>
@@ -433,7 +433,7 @@ export function LandingHero() {
                 {demo && <Delta value={periodDelta(demo.current.visitors, demo.previous.visitors, 20)} />}
               </div>
               <p className="mt-1.5 text-[12px] text-ink-3">sur les 7 derniers jours</p>
-              <div className="mt-auto pt-3"><DayBars series={demo?.series} /></div>
+              <div className="mt-3 flex min-h-[88px] flex-1 flex-col"><DayBars series={demo?.series} /></div>
             </Card>
             <section className="ml-hx-card is-map flex flex-col lg:col-span-7">
               <div className="ml-hx-card-hd">

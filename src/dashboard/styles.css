@@ -970,9 +970,21 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
 }
 .ml-hx-countries-empty { margin: 0; padding: 8px 13px 12px; font-size: 13px; color: rgb(var(--ink-3)); }
 .ml-hx-flag { flex: none; width: 18px; font-size: 14px; line-height: 1; text-align: center; }
-.ml-hx-chart { margin-top: 2px; }
-.ml-hx-bars { display: flex; align-items: flex-end; gap: 3px; height: 64px; }
-@media (min-width: 640px) { .ml-hx-bars { height: 80px; gap: 5px; } }
+.ml-hx-chart {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 88px;
+  margin-top: 2px;
+}
+.ml-hx-bars {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-end;
+  gap: 3px;
+  min-height: 64px;
+}
+@media (min-width: 640px) { .ml-hx-bars { min-height: 80px; gap: 5px; } }
 .ml-hx-bars > span {
   flex: 1 1 0;
   display: flex;
@@ -1028,6 +1040,17 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
   height: 16px;
   color: rgb(var(--ink-3));
 }
+.ml-hx-row-val {
+  position: relative;
+  flex: none;
+  margin-left: auto;
+  min-width: 3.25em;
+  text-align: right;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink));
+  white-space: nowrap;
+}
 .ml-hx-path {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 12px;
@@ -1043,7 +1066,7 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
   border-radius: 999px;
   background: rgb(var(--success-soft));
   color: rgb(var(--success));
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

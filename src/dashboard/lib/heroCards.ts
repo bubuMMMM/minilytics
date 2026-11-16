@@ -81,3 +81,9 @@ export const CHANNEL_ICON = {
   Email: 'message',
   Paid: 'megaphone',
 } as const;
+
+/** Group an integer with a visible no-break space, including four-digit values (« 8 477 »). */
+export function formatFr(n: number): string {
+  const grouped = String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+  return (n < 0 ? '−' : '') + grouped;
+}
