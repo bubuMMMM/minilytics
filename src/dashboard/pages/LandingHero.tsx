@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from '../components/Link';
 import { NumberTicker } from '../components/NumberTicker';
-import { UiIcon, type UiIconName } from '../components/UiIcon';
-import { channelName } from '../lib/format';
+import { SourceIcon } from '../components/Icons';
+import { UiIcon } from '../components/UiIcon';
+import { channelName, countryName, flag } from '../lib/format';
+import { barWidth, CHANNEL_ICON, dayTick, monogram, pct, periodDelta, type PeriodDelta } from '../lib/heroCards';
 import { DOT_H, DOT_W, cellOf, centroidOf, landDots } from '../lib/dotmap';
 import type { GlobeData, GlobeHandle, GlobePalette } from './hero/globe';
 import { ShimmerLink, TrustStrip } from './LandingUi';
 
-type Group = { label: string; value: number; short?: string };
+type Group = { label: string; value: number; short?: string; raw?: string };
 interface Demo {
   current: { visitors: number; pageviews: number };
   previous: { visitors: number };
@@ -22,18 +24,6 @@ interface WorldMap { countries: CountryCount[] }
 interface Bots { hits: number; previousHits: number; operators: { operator: string; hits: number }[] }
 
 const nf = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
-const NBSP = String.fromCharCode(160);
-/** Share of a total; a non-zero share that rounds to 0 reads « < 1 % », never « 0 % ». */
-function pct(v: number, total: number) {
-  const p = total > 0 ? (v / total) * 100 : 0;
-  return v > 0 && p < 1 ? `<${NBSP}1${NBSP}%` : `${Math.round(p)}${NBSP}%`;
-}
-/** A change is only shown when the previous period is large enough to mean something. */
-function change(now: number, before: number, minBefore: number) {
-  if (before < minBefore) return null;
-  const c = Math.round(((now - before) / before) * 100);
-  return Math.abs(c) <= 300 ? c : null;
-}
 
 /**
  * Real, aggregated numbers of the public demo site, refreshed every 20 s while the tab is visible.
@@ -179,14 +169,20 @@ function DotMap({ data, palette }: { data: GlobeData; palette: GlobePalette }) {
     const cv = ref.current;
     if (!cv) return;
     const draw = () => {
-      const w = cv.clientWidth;
-      if (!w) return;
+      const wrapW = cv.clientWidth;
+      const wrapH = cv.clientHeight;
+      if (!wrapW) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const cell = (w * dpr) / DOT_W;
-      cv.width = Math.round(w * dpr);
-      cv.height = Math.round(cell * DOT_H);
+      const stageH = wrapH || wrapW * (DOT_H / DOT_W);
+      const scale = Math.min(wrapW / DOT_W, stageH / DOT_H);
+      cv.width = Math.round(wrapW * dpr);
+      cv.height = Math.round(stageH * dpr);
+      const cell = scale * dpr;
+      const ox = (cv.width - DOT_W * cell) / 2;
+      const oy = (cv.height - DOT_H * cell) / 2;
       const g = cv.getContext('2d');
       if (!g) return;
+      g.clearRect(0, 0, cv.width, cv.height);
       const max = Math.max(1, ...Object.values(data.period));
       const liveSet = new Set(data.live);
       const recent = new Set(data.recent);
@@ -196,7 +192,7 @@ function DotMap({ data, palette }: { data: GlobeData; palette: GlobePalette }) {
         g.shadowBlur = glow;
         g.shadowColor = css(palette.accent, 0.6);
         g.fillStyle = color;
-        g.arc((x + 0.5) * cell, (y + 0.5) * cell, r, 0, Math.PI * 2);
+        g.arc(ox + (x + 0.5) * cell, oy + (y + 0.5) * cell, r, 0, Math.PI * 2);
         g.fill();
       };
       for (const d of landDots()) {
@@ -217,112 +213,167 @@ function DotMap({ data, palette }: { data: GlobeData; palette: GlobePalette }) {
     };
     draw();
     const ro = new ResizeObserver(draw);
-    ro.observe(cv);
+    ro.observe(cv.parentElement ?? cv);
     return () => ro.disconnect();
   }, [data, palette]);
-  return <canvas ref={ref} className="block w-full" style={{ aspectRatio: `${DOT_W} / ${DOT_H}` }} aria-hidden />;
+  return <canvas ref={ref} className="ml-hx-map-canvas" aria-hidden />;
 }
 
-/** Smooth 7-day curve. The viewBox stretches, so the end dot is an HTML element positioned on top. */
-function Sparkline({ values }: { values: number[] }) {
-  const W = 300, H = 72, pad = 6;
-  if (values.length < 2) return <div className="h-[56px] sm:h-[72px]" />;
-  const max = Math.max(1, ...values);
-  const pts = values.map((v, i) => [(i / (values.length - 1)) * W, H - pad - (v / max) * (H - pad * 2)] as const);
-  let d = `M${pts[0][0]},${pts[0][1].toFixed(1)}`;
-  for (let i = 1; i < pts.length; i++) {
-    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
-    const cx = (x0 + x1) / 2;
-    d += ` C${cx.toFixed(1)},${y0.toFixed(1)} ${cx.toFixed(1)},${y1.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`;
+function DayBars({ series }: { series: { date: string; visitors: number }[] | undefined }) {
+  if (!series || series.length < 2) {
+    return (
+      <div className="ml-hx-chart" aria-hidden>
+        <div className="ml-hx-bars">
+          {[36, 58, 44, 72, 50, 64, 48].map((h, i) => (
+            <span key={i} className="ml-hx-skel" style={{ height: `${h}%` }} />
+          ))}
+        </div>
+        <div className="ml-hx-bar-ticks">{[1, 2, 3, 4, 5, 6, 7].map((d) => <span key={d} />)}</div>
+      </div>
+    );
   }
-  const lastY = pts[pts.length - 1][1];
+  const max = Math.max(1, ...series.map((s) => s.visitors));
+  const label = series.map((s) => `${dayTick(s.date)} : ${nf(s.visitors)} visiteurs`).join(', ');
   return (
-    <div className="relative mt-3 h-[56px] sm:h-[72px]" aria-hidden>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full overflow-visible">
-        <defs>
-          <linearGradient id="ml-hx-area" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="rgb(var(--accent))" stopOpacity=".22" />
-            <stop offset="1" stopColor="rgb(var(--accent))" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={`${d} L${W},${H} L0,${H} Z`} fill="url(#ml-hx-area)" />
-        <path d={d} fill="none" stroke="rgb(var(--accent))" strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-      </svg>
-      <span className="ml-hx-spark-dot" style={{ top: `${(lastY / H) * 100}%` }} />
+    <div className="ml-hx-chart">
+      <div className="ml-hx-bars" role="img" aria-label={`Visiteurs par jour : ${label}`}>
+        {series.map((s) => (
+          <span key={s.date} title={`${dayTick(s.date)} : ${nf(s.visitors)} visiteurs`}>
+            <i style={{ height: `${Math.max(3, (s.visitors / max) * 100)}%` }} />
+          </span>
+        ))}
+      </div>
+      <div className="ml-hx-bar-ticks" aria-hidden>
+        {series.map((s) => <span key={s.date}>{dayTick(s.date)}</span>)}
+      </div>
     </div>
   );
 }
 
-function Card({ icon, title, short, className = '', children }: { icon: UiIconName; title: string; short?: string; className?: string; children: ReactNode }) {
+function Card({ title, short, className = '', children }: { title: string; short?: string; className?: string; children: ReactNode }) {
   return (
     <section className={`ml-hx-card flex flex-col ${className}`}>
-      <h2 className="flex items-center gap-2.5 text-[13px] font-medium text-ink-2 sm:text-[14px]">
-        <span className="ml-hx-icon"><UiIcon name={icon} size={15} /></span>
-        <span className="truncate">{short ? <><span className="sm:hidden">{short}</span><span className="hidden sm:inline">{title}</span></> : title}</span>
+      <h2 className="ml-hx-card-title">
+        {short ? <><span className="sm:hidden">{short}</span><span className="hidden sm:inline">{title}</span></> : title}
       </h2>
       {children}
     </section>
   );
 }
 
-function Rows({ rows, total, mono }: { rows: Group[] | undefined; total: number; mono?: boolean }) {
+function SourceMark({ label }: { label: string }) {
+  const icon = CHANNEL_ICON[label as keyof typeof CHANNEL_ICON];
+  if (icon) return <UiIcon name={icon} size={13} />;
+  return <SourceIcon source={label} size={14} />;
+}
+
+function Rows({ rows, total, mono, sources }: { rows: Group[] | undefined; total: number; mono?: boolean; sources?: boolean }) {
   if (!rows) {
-    return <ul className="mt-2.5" aria-hidden>{[70, 54, 62, 46].map((w, i) => <li key={i} className="ml-hx-row"><span className="ml-hx-skel h-3.5" style={{ width: `${w}%` }} /></li>)}</ul>;
+    return (
+      <ul className="ml-hx-list" aria-hidden>
+        {[72, 54, 40, 28].map((w, i) => (
+          <li key={i} className="ml-hx-row">
+            <span className="ml-hx-row-bar" style={{ width: `${w}%` }} />
+            <span className="ml-hx-skel h-3.5 w-3.5 shrink-0 rounded" />
+            <span className="ml-hx-skel h-3.5" style={{ width: `${Math.round(w * 0.55)}%` }} />
+          </li>
+        ))}
+      </ul>
+    );
   }
   if (!rows.length) return <p className="mt-3 text-[13px] text-ink-3">Pas encore de données sur 7 jours.</p>;
   return (
-    <ul className="mt-2.5">
+    <ul className="ml-hx-list">
       {rows.slice(0, 4).map((r) => (
         <li key={r.label} className="ml-hx-row">
-          <span className={`min-w-0 truncate text-ink-2 ${mono ? 'font-mono text-[12px] sm:text-[13px]' : ''}`} title={r.label}>
+          <span className="ml-hx-row-bar" style={{ width: `${barWidth(r.value, total)}%` }} />
+          {sources ? <span className="ml-hx-row-ico"><SourceMark label={r.raw ?? r.label} /></span> : null}
+          <span className={`relative min-w-0 truncate ${mono ? 'ml-hx-path' : 'text-ink-2'}`} title={r.label}>
             {r.short ? <><span className="sm:hidden">{r.short}</span><span className="hidden sm:inline">{r.label}</span></> : r.label}
           </span>
-          <span className="tnum shrink-0 font-medium text-ink">{pct(r.value, total)}</span>
+          <span className="relative tnum shrink-0 font-medium text-ink">{pct(r.value, total)}</span>
         </li>
       ))}
     </ul>
   );
 }
 
-function Delta({ value }: { value: number | null }) {
-  if (value === null) return null;
-  const up = value >= 0;
+function Delta({ value }: { value: PeriodDelta | null }) {
+  if (!value) return null;
+  const up = value.value >= 0;
+  const text = value.kind === 'pct'
+    ? `${up ? '+' : '−'}${Math.abs(value.value)} %`
+    : `${up ? '+' : '−'}${nf(Math.abs(value.value))}`;
   return (
     <span className={`ml-hx-delta ${up ? '' : 'is-down'}`}>
       <span aria-hidden>{up ? '↑' : '↓'}</span>
       <span className="sr-only">{up ? 'en hausse de' : 'en baisse de'}</span>
-      {up ? '+' : '−'}{Math.abs(value)}&nbsp;%
+      {text}
     </span>
   );
 }
 
-function BotsRow({ bots }: { bots: Bots | null }) {
-  const top = bots?.operators.slice(0, 3) ?? [];
-  const rest = bots ? bots.operators.slice(3).reduce((n, o) => n + o.hits, 0) : 0;
+function TopCountries({ countries }: { countries: CountryCount[] | undefined }) {
+  if (!countries) {
+    return (
+      <ul className="ml-hx-countries" aria-hidden>
+        {[0, 1, 2].map((i) => <li key={i}><span className="ml-hx-skel h-3.5 w-28" /></li>)}
+      </ul>
+    );
+  }
+  const top = [...countries].sort((a, b) => b.visitors - a.visitors).slice(0, 3);
+  if (!top.length) return <p className="ml-hx-countries-empty">Pas encore de pays sur 30 jours.</p>;
+  const max = Math.max(1, top[0].visitors);
   return (
-    <section className="ml-hx-card col-span-2 lg:order-5 lg:col-span-4">
+    <ul className="ml-hx-countries">
+      {top.map((c) => (
+        <li key={c.country}>
+          <span className="ml-hx-flag" aria-hidden>{flag(c.country)}</span>
+          <span className="min-w-0 truncate text-ink-2">{countryName(c.country)}</span>
+          <span className="ml-hx-mini"><span style={{ width: `${barWidth(c.visitors, max)}%` }} /></span>
+          <span className="tnum shrink-0 font-medium text-ink">{nf(c.visitors)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function BotsRow({ bots }: { bots: Bots | null }) {
+  const operators = bots?.operators ?? [];
+  const rest = operators.slice(3).reduce((n, o) => n + o.hits, 0);
+  const items = rest > 0
+    ? [...operators.slice(0, 3), { operator: 'Autres', hits: rest }]
+    : operators.slice(0, 4);
+  const max = Math.max(1, ...items.map((o) => o.hits));
+  return (
+    <section className="ml-hx-card lg:col-span-12">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <h2 className="flex items-center gap-2.5 text-[13px] font-medium text-ink-2 sm:text-[14px]">
-          <span className="ml-hx-icon"><UiIcon name="bot" size={15} /></span>
-          Robots d’IA
-        </h2>
+        <h2 className="ml-hx-card-title">Robots d’IA</h2>
         {bots && bots.hits > 0 && (
           <div className="flex items-center gap-2">
-            <span className="rounded-full border border-line-strong px-2.5 py-0.5 text-[12px] text-ink-2"><span className="tnum font-medium text-ink">{nf(bots.hits)}</span> passages · 7 j</span>
-            <Delta value={change(bots.hits, bots.previousHits, 10)} />
+            <span className="text-[12px] text-ink-3">
+              <span className="tnum font-medium text-ink">{nf(bots.hits)}</span> passages · 7 j
+            </span>
+            <Delta value={periodDelta(bots.hits, bots.previousHits, 10)} />
           </div>
         )}
       </div>
       {!bots ? (
-        <div className="mt-3 flex gap-6" aria-hidden>{[0, 1, 2].map((i) => <span key={i} className="ml-hx-skel h-4 w-24" />)}</div>
+        <ul className="ml-hx-bots" aria-hidden>
+          {[0, 1, 2].map((i) => <li key={i}><span className="ml-hx-skel h-8 w-full" /></li>)}
+        </ul>
       ) : bots.hits === 0 ? (
         <p className="mt-3 text-[13px] text-ink-3">Aucun passage de robot d’IA détecté sur les 7 derniers jours.</p>
       ) : (
-        <ul className="ml-hx-bots mt-3">
-          {top.map((o) => (
-            <li key={o.operator}><span className="truncate text-ink-2">{o.operator}</span><span className="tnum text-ink-3">{nf(o.hits)}</span></li>
+        <ul className="ml-hx-bots">
+          {items.map((o) => (
+            <li key={o.operator}>
+              <span className="ml-hx-mark" aria-hidden>{o.operator === 'Autres' ? '··' : monogram(o.operator)}</span>
+              <span className="min-w-0 truncate text-[13px] text-ink-2">{o.operator}</span>
+              <span className="ml-hx-mini"><span style={{ width: `${barWidth(o.hits, max)}%` }} /></span>
+              <span className="tnum shrink-0 text-[13px] font-medium text-ink">{nf(o.hits)}</span>
+            </li>
           ))}
-          {rest > 0 && <li><span className="text-ink-2">Autres</span><span className="tnum text-ink-3">{nf(rest)}</span></li>}
         </ul>
       )}
     </section>
@@ -373,27 +424,38 @@ export function LandingHero() {
             Les chiffres en direct sont momentanément indisponibles. <Link href="/demo" className="font-medium text-ink underline underline-offset-4">Ouvrir la démo</Link>
           </p>
         ) : (
-          <div className="relative grid grid-cols-[minmax(0,1.28fr)_minmax(0,1fr)] gap-2.5 sm:gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1.1fr)_minmax(0,1.2fr)_minmax(0,1fr)]" aria-live="polite">
-            <Card icon="activity" title="Visiteurs" className="lg:order-1">
-              <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <div className="ml-hx-bento relative grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-12" aria-live="polite">
+            <Card title="Visiteurs" className="lg:col-span-5">
+              <div className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                 {demo
-                  ? <NumberTicker value={demo.current.visitors} className="text-[30px] font-bold leading-none tracking-[-0.03em] sm:text-[40px]" />
+                  ? <NumberTicker value={demo.current.visitors} className="tnum text-[32px] font-semibold leading-none tracking-[-0.04em] sm:text-[40px]" />
                   : <span className="ml-hx-skel h-8 w-24 sm:h-10" />}
-                {demo && <Delta value={change(demo.current.visitors, demo.previous.visitors, 20)} />}
+                {demo && <Delta value={periodDelta(demo.current.visitors, demo.previous.visitors, 20)} />}
               </div>
-              <p className="mt-1.5 text-[12px] text-ink-3 sm:text-[13px]">sur les 7 derniers jours</p>
-              <div className="mt-auto"><Sparkline values={demo ? demo.series.map((s) => s.visitors) : []} /></div>
+              <p className="mt-1.5 text-[12px] text-ink-3">sur les 7 derniers jours</p>
+              <div className="mt-auto pt-3"><DayBars series={demo?.series} /></div>
             </Card>
-            <Card icon="link" title="Top sources" className="lg:order-3">
-              <Rows rows={demo?.sources.map((s) => ({ label: channelName(s.label), short: SHORT_CHANNEL[s.label], value: s.value }))} total={sourcesTotal} />
+            <section className="ml-hx-card is-map flex flex-col lg:col-span-7">
+              <div className="ml-hx-card-hd">
+                <h2 className="ml-hx-card-title">
+                  <span className="sm:hidden">Dans le monde</span>
+                  <span className="hidden sm:inline">Visiteurs dans le monde</span>
+                </h2>
+                <p className="ml-hx-card-meta">
+                  {countries === null ? <span className="ml-hx-skel h-3.5 w-24" /> : <><span className="tnum font-medium text-ink-2">{countries}</span> pays · 30 j</>}
+                </p>
+              </div>
+              <div className="ml-hx-map"><DotMap data={globe} palette={palette} /></div>
+              <TopCountries countries={world?.countries} />
+            </section>
+            <Card title="Top sources" className="lg:col-span-6">
+              <Rows
+                rows={demo?.sources.map((s) => ({ label: channelName(s.label), short: SHORT_CHANNEL[s.label], value: s.value, raw: s.label }))}
+                total={sourcesTotal}
+                sources
+              />
             </Card>
-            <Card icon="globe" title="Visiteurs dans le monde" short="Dans le monde" className="lg:order-2">
-              <div className="mt-3"><DotMap data={globe} palette={palette} /></div>
-              <p className="mt-auto pt-2 text-[12px] text-ink-3 sm:text-[13px]">
-                {countries === null ? <span className="ml-hx-skel h-3.5 w-24" /> : <><span className="tnum font-medium text-ink-2">{countries}</span> pays sur 30 jours</>}
-              </p>
-            </Card>
-            <Card icon="layers" title="Pages les plus vues" short="Top pages" className="lg:order-4">
+            <Card title="Pages les plus vues" short="Top pages" className="lg:col-span-6">
               <Rows rows={demo?.pages} total={demo?.current.pageviews ?? 0} mono />
             </Card>
             <BotsRow bots={bots} />
