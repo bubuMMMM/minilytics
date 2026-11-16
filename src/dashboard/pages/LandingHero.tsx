@@ -23,7 +23,11 @@ interface Bots { hits: number; previousHits: number; operators: { operator: stri
 
 const nf = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
 const NBSP = String.fromCharCode(160);
-const pct = (v: number, total: number) => `${total > 0 ? Math.round((v / total) * 100) : 0}${NBSP}%`;
+/** Share of a total; a non-zero share that rounds to 0 reads « < 1 % », never « 0 % ». */
+function pct(v: number, total: number) {
+  const p = total > 0 ? (v / total) * 100 : 0;
+  return v > 0 && p < 1 ? `<${NBSP}1${NBSP}%` : `${Math.round(p)}${NBSP}%`;
+}
 /** A change is only shown when the previous period is large enough to mean something. */
 function change(now: number, before: number, minBefore: number) {
   if (before < minBefore) return null;
