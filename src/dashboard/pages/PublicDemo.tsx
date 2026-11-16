@@ -2,13 +2,15 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNod
 import { Thumb, fmtWatch } from '../components/VideosView';
 import { TrendChart } from '../components/TrendChart';
 import { Link } from '../components/Link';
-import { channelName, fmtShare } from '../lib/format';
+import { channelName, countryName, flag, fmtShare } from '../lib/format';
+import { Favicon } from '../components/Icons';
+import { Dropdown } from '../components/Toolbar';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { Logo } from '../components/Logo';
 // The WebGL globe is heavy: load it only once its slot nears the viewport.
 const LiveGlobe = lazy(() => import('../components/LiveGlobe').then((m) => ({ default: m.LiveGlobe })));
 import { EngagementPanel } from '../components/EngagementPanel';
-import { MetricTile, SegmentedTabs, StatusPill } from '../components/StudioUI';
+import { MetricTile, SegmentedTabs } from '../components/StudioUI';
 import { UiIcon } from '../components/UiIcon';
 
 type Group = { label: string; value: number };
@@ -34,6 +36,44 @@ const duration = (ms: number) => {
   const s = Math.round(ms / 1000);
   return s < 60 ? s + ' s' : Math.floor(s / 60) + ' min ' + (s % 60) + ' s';
 };
+
+
+function PublicSitePicker({ sites, siteId, onPick }: { sites: { id: string; name: string; domain: string }[]; siteId: string; onPick: (id: string) => void }) {
+  const site = sites.find((s) => s.id === siteId);
+  if (sites.length <= 1) {
+    return (
+      <div className="flex min-w-0 items-center gap-2">
+        {site ? <Favicon domain={site.domain} size={16} /> : <span className="h-4 w-4 shrink-0 rounded bg-well" />}
+        <span className="truncate text-[13px] font-medium" translate="no">{site?.domain ?? '—'}</span>
+      </div>
+    );
+  }
+  return (
+    <Dropdown label="Site affiché" button={
+      <button type="button" className="flex min-h-9 max-w-[280px] items-center gap-2 rounded-lg px-1.5 text-left hover:bg-well">
+        {site ? <Favicon domain={site.domain} size={16} /> : <span className="h-4 w-4 shrink-0 rounded bg-well" />}
+        <span className="min-w-0 truncate text-[13px] font-medium text-ink" translate="no">{site?.domain ?? '—'}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-ink-4" aria-hidden><path d="m6 9 6 6 6-6" /></svg>
+      </button>
+    }>
+      {(close) => (
+        <>
+          <div className="px-3 pb-1 pt-1 text-[11px] font-medium text-ink-4">Sites publics</div>
+          {sites.map((s) => (
+            <button key={s.id} type="button" className={`flex min-h-[48px] w-full items-center gap-2.5 rounded-lg px-3 text-left text-[14px] ${s.id === siteId ? 'bg-well font-medium text-ink' : 'text-ink-2 hover:bg-well'}`}
+              onClick={() => { close(); if (s.id !== siteId) onPick(s.id); }}>
+              <Favicon domain={s.domain} size={18} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate" translate="no">{s.name}</span>
+                <span className="block truncate font-mono text-[11px] text-ink-4" translate="no">{s.domain}</span>
+              </span>
+            </button>
+          ))}
+        </>
+      )}
+    </Dropdown>
+  );
+}
 
 function InsightPanel({ title, subtitle, icon, rows, empty }: { title: string; subtitle: string; icon: 'link'|'eye'|'layers'; rows: Group[]; empty: string }) {
   const highest = Math.max(1, ...rows.map((r) => r.value));
@@ -114,14 +154,23 @@ export function PublicDemo() {
     return () => controller.abort();
   }, [days, reload, siteId]);
   useEffect(() => {const t=window.setInterval(() => {if(document.visibilityState==='visible')refresh();},30000);return () => window.clearInterval(t);},[refresh]);
+  const [recentCountries, setRecentCountries] = useState<{ country: string; visitors: number }[]>([]);
+  useEffect(() => {
+    if (!siteId) return;
+    const c = new AbortController();
+    fetch('/api/public/live-globe?site=' + encodeURIComponent(siteId), { signal: c.signal, cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() as Promise<{ recentCountries?: { country: string; visitors: number }[]; countries?: { country: string; visitors: number }[] }> : null))
+      .then((v) => { if (!c.signal.aborted && v) setRecentCountries(v.recentCountries?.length ? v.recentCountries : (v.countries ?? [])); })
+      .catch(() => {});
+    return () => c.abort();
+  }, [siteId, reload]);
   const view = data?.days===days && (!data?.site?.id || data.site.id===siteId) ? data : null;
   const visitorSeries = view?.series.map(d=>d.visitors) || [];
   const pageSeries = view?.series.map(d=>d.pageviews) || [];
   useEffect(() => { document.title = `Démo en direct · ${view?.site.domain ?? 'n0.pub'} — Minilytics`; }, [view?.site.domain]);
-  const change = view?.previous.visitors ? Math.round((view.current.visitors-view.previous.visitors)/view.previous.visitors*100) : null;
 
   return <div className="min-h-screen bg-canvas text-ink">
-    <header className="sticky top-0 z-50 border-b border-line bg-canvas/95 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <header className="sticky top-0 z-50 border-b border-line bg-canvas backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="mx-auto flex h-14 max-w-[1370px] items-center justify-between gap-3 px-4 sm:px-8 lg:px-10">
         <Link href="/" aria-label="Minilytics, accueil" className="rounded-md"><Logo /></Link>
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Navigation principale">
@@ -140,47 +189,22 @@ export function PublicDemo() {
     </header>
 
     <main className="mx-auto max-w-[1370px] px-5 pb-14 sm:px-8 lg:px-10">
-      <section className="grid items-end gap-10 overflow-hidden border-b border-line pb-14 pt-14 md:grid-cols-[1.08fr_.92fr] lg:gap-14 lg:pb-16 lg:pt-16">
-        <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-[13px] text-ink-2 shadow-xs"><span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden /> Démo publique · données réelles</span>
-          <h1 className="mt-6 max-w-[730px] text-4xl font-semibold leading-[1.05] tracking-[-0.03em] text-ink sm:text-5xl">La démo en direct<br/><span className="text-ink-3" translate="no">{view?.site.domain ?? sites.find(s=>s.id===siteId)?.domain ?? 'n0.pub'}</span></h1>
-          <p className="mt-5 max-w-[530px] text-[15px] leading-relaxed text-ink-3 sm:text-[17px]">Les vraies statistiques agrégées du site, actualisées automatiquement : visiteurs, pages, sources, appareils et vidéos. Aucune donnée personnelle, aucun trafic fictif.</p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a href="#analytics" className="btn-dark !h-11 !px-5">Explorer les statistiques <UiIcon name="arrow-right" size={17}/></a>
-            <a href="#globe" className="btn !h-11 !px-5"><UiIcon name="globe" size={16}/> Voir le globe live</a>
-          </div>
-          <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 text-[12px] font-medium text-ink-3"><span className="inline-flex items-center gap-2"><UiIcon name="check" size={16} className="text-success"/> Des données réelles</span><span className="inline-flex items-center gap-2"><UiIcon name="refresh" size={16} className="text-ink-4"/> Mis à jour automatiquement</span></div>
-        </div>
-
-        <div className="relative min-w-0 lg:pl-4">
-          <div className="ml-bento p-5 sm:p-6">
-            <div className="flex items-center justify-between gap-2 border-b border-line pb-5">
-              <div className="flex items-center gap-2.5"><span className="flex h-8 w-8 items-center justify-center rounded-md border border-line text-ink-3"><UiIcon name="activity" size={16}/></span><div><div className="text-[13px] font-semibold">Aperçu en direct</div><p className="text-[11px] text-ink-4">{view?.site.domain ?? sites.find(s=>s.id===siteId)?.domain ?? '—'}</p></div></div>
-              <StatusPill active>En direct</StatusPill>
-            </div>
-            <div className="mt-7">
-              <p className="text-[12px] font-medium text-ink-3">Visiteurs uniques · {days} derniers jours</p>
-              <div className="mt-2 flex flex-wrap items-end gap-3"><span className="text-3xl sm:text-4xl font-semibold leading-none tracking-tight tabular-nums text-ink">{view?nf(view.current.visitors):'—'}</span>{change!==null&&<span className={'mb-1 text-[13px] font-medium '+(change>=0?'text-success':'text-danger')}>{change>=0?'+':''}{change}%</span>}</div>
-            </div>
-            <div className="relative mt-6 h-[150px] sm:h-[175px]">
-              {view ? <TrendChart height={150} granularity="day" buckets={view.series.map((d) => d.date)} series={[{ key: 'visitors', label: 'Visiteurs', color: 'rgb(var(--accent))', values: view.series.map((d) => d.visitors) }]} /> : <div className="ml-loading h-full rounded-xl"/>}
-            </div>
-            <div className="mt-3 grid grid-cols-3 gap-3 border-t border-line pt-5">
-              {[
-                { label: 'En ligne',value:view?.online??null },
-                { label: '24 heures',value:view?.last24h.visitors??null },
-                { label: 'Sessions',value:view?.current.sessions??null },
-              ].map(item=><div key={item.label} className="border-r border-line last:border-none"><p className="text-[11px] text-ink-4">{item.label}</p><p className="mt-1 text-xl font-semibold tracking-tight tabular-nums">{item.value===null?'—':nf(item.value)}</p></div>)}
-            </div>
-          </div>
-                  </div>
+      <section className="border-b border-line pb-8 pt-10 lg:pb-10 lg:pt-12">
+        <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-[13px] text-ink-2"><span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden /> Démo publique · données réelles</span>
+        <h1 className="mt-5 max-w-[730px] text-3xl font-semibold leading-[1.08] tracking-[-0.03em] text-ink sm:text-4xl">La démo en direct de <span className="text-ink-3" translate="no">{view?.site.domain ?? sites.find(s=>s.id===siteId)?.domain ?? 'n0.pub'}</span></h1>
+        <p className="mt-4 max-w-[540px] text-[15px] leading-relaxed text-ink-3">Statistiques agrégées d’un site en production, actualisées automatiquement. Aucune donnée personnelle, aucun trafic fictif.</p>
       </section>
 
-      <section id="analytics" className="relative z-10 scroll-mt-20 border-t border-line bg-canvas pt-16 sm:pt-20">
-        <SectionHeading eyebrow="Vue d’ensemble" title="Votre tableau de bord" description="Toutes les métriques importantes, en un coup d'œil." action={<StatusPill active>Statistiques réelles</StatusPill>}/>
-        <div className="ml-bento flex flex-wrap items-center justify-between gap-4 px-4 py-3.5 sm:px-5">
-          <div className="flex min-w-0 items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line text-ink-3"><UiIcon name="globe" size={16}/></span><div className="min-w-0">{sites.length>1 ? <select aria-label="Site affiché" className="input max-w-[260px] truncate !px-2 !py-1 font-semibold" value={siteId} onChange={e=>pickSite(e.target.value)}>{sites.map(s=><option key={s.id} value={s.id}>{s.domain}{s.name!==s.domain?' · '+s.name:''}</option>)}</select> : <div className="truncate text-[13px] font-semibold">{view?.site.domain ?? '—'}</div>}<div className="mt-0.5 text-[11px] text-ink-4">Dernière actualisation {view?timeLabel(view.updatedAt):'en cours…'}</div></div></div>
-          <div className="flex items-center gap-2"><SegmentedTabs value={days} options={[{value:7,label:'7 jours'},{value:30,label:'30 jours'}]} onChange={setDays} label="Période analysée"/><button className="btn !w-11 !p-0 md:!w-9" aria-label="Rafraîchir les données" onClick={refresh} disabled={busy}><UiIcon name="refresh" size={17} className={busy?'animate-spin':''}/></button></div>
+      <section id="analytics" className="relative z-10 scroll-mt-14 bg-canvas pt-8 sm:pt-10">
+        <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line pb-4">
+          <div className="flex min-w-0 items-center gap-2">
+            <PublicSitePicker sites={sites} siteId={siteId} onPick={pickSite} />
+            <span className="hidden text-[12px] text-ink-4 sm:inline">Maj. {view ? timeLabel(view.updatedAt) : '…'}</span>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <SegmentedTabs value={days} options={[{value:7,label:'7 jours'},{value:30,label:'30 jours'}]} onChange={setDays} label="Période analysée"/>
+            <button className="btn !h-9 !w-9 !shrink-0 !p-0" aria-label="Rafraîchir les données" onClick={refresh} disabled={busy}><UiIcon name="refresh" size={16} className={busy?'animate-spin':''}/></button>
+          </div>
         </div>
         {error && <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger" role="alert"><span>{error}</span><button className="btn" onClick={refresh}>Réessayer</button></div>}
         <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4" aria-busy={busy}>
@@ -198,18 +222,26 @@ export function PublicDemo() {
             </div>
             <div className="mt-3 flex items-center justify-between border-t border-line pt-4 text-[11px] text-ink-4"><span>Données collectées en continu</span><span>{days} jours sélectionnés</span></div>
           </div>
-          <div className="ml-bento min-w-0 p-5 sm:p-6">
-            <div className="flex items-center justify-between"><div><h3 className="text-[16px] font-semibold tracking-tight">Temps réel</h3><p className="mt-1 text-xs text-ink-4">Activité du site</p></div><StatusPill active>En direct</StatusPill></div>
-            <div className="relative mt-5 rounded-lg border border-line bg-canvas px-5 py-5">
-              <span className="text-xs font-medium text-ink-3">Visiteurs actifs maintenant</span><p className="mt-1 flex items-center gap-3 text-5xl font-semibold leading-tight tracking-tight tabular-nums text-ink"><span className="h-2 w-2 rounded-full bg-success"/>{view?nf(view.online):'—'}</p>
-              <span className="text-[11px] text-ink-4">Sur les 5 dernières minutes</span>
+          <div className="ml-bento flex min-w-0 flex-col p-5 sm:p-6">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 className="text-[16px] font-semibold tracking-tight">Temps réel</h3>
+              <p className="flex items-center gap-2 text-[22px] font-semibold tabular-nums leading-none text-ink"><span className="h-2 w-2 rounded-full bg-success" aria-hidden />{view ? nf(view.online) : '—'}</p>
             </div>
-            <div className="mt-5 divide-y divide-line">
-              {[
-                {label:'Visiteurs · 24 heures',value:view?.last24h.visitors??null,icon:'users' as const},
-                {label:'Clics sortants',value:view?.outboundClicks??null,icon:'mouse' as const},
-                {label:'Objectifs atteints',value:view?.goals??null,icon:'target' as const},
-              ].map(item=><div key={item.label} className="flex items-center justify-between gap-4 py-4"><span className="flex items-center gap-2.5 text-[12px] text-ink-3"><UiIcon name={item.icon} size={17} className="text-accent"/>{item.label}</span><span className="text-[18px] font-semibold tabular-nums text-ink">{item.value===null?'—':nf(item.value)}</span></div>)}
+            <p className="mt-1 text-[12px] text-ink-4">Actifs sur les 5 dernières minutes{view?.last24h ? ` · ${nf(view.last24h.visitors)} aujourd’hui` : ''}</p>
+            <ul className="mt-4 min-h-0 flex-1 space-y-0.5">
+              {recentCountries.slice(0, 6).length
+                ? recentCountries.slice(0, 6).map((c) => (
+                  <li key={c.country} className="flex items-center gap-2.5 rounded-md px-0.5 py-1.5 text-[13px]">
+                    <span className="w-5 shrink-0 text-center" aria-hidden>{flag(c.country)}</span>
+                    <span className="min-w-0 flex-1 truncate text-ink-2">{countryName(c.country)}</span>
+                    <span className="tnum shrink-0 font-medium text-ink">{nf(c.visitors)}</span>
+                  </li>
+                ))
+                : <li className="py-6 text-center text-[13px] text-ink-4">Personne en ligne pour le moment. Les pays récemment vus apparaîtront ici.</li>}
+            </ul>
+            <div className="mt-3 flex justify-between border-t border-line pt-3 text-[12px] text-ink-3">
+              <span>Clics sortants <span className="tnum font-medium text-ink">{view ? nf(view.outboundClicks) : '—'}</span></span>
+              <span>Objectifs <span className="tnum font-medium text-ink">{view ? nf(view.goals) : '—'}</span></span>
             </div>
           </div>
         </div>

@@ -109,6 +109,18 @@ export function Realtime({ siteId }: { siteId: string }) {
 
   const total30 = rt ? new Set(rt.recent.map((e) => e.visitor_id)).size : 0;
   const pv30 = rt ? rt.recent.filter((e) => e.type === 'pageview').length : 0;
+  const countryRows = (() => {
+    const seen = new Set<string>();
+    const byCountry = new Map<string, number>();
+    for (const e of rt?.recent ?? []) {
+      if (!e.country || e.country === 'XX') continue;
+      const key = e.visitor_id + ':' + e.country;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      byCountry.set(e.country, (byCountry.get(e.country) ?? 0) + 1);
+    }
+    return [...byCountry.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+  })();
 
   return (
     <div className="ml-site-bg ml-has-bottom-nav min-h-screen pb-12">
@@ -117,22 +129,25 @@ export function Realtime({ siteId }: { siteId: string }) {
       <PageHeader title="Temps réel" description={`Ce qui se passe sur votre site en ce moment · actualisé toutes les ${POLL_MS / 1000} s`}
         meta={site ? <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-ink-4" translate="no"><Favicon domain={site.domain} size={14} />{site.domain}</span> : undefined} />
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="ml-bento relative overflow-hidden p-6 lg:col-span-1">
-          <div className="flex items-center gap-2 text-sm font-medium text-ink-3">
-            <LiveDot on={!!rt?.online} /> Visiteurs en ligne
-          </div>
-          <div className="tnum mt-3 text-6xl font-semibold leading-none tracking-tight text-ink">{rt ? fmtNumber(rt.online) : <span className="skeleton inline-block h-14 w-20" />}</div>
-          <p className="mt-2 text-xs text-ink-4">Actifs sur les 5 dernières minutes</p>
-          <div className="mt-6 grid grid-cols-2 gap-3 border-t border-line pt-4">
-            <div>
-              <div className="eyebrow">Visiteurs récents</div>
-              <div className="tnum mt-1 text-xl font-semibold">{total30}</div>
+        <div className="ml-bento relative overflow-hidden p-5 lg:col-span-1">
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-ink-3">
+              <LiveDot on={!!rt?.online} /> En ligne
             </div>
-            <div>
-              <div className="eyebrow">Pages vues récentes</div>
-              <div className="tnum mt-1 text-xl font-semibold">{pv30}</div>
-            </div>
+            <div className="tnum text-3xl font-semibold leading-none tracking-tight text-ink">{rt ? fmtNumber(rt.online) : <span className="skeleton inline-block h-8 w-14" />}</div>
           </div>
+          <p className="mt-1.5 text-xs text-ink-4">Actifs sur les 5 dernières minutes · {fmtNumber(total30)} sur 30 min · {fmtNumber(pv30)} pages vues</p>
+          <ul className="mt-4 space-y-0.5">
+            {countryRows.length
+              ? countryRows.map(([cc, n]) => (
+                <li key={cc} className="flex items-center gap-2.5 rounded-md py-1.5 text-[13px]">
+                  <Flag cc={cc} size={14} />
+                  <span className="min-w-0 flex-1 truncate text-ink-2">{countryName(cc)}</span>
+                  <span className="tnum shrink-0 font-medium text-ink">{fmtNumber(n)}</span>
+                </li>
+              ))
+              : <li className="py-6 text-center text-[13px] text-ink-4">{rt ? 'Personne en ligne pour le moment.' : 'Chargement…'}</li>}
+          </ul>
         </div>
         <div className="ml-bento p-6 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">

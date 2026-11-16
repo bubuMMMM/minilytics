@@ -8,12 +8,14 @@ import { barWidth, CHANNEL_ICON, dayTick, formatFr, monogram, pct, periodDelta, 
 import { DOT_H, DOT_W, cellOf, centroidOf, landDots } from '../lib/dotmap';
 import type { GlobeData, GlobeHandle, GlobePalette } from './hero/globe';
 import { ShimmerLink, TrustStrip } from './LandingUi';
+import { liveAudience, liveAudienceSuffix } from '../lib/liveAudience';
 
 type Group = { label: string; value: number; short?: string; raw?: string };
 interface Demo {
   current: { visitors: number; pageviews: number };
   previous: { visitors: number };
   online: number;
+  last24h?: { visitors: number };
   series: { date: string; visitors: number }[];
   sources: Group[];
   pages: Group[];
@@ -402,13 +404,22 @@ export function LandingHero() {
       <div className="ml-hx-aurora" aria-hidden />
       <div className="relative mx-auto max-w-[1120px] px-4 pb-10 pt-8 sm:px-6 sm:pb-14 sm:pt-14 lg:pt-16">
         <div className="mx-auto max-w-[760px] text-center">
-          <Link href={`/demo/map${siteQuery}`} className="ml-hx-pill" aria-live="polite">
-            <LiveDot />
-            {online !== null
-              ? <span><span className="tnum font-semibold text-ink">{nf(online)}</span> {online > 1 ? 'visiteurs en ligne' : 'visiteur en ligne'}</span>
-              : failed ? <span>Démo en direct</span> : <><span className="sr-only">Chargement des visiteurs en ligne</span><span className="ml-hx-skel h-3.5 w-36" aria-hidden /></>}
-            <UiIcon name="arrow-right" size={13} className="text-ink-4" />
-          </Link>
+          {(() => {
+            const state = liveAudience(online, demo?.last24h?.visitors ?? null, failed);
+            if (state.kind === 'loading') {
+              return <span className="ml-hx-pill" aria-live="polite"><LiveDot /><span className="sr-only">Chargement des visiteurs</span><span className="ml-hx-skel h-3.5 w-36" aria-hidden /></span>;
+            }
+            if (state.kind === 'hidden') return null;
+            return (
+              <Link href={`/demo/map${siteQuery}`} className="ml-hx-pill" aria-live="polite">
+                <LiveDot />
+                {state.kind === 'fallback'
+                  ? 'Démo en direct'
+                  : <><span className="tnum font-semibold text-ink">{nf(state.count)}</span> {liveAudienceSuffix(state.kind, state.count)}</>}
+                <UiIcon name="arrow-right" size={13} className="text-ink-4" />
+              </Link>
+            );
+          })()}
           <h1 id="hero-title" className="mt-5 text-[clamp(2.5rem,10vw,4.75rem)] font-bold leading-[0.98] tracking-[-0.05em] text-ink sm:mt-6">
             Voyez qui vient.<br />En direct.
           </h1>

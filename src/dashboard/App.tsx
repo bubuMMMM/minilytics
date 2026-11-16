@@ -59,7 +59,28 @@ function Loading() {
     const t = setTimeout(() => setShow(true), 200);
     return () => clearTimeout(t);
   }, []);
-  return <div className="flex min-h-screen items-center justify-center text-sm text-ink-3" aria-busy="true">{show ? 'Chargement…' : ''}</div>;
+  return (
+    <div className="min-h-screen bg-canvas p-6" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Chargement…</span>
+      {show && (
+        <div className="mx-auto max-w-[1480px] space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="ml-skeleton h-8 w-8 rounded-lg" />
+            <div className="ml-skeleton h-4 w-40 rounded" />
+            <div className="ml-skeleton ml-auto h-8 w-48 rounded-lg" />
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {Array.from({ length: 4 }, (_, i) => <div key={i} className="ml-skeleton h-24 rounded-xl" />)}
+          </div>
+          <div className="ml-skeleton h-64 rounded-xl" />
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="ml-skeleton h-48 rounded-xl" />
+            <div className="ml-skeleton h-48 rounded-xl" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const SITE_VIEWS: Record<string, 'videos' | 'sponsors' | 'content' | 'sources' | 'social' | 'bots' | 'vitals' | 'clics'> = { bots: 'bots', videos: 'videos', sponsors: 'sponsors', contenus: 'content', sources: 'sources', social: 'social', vitals: 'vitals', clics: 'clics' };

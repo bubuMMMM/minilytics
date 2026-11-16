@@ -11,11 +11,22 @@ export interface TrendSeries {
   samples?: Array<number | null>;
 }
 
+function niceMax(n: number) {
+  if (n <= 0) return 1;
+  const exp = 10 ** Math.floor(Math.log10(n));
+  const m = n / exp;
+  const nice = m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10;
+  return nice * exp;
+}
+
+function linear(p: [number, number][]): string {
+  return p.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+}
+
 /**
- * Lean SVG area/line chart (no chart library): value under the pointer, keyboard ←/→ scrubbing,
- * a visually hidden data table for screen readers, and fixed height so nothing shifts while loading.
- * Pattern adapted from 21st.dev "Stat Card" (OSAGI) trend line.
- * Null values are gaps: the line breaks and isolated points are drawn as dots (0 is a real value).
+ * Lean SVG chart: daily bars when the series is short, otherwise a line.
+ * Hover tooltip, crosshair, keyboard ←/→, y-axis ticks in fr-FR, hidden data table.
+ * Null values are gaps (0 is a real value).
  */
 export function TrendChart({ buckets, granularity, series, height = 220, format = fmtNumber, peers = false }: {
   buckets: string[]; granularity: string; series: TrendSeries[]; height?: number; format?: (n: number) => string;
@@ -26,18 +37,49 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
   const box = useRef<HTMLDivElement>(null);
   const touch = useRef(false);
   const gid = useId().replace(/:/g, '');
-  const W = 1000, H = height, P = 8;
+  const [boxW, setBoxW] = useState(640);
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const el = box.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const measure = () => {
+      setBoxW(Math.max(160, el.clientWidth));
+      setNarrow(el.clientWidth < 520);
+    };
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    measure();
+    return () => ro.disconnect();
+  }, []);
+
   const n = buckets.length;
+  const bars = granularity === 'day' && n <= 7;
+  const PAD = { l: 40, r: 8, t: 10, b: 24 };
+  const W = boxW;
+  const H = height;
+  const innerW = Math.max(1, W - PAD.l - PAD.r);
+  const innerH = Math.max(1, H - PAD.t - PAD.b);
+
   const max = useMemo(() => {
     const m: Record<string, number> = { left: 1, right: 1 };
     for (const s of series) {
       const nums = s.values.filter((v): v is number => v != null && Number.isFinite(v));
       if (nums.length) m[s.axis ?? 'left'] = Math.max(m[s.axis ?? 'left'], ...nums);
     }
+    m.left = niceMax(m.left);
+    m.right = niceMax(m.right);
     return m;
   }, [series]);
-  const x = (i: number) => (n <= 1 ? W / 2 : P + (i * (W - 2 * P)) / (n - 1));
-  const y = (v: number, axis = 'left') => H - 24 - (v / max[axis]) * (H - 44);
+
+  const x = (i: number) => {
+    if (n <= 1) return PAD.l + innerW / 2;
+    if (bars) return PAD.l + (innerW / n) * (i + 0.5);
+    return PAD.l + (i * innerW) / (n - 1);
+  };
+  const y = (v: number, axis = 'left') => PAD.t + innerH - (v / max[axis]) * innerH;
+  const barW = bars ? Math.min(48, Math.max(10, (innerW / Math.max(n, 1)) * 0.58)) : 0;
+
+  const yTicks = [0, 0.5, 1].map((f) => ({ v: max.left * f, y: y(max.left * f) }));
 
   function segments(vals: Array<number | null>, axis?: string): [number, number][][] {
     const segs: [number, number][][] = [];
@@ -52,28 +94,29 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
     return segs;
   }
 
-  const [narrow, setNarrow] = useState(false);
-  useEffect(() => {
-    const el = box.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(() => setNarrow(el.clientWidth < 520));
-    ro.observe(el);
-    setNarrow(el.clientWidth < 520);
-    return () => ro.disconnect();
-  }, []);
   const step = Math.max(1, Math.ceil(n / (narrow ? 4 : 7)));
   const ticks: number[] = [];
   for (let i = 0; i < n; i += step) ticks.push(i);
-  if (n > 1 && ticks[ticks.length - 1] !== n - 1) { if (n - 1 - ticks[ticks.length - 1] < step / 2 && ticks.length > 1) ticks.pop(); ticks.push(n - 1); }
+  if (n > 1 && ticks[ticks.length - 1] !== n - 1) {
+    if (n - 1 - ticks[ticks.length - 1] < step / 2 && ticks.length > 1) ticks.pop();
+    ticks.push(n - 1);
+  }
 
   function onMove(clientX: number) {
     const r = box.current?.getBoundingClientRect();
     if (!r || !n) return;
-    const rel = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
-    setHover(Math.round(rel * (n - 1)));
+    const rel = clientX - r.left - PAD.l;
+    if (bars) {
+      const i = Math.min(n - 1, Math.max(0, Math.floor((rel / innerW) * n)));
+      setHover(i);
+      return;
+    }
+    const t = Math.min(1, Math.max(0, rel / innerW));
+    setHover(Math.round(t * (n - 1)));
   }
   const h = hover ?? null;
   const hoverHasValue = h !== null && series.some((s) => s.values[h] != null);
+
   return (
     <div className="relative">
       <div
@@ -97,7 +140,7 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
           if (e.key === 'ArrowLeft') setHover((v) => Math.max(0, (v ?? n) - 1));
         }}
       >
-        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 overflow-visible" aria-hidden="true">
           <defs>
             {series.map((s) => (
               <linearGradient key={s.key} id={`${gid}-${s.key}`} x1="0" x2="0" y1="0" y2="1">
@@ -106,31 +149,67 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
               </linearGradient>
             ))}
           </defs>
-          {[0.25, 0.5, 0.75, 1].map((f) => <line key={f} x1="0" x2={W} y1={H - 24 - f * (H - 44)} y2={H - 24 - f * (H - 44)} stroke="rgb(var(--line))" vectorEffect="non-scaling-stroke" />)}
-          <line x1="0" x2={W} y1={H - 24} y2={H - 24} stroke="rgb(var(--line-strong))" vectorEffect="non-scaling-stroke" />
-          {series.map((s, k) => (
+          {yTicks.map((t) => (
+            <line key={t.v} x1={PAD.l} x2={W - PAD.r} y1={t.y} y2={t.y} stroke="rgb(var(--line))" />
+          ))}
+          {!bars && series.map((s, k) => (
             <g key={s.key}>
               {k === 0 && segments(s.values, s.axis).map((seg, i) => (
                 seg.length > 1
-                  ? <path key={i} d={`${linear(seg)} L${seg[seg.length - 1][0]},${H - 24} L${seg[0][0]},${H - 24} Z`} fill={`url(#${gid}-${s.key})`} />
+                  ? <path key={i} d={`${linear(seg)} L${seg[seg.length - 1][0]},${H - PAD.b} L${seg[0][0]},${H - PAD.b} Z`} fill={`url(#${gid}-${s.key})`} />
                   : null
               ))}
               {segments(s.values, s.axis).map((seg, i) => (
                 seg.length > 1
-                  ? <path key={i} d={linear(seg)} fill="none" stroke={s.color} strokeWidth={k === 0 || peers ? 2 : 1.5} strokeDasharray={k === 0 || peers ? undefined : '4 4'} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+                  ? <path key={i} d={linear(seg)} fill="none" stroke={s.color} strokeWidth={k === 0 || peers ? 2 : 1.5} strokeDasharray={k === 0 || peers ? undefined : '4 4'} strokeLinejoin="round" strokeLinecap="round" />
                   : null
               ))}
             </g>
           ))}
-          {h !== null && <line x1={x(h)} x2={x(h)} y1="8" y2={H - 24} stroke="rgb(var(--line-strong))" vectorEffect="non-scaling-stroke" />}
+          {bars && series.map((s, k) => {
+            const inset = k * 4;
+            const w = Math.max(6, barW - inset * 2);
+            return (
+              <g key={s.key}>
+                {s.values.map((v, i) => {
+                  if (v == null) return null;
+                  const bh = Math.max(v > 0 ? 2 : 0, (H - PAD.b) - y(v, s.axis));
+                  const cx = x(i) - w / 2 + inset;
+                  const active = hoverHasValue && h === i;
+                  return (
+                    <rect
+                      key={i}
+                      x={cx}
+                      y={y(v, s.axis)}
+                      width={w}
+                      height={bh}
+                      rx={3}
+                      fill={s.color}
+                      opacity={k === 0 ? (active ? 1 : 0.9) : 0.35}
+                    />
+                  );
+                })}
+              </g>
+            );
+          })}
+          {h !== null && <line x1={x(h)} x2={x(h)} y1={PAD.t} y2={H - PAD.b} stroke="rgb(var(--line-strong))" />}
         </svg>
-        {series.map((s) => s.values.map((v, i) => (
+        {yTicks.map((t) => (
+          <span
+            key={t.v}
+            className="pointer-events-none absolute right-auto tnum text-[10px] text-ink-3"
+            style={{ left: 0, top: t.y, width: PAD.l - 6, transform: t.v === 0 ? 'translateY(-2px)' : 'translateY(-50%)', textAlign: 'right' }}
+          >
+            {fmtNumber(t.v)}
+          </span>
+        ))}
+        {!bars && series.map((s) => s.values.map((v, i) => (
           v == null ? null : (
             <span
               key={`${s.key}-${i}`}
               className="pointer-events-none absolute rounded-full"
               style={{
-                left: `${(x(i) / W) * 100}%`,
+                left: x(i),
                 top: y(v, s.axis),
                 width: hoverHasValue && h === i ? 10 : 6,
                 height: hoverHasValue && h === i ? 10 : 6,
@@ -143,8 +222,11 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
           )
         )))}
         {h !== null && (
-          <div className="pointer-events-none absolute top-0 z-10 min-w-[150px] -translate-x-1/2 rounded-lg border border-line bg-surface px-3 py-2 text-[12px] shadow-pop"
-            style={{ left: `clamp(80px, ${(x(h) / W) * 100}%, calc(100% - 80px))` }} aria-live="polite">
+          <div
+            className="pointer-events-none absolute top-0 z-10 min-w-[150px] -translate-x-1/2 rounded-lg border border-line bg-surface px-3 py-2 text-[12px] shadow-pop"
+            style={{ left: `clamp(${PAD.l + 80}px, ${x(h)}px, calc(100% - 80px))` }}
+            aria-live="polite"
+          >
             <div className="mb-1 font-semibold text-ink">{bucketLabel(buckets[h], granularity, true)}</div>
             {series.map((s) => {
               const v = s.values[h];
@@ -152,7 +234,7 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
               return (
                 <div key={s.key} className="flex items-center justify-between gap-4">
                   <span className="flex items-center gap-1.5 text-ink-3"><span className="h-2 w-2 rounded-full" style={{ background: s.color }} />{s.label}</span>
-                  <span className="tnum font-semibold text-right">
+                  <span className="tnum text-right font-semibold">
                     {v == null ? '—' : format(v)}
                     {s.samples && (
                       <span className="mt-0.5 block text-[11px] font-medium text-ink-4">
@@ -167,7 +249,13 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
         )}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-5">
           {ticks.map((i) => (
-            <span key={buckets[i]} className={`tnum absolute whitespace-nowrap text-[10px] text-ink-3 sm:text-[11px] ${i === 0 && n > 1 ? '' : i === n - 1 && n > 1 ? '-translate-x-full' : '-translate-x-1/2'}`} style={{ left: n > 1 && i === 0 ? 0 : n > 1 && i === n - 1 ? '100%' : `${(x(i) / W) * 100}%` }}>{bucketLabel(buckets[i], granularity)}</span>
+            <span
+              key={buckets[i]}
+              className={`tnum absolute whitespace-nowrap text-[10px] text-ink-3 sm:text-[11px] ${i === 0 && n > 1 && !bars ? '' : i === n - 1 && n > 1 && !bars ? '-translate-x-full' : '-translate-x-1/2'}`}
+              style={{ left: bars || (n > 1 && i !== 0 && i !== n - 1) || bars ? x(i) : i === 0 ? PAD.l : n > 1 && i === n - 1 ? W - PAD.r : x(i) }}
+            >
+              {bucketLabel(buckets[i], granularity)}
+            </span>
           ))}
         </div>
       </div>
@@ -182,9 +270,3 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
     </div>
   );
 }
-
-/** Straight segments so a real daily spike stays a spike, not a bell curve. */
-function linear(p: [number, number][]): string {
-  return p.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-}
-

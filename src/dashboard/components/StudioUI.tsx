@@ -47,12 +47,13 @@ export function MetricTile({ label, value, caption, icon, number, focus = false,
         <span className="truncate text-[12px] font-medium text-ink-3">{label}</span>
         <span className="shrink-0 text-ink-4" data-n={number} data-focus={focus || undefined}><UiIcon name={icon} size={15}/></span>
       </div>
-      <div className="mt-2 flex items-end justify-between gap-2">
-        <div className="min-w-0 truncate text-2xl font-semibold leading-tight tracking-tight tabular-nums text-ink">{value}</div>
+      <div className="mt-2 flex items-end justify-between gap-3">
+        <div className="text-2xl font-semibold leading-tight tracking-tight tabular-nums text-ink">{value}</div>
         {series && series.length > 1 &&
-          <div className="flex h-[28px] w-[72px] shrink-0 items-end gap-[2px] sm:w-[96px]" aria-hidden="true">
-            {series.slice(-12).map((n,i) =>
-              <span key={i} className="min-w-[2px] flex-1 rounded-t-[2px] bg-accent/70" style={{height: Math.max(4, n / max * 100) + '%'}} />)}
+          <div className="relative hidden h-[28px] w-[72px] shrink-0 items-end gap-0.5 sm:flex lg:w-[96px]" aria-hidden="true">
+            <span className="absolute inset-x-0 bottom-0 h-px bg-line" />
+            {series.slice(-12).map((n, i) =>
+              <span key={i} className="min-w-[2px] flex-1 rounded-t-[1px] bg-accent" style={{ height: n > 0 ? `${Math.max(3, (n / max) * 100)}%` : '0px' }} />)}
           </div>}
       </div>
       <div className="mt-1 truncate text-[12px] text-ink-4">{caption}</div>

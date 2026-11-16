@@ -79,8 +79,8 @@ export function Signup() {
           </div>
         </div>
       </header>
-      <div className="mx-auto flex w-full max-w-[960px] flex-1 flex-col justify-center gap-10 px-4 py-12 lg:flex-row lg:items-start lg:gap-16 lg:py-20">
-        <div className="max-w-md lg:pt-4">
+      <div className="mx-auto flex w-full max-w-[960px] flex-1 flex-col justify-center gap-10 px-4 py-12 lg:flex-row lg:items-center lg:gap-16 lg:py-16">
+        <div className="max-w-md">
           <p className="ml-kicker">Liste d’attente</p>
           <h1 className="ml-title mt-3">Réservez votre accès.</h1>
           <p className="ml-lead mt-4">Les comptes ouvrent par vagues. Laissez votre e-mail : vous serez prévenu en premier. Aucune carte n’est requise.</p>
@@ -89,6 +89,10 @@ export function Signup() {
             <li className="flex gap-2"><span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-ink" aria-hidden /><span>Une démo publique avec les chiffres réels d’un site en production.</span></li>
             <li className="flex gap-2"><span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-ink" aria-hidden /><span>Un seul e-mail à l’ouverture. Votre adresse n’est ni partagée ni revendue.</span></li>
           </ul>
+          <div className="ml-frame mt-8 hidden overflow-hidden lg:block">
+            <img src="/landing/map-light.webp" alt="Aperçu de la carte des visiteurs" width={1200} height={760} className="block aspect-[16/10] w-full object-cover object-top dark:hidden" />
+            <img src="/landing/map-dark.webp" alt="" width={1200} height={760} className="hidden aspect-[16/10] w-full object-cover object-top dark:block" />
+          </div>
         </div>
       <main className="w-full max-w-[440px] rounded-2xl border border-line bg-surface p-6 shadow-xs sm:p-8">
         {state === 'done' ? (

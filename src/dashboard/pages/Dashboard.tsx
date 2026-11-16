@@ -99,7 +99,7 @@ export function Dashboard({ siteId, view = 'overview' }: { siteId: string; view?
             description={VIEW_META[view].sub}
             meta={<>
               <span className="font-mono text-[12px] text-ink-4" translate="no">{site.domain}</span>
-              <Link href={'/site/' + site.id + '/realtime'} className="inline-flex h-6 items-center gap-1.5 rounded-full border border-line px-2 text-[12px] font-medium text-ink-2 transition-colors duration-150 hover:border-line-strong"><LiveDot on={!!overview?.online} />{overview ? overview.online + ' en ligne' : 'Temps réel'}</Link>
+              <Link href={'/site/' + site.id + '/realtime'} className="inline-flex h-6 items-center gap-1.5 rounded-full border border-line px-2 text-[12px] font-medium text-ink-2 transition-colors duration-150 hover:border-line-strong"><LiveDot on={!!overview?.online} />{overview && overview.online > 0 ? `${overview.online} ${overview.online > 1 ? 'visiteurs en ligne' : 'visiteur en ligne'}` : 'Temps réel'}</Link>
             </>}
             actions={<>
               <Toolbar site={site} sites={sites!} q={q} update={update} overview={overview} onRefresh={() => setReloadKey((k) => k + 1)} loading={loading} />

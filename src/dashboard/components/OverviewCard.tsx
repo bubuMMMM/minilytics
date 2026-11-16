@@ -197,19 +197,21 @@ export function OverviewCard({ data }: { data: Overview | null }) {
                 {!hidden.prev && (
                   <Line yAxisId="v" type="linear" dataKey="prevVisitors" stroke={col.prev} strokeWidth={1.5} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} />
                 )}
-                {!hidden.visitors && (
-                  <Area
-                    yAxisId="v"
-                    type="linear"
-                    dataKey="visitors"
-                    stroke={col.visitors}
-                    strokeWidth={2}
-                    fill="url(#vis)"
-                    dot={false}
-                    activeDot={{ r: 4.5, fill: col.visitors, stroke: col.dot, strokeWidth: 2 }}
-                    isAnimationActive={false}
-                  />
-                )}
+                {!hidden.visitors && (data.series.length <= 7 && g === 'day'
+                  ? <Bar yAxisId="v" dataKey="visitors" fill={col.visitors} radius={[3, 3, 0, 0]} maxBarSize={36} isAnimationActive={false} />
+                  : (
+                    <Area
+                      yAxisId="v"
+                      type="linear"
+                      dataKey="visitors"
+                      stroke={col.visitors}
+                      strokeWidth={2}
+                      fill="url(#vis)"
+                      dot={false}
+                      activeDot={{ r: 4.5, fill: col.visitors, stroke: col.dot, strokeWidth: 2 }}
+                      isAnimationActive={false}
+                    />
+                  ))}
               </ComposedChart>
             </ResponsiveContainer>
           )}
