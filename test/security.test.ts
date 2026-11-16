@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import app from '../src/worker/index';
 import { originAllowed } from '../src/worker/collect';
 import { clientIp, cookieSecure, ipBucket, isCrossSite, RateLimiter } from '../src/worker/lib/security';
+import { consumeRateLimit } from '../src/worker/lib/rate-limit';
 import { makeDb, type PgliteD1 } from './helpers/pglite-d1';
 
 const ORIGIN = 'https://minilytics-six.vercel.app';
@@ -174,11 +175,16 @@ describe('ingestion (PGlite)', () => {
     const r = await call('/api/event', { method: 'POST', headers: { 'content-length': '100000' }, body: 'x'.repeat(100000) });
     expect(r.status).toBe(413);
   });
-  it('rate limits a flooding client', async () => {
-    let last = 0;
-    for (let i = 0; i < 245; i++) last = (await call('/api/event', { method: 'POST', headers: { 'x-real-ip': '10.2.0.1' }, body: '{}' })).status;
-    expect(last).toBe(429);
-  }, 30_000);
+  it('rate limits a flooding client with a shared Neon window and Retry-After', async () => {
+    const ip = '10.2.0.1';
+    const now = Date.now();
+    const windowMs = 60_000;
+    const windowStart = Math.floor(now / windowMs) * windowMs;
+    await db.prepare('INSERT INTO rate_limits (key, count, expires_at) VALUES (?, ?, ?)').bind(`ingest:${ip}:${windowStart}`, 600, windowStart + windowMs).run();
+    const r = await call('/api/event', { method: 'POST', headers: { 'x-real-ip': ip }, body: '{}' });
+    expect(r.status).toBe(429);
+    expect(Number(r.headers.get('Retry-After'))).toBeGreaterThan(0);
+  });
 });
 
 describe('small hardening', () => {
@@ -191,5 +197,59 @@ describe('small hardening', () => {
   it('does not query the DB for malformed public site ids', async () => {
     const r = await call('/api/public/demo?site=' + encodeURIComponent("x' OR 1=1 --"));
     expect(r.status).toBe(404);
+  });
+});
+
+describe('Neon-backed rate limiter', () => {
+  it('counts in the database so every instance shares the window', async () => {
+    const first = await consumeRateLimit(db as any, 'test-bucket', 'ip-a', 3, 60_000, 1_000_000);
+    const second = await consumeRateLimit(db as any, 'test-bucket', 'ip-a', 3, 60_000, 1_000_010);
+    const third = await consumeRateLimit(db as any, 'test-bucket', 'ip-a', 3, 60_000, 1_000_020);
+    const fourth = await consumeRateLimit(db as any, 'test-bucket', 'ip-a', 3, 60_000, 1_000_030);
+    expect([first, second, third].map((h) => h.allowed)).toEqual([true, true, true]);
+    expect(fourth.allowed).toBe(false);
+    expect(fourth.retryAfterSec).toBeGreaterThan(0);
+    // A different IP is not affected.
+    expect((await consumeRateLimit(db as any, 'test-bucket', 'ip-b', 3, 60_000, 1_000_030)).allowed).toBe(true);
+  });
+
+  it('opens a new window when the previous one expires', async () => {
+    const hit = await consumeRateLimit(db as any, 'test-wrap', 'ip-c', 1, 1000, 5_000);
+    expect(hit.allowed).toBe(true);
+    expect((await consumeRateLimit(db as any, 'test-wrap', 'ip-c', 1, 1000, 5_500)).allowed).toBe(false);
+    expect((await consumeRateLimit(db as any, 'test-wrap', 'ip-c', 1, 1000, 6_000)).allowed).toBe(true);
+  });
+});
+
+describe('/api/sites requires authentication (Hono wildcard middleware)', () => {
+  const paths = [
+    '/api/sites',
+    '/api/sites/',
+    '/api/sites/abc',
+    '/api/sites/abc/',
+    '/api/sites/abc/overview',
+    '/api/sites/abc/overview/',
+    '/api/sites/abc/videos',
+    '/api/sites/abc/settings',
+    '/api/sites//overview',
+    '/api/sites/%61bc/overview',
+    '/api/sites/abc%2Foverview',
+    '/api/sites/abc%2foverview',
+    '/api/sites/abc%2e%2e/overview',
+  ];
+  it.each(paths)('GET %s → 401', async (path) => {
+    const r = await call(path);
+    expect(r.status).toBe(401);
+    expect(await r.json()).toEqual({ error: 'unauthorized' });
+  });
+  it.each(['/api/sites/abc', '/api/sites/abc/', '/api/sites/abc/funnels'])('POST %s → 401', async (path) => {
+    const r = await call(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+    expect(r.status).toBe(401);
+  });
+  it.each(['/api/sites/abc', '/api/sites/abc/'])('DELETE %s → 401', async (path) => {
+    expect((await call(path, { method: 'DELETE' })).status).toBe(401);
+  });
+  it.each(['/api/sites/abc', '/api/sites/abc/'])('PATCH %s → 401', async (path) => {
+    expect((await call(path, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: '{}' })).status).toBe(401);
   });
 });

@@ -3,6 +3,7 @@
  * runs unchanged on Vercel + Neon. Translates `?` placeholders and a few SQLite-isms.
  */
 import { Pool, neon, neonConfig, types, type NeonQueryFunction, type PoolClient } from '@neondatabase/serverless';
+import { sanitizeBindValue } from '../shared/text.js';
 import ws from 'ws';
 
 // Neon's driver talks Postgres over WebSockets (port 443), which works everywhere incl. Vercel Functions.
@@ -36,7 +37,7 @@ class Stmt {
     readonly params: unknown[] = [],
   ) {}
   bind(...params: unknown[]) {
-    return new Stmt(this.db, this.sql, params.map((p) => (typeof p === 'boolean' ? (p ? 1 : 0) : p === undefined ? null : p)));
+    return new Stmt(this.db, this.sql, params.map(sanitizeBindValue));
   }
   async all<T = Row>(): Promise<{ results: T[]; success: true; meta: { changes: number } }> {
     const r = await this.db.query(this.sql, this.params);

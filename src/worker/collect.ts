@@ -10,7 +10,9 @@ import { hostAllowed, readSettings } from './settings.js';
 import { goalAlerts } from './alerts.js';
 import { hmacHex } from './lib/crypto.js';
 import { creditedSessionSql } from './payments.js';
-import { RateLimiter, rawRequestIp, requestIp } from './lib/security.js';
+import { clip, clipChars } from '../shared/text.js';
+import { rawRequestIp, requestIp } from './lib/security.js';
+import { INGEST_LIMIT, INGEST_WINDOW_MS, applyRetryAfter, consumeRateLimit } from './lib/rate-limit.js';
 
 const TYPES = new Set(['pageview', 'goal', 'outbound', 'ping', 'identify', 'scroll', 'engagement', 'click', 'form', 'video', 'action', 'block']);
 /** Video player lifecycle events. `watch` carries seconds actually played since the last report. */
@@ -44,8 +46,6 @@ interface Payload {
   pi?: string[];
 }
 
-const clip = (s: unknown, n = 255): string | null =>
-  typeof s === 'string' && s.trim() ? s.trim().slice(0, n) : null;
 
 const isId = (s: unknown): s is string => typeof s === 'string' && /^[\w-]{8,64}$/.test(s);
 
@@ -69,7 +69,9 @@ export function normalizePath(pathname: string): string {
     p = decodeURI(p);
   } catch {}
   if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
-  return p.slice(0, 500);
+  // Code-point clip: .slice() on a JS string can split an emoji and later fail in Postgres.
+  p = clipChars(p, 500) || '/';
+  return p;
 }
 
 function stripWww(h: string) {
@@ -84,8 +86,6 @@ export function belongsTo(hostname: string, domain: string): boolean {
 }
 
 const MAX_BODY = 8192;
-/** Per instance: 240 events/min per IP is far above any real visitor (video heartbeats included). */
-const ingestLimiter = new RateLimiter(240, 60_000);
 
 /**
  * Browsers always send `Origin` on the tracker's cross-origin POST. When present it must be the site's domain:
@@ -103,7 +103,11 @@ export function originAllowed(origin: string | undefined, domain: string): boole
 
 export async function handleEvent(c: Context<AppEnv>) {
   if (Number(c.req.header('content-length') ?? 0) > MAX_BODY) return c.body(null, 413);
-  if (!ingestLimiter.allow(requestIp(c))) return c.body(null, 429);
+  const limited = await consumeRateLimit(c.env.DB, 'ingest', requestIp(c), INGEST_LIMIT, INGEST_WINDOW_MS);
+  if (!limited.allowed) {
+    applyRetryAfter(c, limited.retryAfterSec);
+    return c.body(null, 429);
+  }
   const raw = await c.req.text();
   if (raw.length > MAX_BODY) return c.body(null, 413);
   let body: Payload;

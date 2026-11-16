@@ -8,7 +8,7 @@ import type { Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { AppEnv, Principal, Role, Site } from './env.js';
 import { randomId, randomToken, sha256Hex } from './lib/crypto.js';
-import { RateLimiter } from './lib/security.js';
+import { API_LIMIT, API_WINDOW_MS, applyRetryAfter, consumeRateLimit } from './lib/rate-limit.js';
 import { authenticate, canAccess } from './auth.js';
 import { isApiKey } from './payments.js';
 import { breakdown, customers, funnel, overview, parseFilters, visitorProfile, visitors, type Ctx } from './stats.js';
@@ -19,8 +19,8 @@ import { revenuePrediction, revenueSummary } from './revenue.js';
 import { goalDetail } from './growth.js';
 import { DEFAULT_PLAN, PLANS, type Plan } from '../shared/plans.js';
 import { BOT_MONTHLY_LIMIT } from './bots.js';
+import { clip } from '../shared/text.js';
 
-const limiter = new RateLimiter(240, 60_000);
 const MAX_TOKENS = 20;
 
 export interface ApiCaller { principal: Principal; siteKey: string | null; tokenId: string | null }
@@ -204,7 +204,11 @@ async function handleMcp(c: Context<AppEnv>) {
     c.header('WWW-Authenticate', 'Bearer realm="minilytics", error="invalid_token"');
     return c.json({ jsonrpc: '2.0', id: null, error: { code: -32001, message: 'Unauthorized: send Authorization: Bearer <mlt_ token>' } }, 401);
   }
-  if (!limiter.allow(caller.principal.sessionId)) return c.json({ jsonrpc: '2.0', id: null, error: { code: -32029, message: 'rate limited' } }, 429);
+  const mcpHit = await consumeRateLimit(c.env.DB, 'api-mcp', caller.principal.sessionId, API_LIMIT, API_WINDOW_MS);
+  if (!mcpHit.allowed) {
+    applyRetryAfter(c, mcpHit.retryAfterSec);
+    return c.json({ jsonrpc: '2.0', id: null, error: { code: -32029, message: 'rate limited' } }, 429);
+  }
   let msg: any;
   try {
     msg = await c.req.json();
@@ -334,7 +338,11 @@ export function registerPlatform(app: Hono<AppEnv>) {
   const auth = async (c: Context<AppEnv>) => {
     const caller = await apiCaller(c);
     if (!caller) return { err: c.json({ error: 'invalid or missing token (Authorization: Bearer mlt_… or ml_…)' }, 401) };
-    if (!limiter.allow(caller.principal.sessionId)) return { err: c.json({ error: 'rate limited (240 requests/min)' }, 429) };
+    const apiHit = await consumeRateLimit(c.env.DB, 'api-v1', caller.principal.sessionId, API_LIMIT, API_WINDOW_MS);
+    if (!apiHit.allowed) {
+      applyRetryAfter(c, apiHit.retryAfterSec);
+      return { err: c.json({ error: 'rate limited (240 requests/min)' }, 429) };
+    }
     return { caller };
   };
   const withSite = async (c: Context<AppEnv>) => {
@@ -425,7 +433,6 @@ export function registerPlatform(app: Hono<AppEnv>) {
     const b = await c.req.json<Record<string, unknown>>().catch(() => ({}) as Record<string, unknown>);
     const vid = typeof b.visitor_id === 'string' && /^[\w-]{8,64}$/.test(b.visitor_id) ? b.visitor_id : null;
     if (!vid) return c.json({ error: 'visitor_id is required' }, 400);
-    const clip = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
     await c.env.DB.batch([
       c.env.DB.prepare('INSERT OR IGNORE INTO visitors (site_id, id, first_seen) VALUES (?, ?, ?)').bind(siteId, vid, Date.now()),
       c.env.DB.prepare('UPDATE visitors SET user_id = COALESCE(?, user_id), email = COALESCE(?, email), name = COALESCE(?, name) WHERE site_id = ? AND id = ?')

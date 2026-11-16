@@ -6,6 +6,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PGlite, types } from '@electric-sql/pglite';
 import { translate } from '../../src/server/pgd1';
+import { sanitizeBindValue } from '../../src/shared/text';
 
 const parsers = { [types.INT8]: (v: string) => Number(v), [types.NUMERIC]: (v: string) => Number(v) };
 
@@ -16,7 +17,7 @@ class Stmt {
     readonly params: unknown[] = [],
   ) {}
   bind(...params: unknown[]) {
-    return new Stmt(this.db, this.sql, params.map((p) => (typeof p === 'boolean' ? (p ? 1 : 0) : p === undefined ? null : p)));
+    return new Stmt(this.db, this.sql, params.map(sanitizeBindValue));
   }
   async all() {
     const r = await this.db.pg.query(translate(this.sql), this.params, { parsers });

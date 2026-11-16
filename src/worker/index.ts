@@ -7,6 +7,8 @@ import { resolveRange, tzOffset } from './lib/time.js';
 import { liveGlobeStats } from './live-globe.js';
 import { liveMap, mapReport } from './map.js';
 import { forgetSite, type AppEnv, type Principal, type Site } from './env.js';
+import { deleteSiteStatements } from './site-data.js';
+import { purgeExpiredRateLimits } from './lib/rate-limit.js';
 import { randomId } from './lib/crypto.js';
 import { PUBLIC_CACHE, csrfGuard } from './lib/security.js';
 import { handleDodoWebhook, handleGoalApi, handlePaymentApi, rematchPayments } from './payments.js';
@@ -180,7 +182,8 @@ app.get('/api/cron/daily', async (c) => {
       reddit: st.reddit.keywords.length ? await syncReddit(c.env.DB, s, c.env).catch((e) => ({ ok: false, error: String(e) })) : null,
     };
   }
-  return c.json({ alerts: await runDailyAlerts(c.env, sites, Date.now(), origin), sources });
+  const rateLimits = await purgeExpiredRateLimits(c.env.DB).catch(() => 0);
+  return c.json({ alerts: await runDailyAlerts(c.env, sites, Date.now(), origin), sources, rateLimits });
 });
 registerPlatform(app);
 
@@ -314,11 +317,7 @@ app.post('/api/sites/:id/rotate-key', async (c) => {
 app.delete('/api/sites/:id', async (c) => {
   if (c.get('principal').role !== 'owner') return c.json({ error: 'Réservé au propriétaire' }, 403);
   const id = c.get('site').id;
-  await c.env.DB.batch(
-    ['events', 'sessions', 'visitors', 'payments', 'funnels', 'segments', 'notes', 'bot_hits', 'imports', 'imported_stats', 'share_links', 'widget_tokens', 'widget_boards', 'notifications', 'github_commits', 'reddit_mentions', 'payment_claims'].map((t) =>
-      c.env.DB.prepare(`DELETE FROM ${t} WHERE site_id = ?`).bind(id),
-    ).concat(c.env.DB.prepare('DELETE FROM sites WHERE id = ?').bind(id)),
-  );
+  await c.env.DB.batch(deleteSiteStatements(c.env.DB, id));
   forgetSite(id);
   return c.json({ ok: true });
 });

@@ -9,7 +9,8 @@ import type { Context, Hono } from 'hono';
 import type { AppEnv } from './env.js';
 import { requireOwner } from './auth.js';
 import { randomId } from './lib/crypto.js';
-import { RateLimiter, csrfGuard, requestIp } from './lib/security.js';
+import { csrfGuard, requestIp } from './lib/security.js';
+import { WAITLIST_LIMIT, WAITLIST_WINDOW_MS, applyRetryAfter, consumeRateLimit } from './lib/rate-limit.js';
 
 export const WAITLIST_PLANS = ['starter', 'growth'] as const;
 export type WaitlistPlan = (typeof WAITLIST_PLANS)[number];
@@ -48,7 +49,6 @@ export function parseWaitlist(body: unknown): { error: string } | { email: strin
 let ready: Promise<unknown> | null = null;
 const ensureTable = (c: Context<AppEnv>) => (ready ??= c.env.DB.prepare(WAITLIST_DDL).run().catch((e) => { ready = null; throw e; }));
 
-const limiter = new RateLimiter(5, 10 * 60_000);
 
 const csvCell = (v: unknown) => {
   const s = v === null || v === undefined ? '' : String(v);
@@ -68,7 +68,11 @@ export function registerWaitlist(app: Hono<AppEnv>) {
     const parsed = parseWaitlist(await c.req.json().catch(() => null));
     // Typos don't burn the quota: only well-formed submissions count (5 / 10 min per IP).
     if ('error' in parsed) return c.json({ error: parsed.error }, 400);
-    if (!limiter.allow(requestIp(c))) return c.json({ error: 'Trop de tentatives. Réessayez dans quelques minutes.' }, 429);
+    const waitHit = await consumeRateLimit(c.env.DB, 'waitlist', requestIp(c), WAITLIST_LIMIT, WAITLIST_WINDOW_MS);
+    if (!waitHit.allowed) {
+      applyRetryAfter(c, waitHit.retryAfterSec);
+      return c.json({ error: 'Trop de tentatives. Réessayez dans quelques minutes.' }, 429);
+    }
     c.header('Cache-Control', 'no-store');
     if (parsed.bot) return c.json({ ok: true });
     await ensureTable(c);

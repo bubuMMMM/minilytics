@@ -7,7 +7,7 @@ import type { Context, Hono } from 'hono';
 import { detectAiBot, type BotCategory } from '../shared/aibots.js';
 import { getSite, type AppEnv, type Site } from './env.js';
 import { constantTimeEqual, hmacHex } from './lib/crypto.js';
-import { RateLimiter } from './lib/security.js';
+import { BOT_INGEST_LIMIT, INGEST_WINDOW_MS, applyRetryAfter, consumeRateLimit } from './lib/rate-limit.js';
 import { bucketLabels, bucketSql, tzOffset } from './lib/time.js';
 import { makeCtx, type Ctx } from './stats.js';
 import { normalizePath } from './collect.js';
@@ -16,7 +16,6 @@ import { normalizePath } from './collect.js';
 export const BOT_MONTHLY_LIMIT = 100_000;
 const MAX_HITS_PER_REQUEST = 2000;
 const MAX_BODY = 1024 * 1024;
-const limiter = new RateLimiter(600, 60_000);
 
 /** Ingestion-only token: derived from the site's API key (rotates with it) and can't record payments or goals. */
 export async function botToken(site: Site): Promise<string> {
@@ -112,7 +111,11 @@ async function handleBotIngest(c: Context<AppEnv>) {
   if (!site) return c.json({ error: 'unknown site' }, 404);
   const given = (c.req.header('authorization')?.replace(/^Bearer\s+/i, '') || c.req.header('x-minilytics-token') || c.req.query('token') || '').trim();
   if (!given || !constantTimeEqual(given, await botToken(site))) return c.json({ error: 'invalid token' }, 401);
-  if (!limiter.allow(site.id)) return c.json({ error: 'rate limited' }, 429);
+  const botHit = await consumeRateLimit(c.env.DB, 'bot-ingest', site.id, BOT_INGEST_LIMIT, INGEST_WINDOW_MS);
+  if (!botHit.allowed) {
+    applyRetryAfter(c, botHit.retryAfterSec);
+    return c.json({ error: 'rate limited' }, 429);
+  }
   if (Number(c.req.header('content-length') ?? 0) > MAX_BODY) return c.json({ error: 'body too large' }, 413);
   const raw = await c.req.text();
   if (raw.length > MAX_BODY) return c.json({ error: 'body too large' }, 413);

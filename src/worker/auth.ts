@@ -10,7 +10,8 @@ import type { Context, Hono, Next } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import type { AppEnv, Principal, Role, Site } from './env.js';
 import { hashPassword, passwordsMatch, randomId, randomToken, sha256Hex, signToken, verifyPassword, verifyToken } from './lib/crypto.js';
-import { RateLimiter, cookieSecure, requestIp, sessionKey } from './lib/security.js';
+import { cookieSecure, requestIp, sessionKey } from './lib/security.js';
+import { AUTH_LIMIT, AUTH_WINDOW_MS, INVITE_LIMIT, INVITE_WINDOW_MS, applyRetryAfter, consumeRateLimit } from './lib/rate-limit.js';
 import { currentPlan } from './platform.js';
 
 export const AUTH_COOKIE = 'ml_auth';
@@ -24,7 +25,6 @@ const MIN_MEMBER_PASSWORD = 10;
 const INVITE_DAYS = 7;
 const TOUCH_MS = 5 * 60_000;
 const OWNER_REVOKED_KEY = 'owner_legacy_revoked_before';
-const inviteLimiter = new RateLimiter(30, 15 * 60_000);
 
 interface SessionRow { id: string; user_id: string; expires_at: number; last_seen_at: number; revoked_at: number | null; ip: string | null; ua: string | null; created_at: number }
 interface UserRow { id: string; email: string; name: string | null; password_hash: string; role: Role; sites: string; created_at: number; last_login_at: number | null; disabled_at: number | null }
@@ -174,7 +174,15 @@ export function registerAuth(app: Hono<AppEnv>) {
     if (!c.env.ADMIN_PASSWORD || !c.env.SESSION_SECRET) return c.json({ error: 'Set ADMIN_PASSWORD and SESSION_SECRET (see README).' }, 500);
     const ip = requestIp(c);
     const now = Date.now();
-    if (await lockedOut(c, ip, now)) return c.json({ error: 'Too many wrong attempts. Try again in 15 minutes.' }, 429);
+    const burst = await consumeRateLimit(c.env.DB, 'auth-login', ip, AUTH_LIMIT, AUTH_WINDOW_MS, now);
+    if (!burst.allowed) {
+      applyRetryAfter(c, burst.retryAfterSec);
+      return c.json({ error: 'Too many attempts. Try again in a moment.' }, 429);
+    }
+    if (await lockedOut(c, ip, now)) {
+      applyRetryAfter(c, Math.ceil(LOCKOUT_MS / 1000));
+      return c.json({ error: 'Too many wrong attempts. Try again in 15 minutes.' }, 429);
+    }
     const b = await c.req.json<{ password?: unknown; email?: unknown }>().catch(() => ({}) as { password?: unknown; email?: unknown });
     const password = b.password;
     if (typeof password !== 'string' || password.length > MAX_PASSWORD_LENGTH) {
@@ -319,7 +327,11 @@ export function registerAuth(app: Hono<AppEnv>) {
   }
   app.get('/api/invites/:token', async (c) => {
     c.header('Cache-Control', 'no-store');
-    if (!inviteLimiter.allow(requestIp(c))) return c.json({ error: 'Trop de tentatives' }, 429);
+    const inviteHit = await consumeRateLimit(c.env.DB, 'auth-invite', requestIp(c), INVITE_LIMIT, INVITE_WINDOW_MS);
+    if (!inviteHit.allowed) {
+      applyRetryAfter(c, inviteHit.retryAfterSec);
+      return c.json({ error: 'Trop de tentatives' }, 429);
+    }
     const inv = await findInvite(c, c.req.param('token'));
     if (!inv) return c.json({ valid: false }, 404);
     const sites = parseSites(inv.sites);
@@ -327,7 +339,11 @@ export function registerAuth(app: Hono<AppEnv>) {
     return c.json({ valid: true, role: inv.role, allSites: sites === '*', sites: names, expires_at: Number(inv.expires_at) });
   });
   app.post('/api/invites/:token/accept', async (c) => {
-    if (!inviteLimiter.allow(requestIp(c))) return c.json({ error: 'Trop de tentatives' }, 429);
+    const inviteHit = await consumeRateLimit(c.env.DB, 'auth-invite', requestIp(c), INVITE_LIMIT, INVITE_WINDOW_MS);
+    if (!inviteHit.allowed) {
+      applyRetryAfter(c, inviteHit.retryAfterSec);
+      return c.json({ error: 'Trop de tentatives' }, 429);
+    }
     const inv = await findInvite(c, c.req.param('token'));
     if (!inv) return c.json({ error: 'Invitation invalide, expirée ou déjà utilisée.' }, 404);
     const b = await c.req.json<Record<string, unknown>>().catch(() => ({}) as Record<string, unknown>);
