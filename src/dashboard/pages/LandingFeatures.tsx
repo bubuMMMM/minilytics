@@ -49,13 +49,6 @@ export function FeaturesBento() {
         <Link href="/demo" className="mt-5 inline-flex min-h-[44px] items-center gap-1.5 text-[14px] font-medium text-ink hover:text-accent">
           Explorer la démo publique <UiIcon name="arrow-right" size={15} />
         </Link>
-        <ul className="ml-feat-facts mx-auto mt-8 flex max-w-[720px] flex-wrap items-center justify-center gap-x-2 gap-y-2">
-          {FACTS.map((f) => (
-            <li key={f} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-[12px] font-medium text-ink-2 shadow-xs">
-              <span className="text-success" aria-hidden><UiIcon name="check" size={12} /></span>{f}
-            </li>
-          ))}
-        </ul>
       </header>
 
       <HeroSwitcher />
@@ -71,7 +64,6 @@ export function FeaturesBento() {
 
       <p className="mt-3 text-center text-[11px] text-ink-3">Les chiffres des aperçus sont des exemples illustratifs, pas des statistiques en direct.</p>
 
-      <Integrations />
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3 sm:gap-4">
         {OPTIONAL.map((f) => (
@@ -92,7 +84,6 @@ export function FeaturesBento() {
   );
 }
 
-const FACTS = ['≈ 7 Ko compressé', 'First-party ou sans cookie', 'SPA React, Next, Vue', 'Bots et robots filtrés'];
 const STEPS = ['Collez une balise, en une minute.', 'Reliez Stripe, Shopify, Polar…', 'Voyez quels canaux font vraiment acheter.'];
 
 const OPTIONAL: { icon: UiIconName; title: string; when: string; text: string; visual: ReactNode }[] = [
@@ -463,17 +454,11 @@ function VisualBots() {
 
 function VisualPrivacy() {
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex items-center gap-3">
       <span className="ml-feat-shield" aria-hidden>
         <UiIcon name="shield" size={22} />
       </span>
-      <ul className="flex min-w-0 flex-1 flex-wrap gap-1.5">
-        {['≈ 7 Ko', 'First-party', 'Mode sans cookie', 'Aucune revente', 'Robots filtrés'].map((l) => (
-          <li key={l} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-medium text-ink-2">
-            <span className="text-success" aria-hidden><UiIcon name="check" size={11} /></span>{l}
-          </li>
-        ))}
-      </ul>
+      <p className="min-w-0 text-[13px] leading-relaxed text-ink-2">Servable depuis votre domaine, avec une option sans cookie.</p>
     </div>
   );
 }
@@ -504,23 +489,6 @@ function VisualInstall() {
       </div>
       <pre className="overflow-x-auto px-4 py-3 font-mono text-[12px] leading-relaxed text-ink-2"><code>{code}</code></pre>
       <span className="sr-only" aria-live="polite">{copied ? 'Snippet copié dans le presse-papiers' : ''}</span>
-    </div>
-  );
-}
-
-function Integrations() {
-  const items = ['Stripe', 'Shopify', 'Polar', 'Paddle', 'Lemon Squeezy', 'WooCommerce', 'Next.js', 'WordPress', 'Webflow', 'React', 'Vue', 'Claude', 'Cursor', 'ChatGPT', 'GitHub', '𝕏'];
-  const loop = [...items, ...items];
-  return (
-    <div className="ml-feat-marquee mt-10" aria-label="Outils et plateformes compatibles">
-      <p className="mb-4 text-center text-[12px] font-medium text-ink-3">Fonctionne avec les outils que vous utilisez déjà</p>
-      <div className="ml-feat-marquee-mask">
-        <ul className="ml-feat-marquee-track">
-          {loop.map((n, i) => (
-            <li key={`${n}-${i}`} className="shrink-0 rounded-full border border-line bg-surface px-3.5 py-1.5 text-[12px] font-medium text-ink-2" aria-hidden={i >= items.length}>{n}</li>
-          ))}
-        </ul>
-      </div>
     </div>
   );
 }

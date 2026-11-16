@@ -115,8 +115,9 @@ export const TRUST_ITEMS: { label: string; href?: string }[] = [
 ];
 
 export const TOOL_ITEMS = [
-  'HTML', 'WordPress', 'Webflow', 'Next.js', 'React', 'Shopify',
-  'Stripe', 'Lemon Squeezy', 'Polar', 'Dodo Payments',
+  'HTML', 'WordPress', 'Webflow', 'Next.js', 'React', 'Vue', 'Shopify',
+  'Stripe', 'Lemon Squeezy', 'Polar', 'Dodo Payments', 'Paddle',
+  'GitHub', 'Cursor', 'Claude', 'ChatGPT',
 ];
 
 export function TrustStrip() {

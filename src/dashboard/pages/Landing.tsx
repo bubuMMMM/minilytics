@@ -10,7 +10,7 @@ import { LandingLiveGlobe } from './LandingGlobe';
 import { LandingBeams } from './LandingBeams';
 import { LandingCompare } from './LandingCompare';
 import { LandingHero } from './LandingHero';
-import { SectionHead, ShimmerLink, useActiveSection, useReveal } from './LandingUi';
+import { SectionHead, ShimmerLink, ToolsMarquee, useActiveSection, useReveal } from './LandingUi';
 
 type IconName = Parameters<typeof UiIcon>[0]['name'];
 const USE_CASES: { icon: IconName; title: string; text: string }[] = [
@@ -127,7 +127,7 @@ export function Landing() {
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
             <Link href="/login" className="btn-ghost !text-[14px]">Se connecter</Link>
-            <ShimmerLink href="/signup" className="hidden !min-h-[36px] !px-3.5 !text-[13px] sm:inline-flex">Commencer</ShimmerLink>
+            <ShimmerLink href="/signup" className="hidden !min-h-[36px] !px-3 sm:inline-flex !text-[13px]">Réserver mon accès</ShimmerLink>
             <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink-2 hover:bg-well lg:hidden" aria-expanded={menu} aria-controls="landing-menu" aria-label={menu ? 'Fermer le menu' : 'Ouvrir le menu'} onClick={() => setMenu((m) => !m)}>
               <UiIcon name={menu ? 'x' : 'menu'} size={18} />
             </button>
@@ -145,7 +145,10 @@ export function Landing() {
 
       <main id="contenu">
         <LandingHero />
-        <div className="h-16 sm:h-24" aria-hidden />
+        <div className="ml-tools-row mx-auto max-w-[1200px] px-4 pb-12 sm:px-6 sm:pb-16">
+          <p className="mb-3 text-center text-[12px] font-medium uppercase tracking-wide text-ink-4">Fonctionne avec</p>
+          <ToolsMarquee />
+        </div>
 
         <Showcase />
 
@@ -175,7 +178,7 @@ export function Landing() {
             <div>
               <SectionHead id="i-title" eyebrow="Installation" title="Une balise. Deux minutes." text="Collez le script dans le <head> de votre site : HTML, WordPress, Webflow ou Next.js. Les pages vues, la navigation des applis monopage, le scroll, le temps actif et les clics sortants sont mesurés automatiquement." />
               <ul className="mt-6 space-y-2.5 text-[14px] text-ink-2">
-                {['Script d’environ 7 Ko compressé', 'Cookies first-party uniquement, aucune donnée revendue', 'Objectifs avec un simple attribut data-ml-goal'].map((x) => (
+                {['Objectifs avec un simple attribut data-ml-goal', 'Applis monopage (React, Next, Vue) mesurées automatiquement', 'Robots filtrés côté navigateur et serveur'].map((x) => (
                   <li key={x} className="flex items-center gap-2.5"><span className="text-success" aria-hidden><UiIcon name="check" size={16} /></span>{x}</li>
                 ))}
               </ul>
@@ -204,8 +207,8 @@ export function Landing() {
                   <span className="text-[14px] text-ink-3">/ mois</span>
                 </div>
                 {p.highlight
-                  ? <ShimmerLink href={`/signup?plan=${p.name.toLowerCase()}`} className="mt-6 w-full !h-11">Choisir {p.name}</ShimmerLink>
-                  : <Link href={`/signup?plan=${p.name.toLowerCase()}`} className="btn mt-6 w-full !h-11">Choisir {p.name}</Link>}
+                  ? <ShimmerLink href={`/signup?plan=${p.name.toLowerCase()}`} className="mt-6 w-full !h-11">Réserver mon accès</ShimmerLink>
+                  : <Link href={`/signup?plan=${p.name.toLowerCase()}`} className="btn mt-6 w-full !h-11">Réserver mon accès</Link>}
                 {p.note && <p className="mt-2.5 text-center text-[12px] text-ink-3">{p.note}</p>}
                 <ul className="mt-6 flex-1 space-y-2.5 border-t border-line pt-6 text-[14px] text-ink-2">
                   {p.features.map((f) => (

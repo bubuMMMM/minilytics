@@ -5,6 +5,7 @@ import { UiIcon, type UiIconName } from '../components/UiIcon';
 import { channelName } from '../lib/format';
 import { DOT_H, DOT_W, cellOf, centroidOf, landDots } from '../lib/dotmap';
 import type { GlobeData, GlobeHandle } from './hero/globe';
+import { TrustStrip } from './LandingUi';
 
 type Group = { label: string; value: number; short?: string };
 interface Demo {
@@ -291,7 +292,6 @@ function BotsRow({ bots }: { bots: Bots | null }) {
 
 /** Channel names that fit a phone-width card. */
 const SHORT_CHANNEL: Record<string, string> = { 'Organic Search': 'Recherche', 'Organic Social': 'Réseaux', AI: 'IA', Referral: 'Référents', Paid: 'Pub' };
-const PROMISES: [UiIconName, string][] = [['zap', 'Données en temps réel'], ['target', 'Essentiel, sans bruit'], ['shield', 'Compatible RGPD']];
 const EMPTY: GlobeData = { period: {}, live: [], recent: [] };
 
 export function LandingHero() {
@@ -363,11 +363,9 @@ export function LandingHero() {
           {!failed && <p className="mt-1 text-[12px] text-ink-4">Chiffres réels et agrégés d’un site en production.</p>}
         </div>
 
-        <ul className="ml-hx-promises mt-8 sm:mt-10">
-          {PROMISES.map(([icon, label]) => (
-            <li key={label}><UiIcon name={icon} size={16} className="shrink-0 text-accent" />{label}</li>
-          ))}
-        </ul>
+        <div className="mt-8 sm:mt-10">
+          <TrustStrip />
+        </div>
       </div>
     </section>
   );

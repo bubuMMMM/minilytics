@@ -809,8 +809,17 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
 .ml-nav-link:hover { color: rgb(var(--ink)); }
 .ml-nav-link.is-active { color: rgb(var(--ink)); font-weight: 500; }
 
-.ml-cmp thead { background: rgb(var(--well) / .6); }
-.ml-cmp th, .ml-cmp td { }
+.ml-cmp-wrap { -webkit-overflow-scrolling: touch; }
+.ml-cmp { border-collapse: separate; border-spacing: 0; }
+.ml-cmp thead th { background: rgb(var(--well) / .92); }
+.ml-cmp-sticky {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: rgb(var(--canvas));
+  box-shadow: 1px 0 0 rgb(var(--line));
+}
+.ml-cmp thead .ml-cmp-sticky { z-index: 2; background: rgb(var(--well) / .96); }
 .ml-cmp-ml { background: rgb(var(--accent) / .04); }
 .dark .ml-cmp-ml { background: rgb(var(--accent) / .07); }
 
