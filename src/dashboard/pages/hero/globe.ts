@@ -4,7 +4,7 @@
  * Loaded lazily from LandingHero so three.js never blocks the first paint.
  */
 import {
-  AdditiveBlending, BackSide, BufferAttribute, BufferGeometry, Group, LineBasicMaterial, LineSegments, Mesh,
+  BackSide, BufferAttribute, BufferGeometry, Color, Group, LineBasicMaterial, LineSegments, Mesh,
   MeshBasicMaterial, PerspectiveCamera, Points, RingGeometry, Scene, ShaderMaterial, SphereGeometry,
   TorusGeometry, Vector3, WebGLRenderer,
 } from 'three';
@@ -19,8 +19,23 @@ export interface GlobeData {
   recent: string[];
 }
 
+/** Site design tokens as `r g b` triplets (0–255), read from the CSS variables of the current theme. */
+export interface GlobePalette {
+  dark: boolean;
+  accent: [number, number, number];
+  canvas: [number, number, number];
+  surface: [number, number, number];
+  well: [number, number, number];
+  line: [number, number, number];
+  lineStrong: [number, number, number];
+  ink4: [number, number, number];
+}
+
+const rgb = (c: [number, number, number]) => new Color(c[0] / 255, c[1] / 255, c[2] / 255);
+
 export interface GlobeHandle {
   setData(data: GlobeData): void;
+  setPalette(palette: GlobePalette): void;
   dispose(): void;
 }
 
@@ -62,23 +77,24 @@ const DOT_VERT = /* glsl */ `
     vFacing = dot(n, normalize(-mv.xyz));
     float twinkle = aLive > 0.5 ? 0.78 + 0.22 * sin(uTime * 3.2 + aSeed * 6.2831) : 1.0;
     vLevel = aLevel * twinkle;
-    float size = mix(0.0125, 0.019, aLevel) + aLive * 0.004;
+    float size = mix(0.0125, 0.0195, aLevel) + aLive * 0.004;
     gl_PointSize = max(1.0, size * uPx / -mv.z);
     gl_Position = projectionMatrix * mv;
   }`;
 const DOT_FRAG = /* glsl */ `
   precision mediump float;
+  uniform vec3 uDim;
+  uniform vec3 uLit;
+  uniform float uDimAlpha;
   varying float vLevel;
   varying float vFacing;
   void main() {
     if (vFacing < 0.02) discard;
     float d = length(gl_PointCoord - 0.5);
     float a = smoothstep(0.5, 0.2, d);
-    vec3 dim = vec3(0.09, 0.50, 0.35);
-    vec3 lit = vec3(0.42, 1.0, 0.74);
-    vec3 col = mix(dim, lit, vLevel) * (0.8 + 0.9 * vLevel);
+    vec3 col = mix(uDim, uLit, smoothstep(0.0, 0.35, vLevel));
     float limb = smoothstep(0.02, 0.4, vFacing);
-    gl_FragColor = vec4(col, a * limb * (0.62 + 0.38 * vLevel));
+    gl_FragColor = vec4(col, a * limb * mix(uDimAlpha, 1.0, smoothstep(0.0, 0.3, vLevel)));
   }`;
 
 const CORE_VERT = /* glsl */ `
@@ -92,26 +108,32 @@ const CORE_VERT = /* glsl */ `
   }`;
 const CORE_FRAG = /* glsl */ `
   precision mediump float;
+  uniform vec3 uLight;
+  uniform vec3 uShade;
+  uniform vec3 uRim;
+  uniform float uRimStrength;
   varying vec3 vN;
   varying vec3 vV;
   void main() {
-    float f = pow(1.0 - max(dot(vN, vV), 0.0), 2.6);
     float light = max(dot(vN, normalize(vec3(-0.55, 0.6, 0.6))), 0.0);
-    vec3 base = vec3(0.004, 0.022, 0.017) + vec3(0.0, 0.05, 0.036) * light;
-    gl_FragColor = vec4(base + vec3(0.10, 0.78, 0.50) * f * 0.75, 1.0);
+    vec3 base = mix(uShade, uLight, light);
+    float f = pow(1.0 - max(dot(vN, vV), 0.0), 2.4);
+    gl_FragColor = vec4(mix(base, uRim, f * uRimStrength), 1.0);
   }`;
 const GLOW_FRAG = /* glsl */ `
   precision mediump float;
+  uniform vec3 uGlow;
+  uniform float uGlowStrength;
   varying vec3 vN;
   varying vec3 vV;
   void main() {
     // Back faces of a slightly larger sphere: strongest against the globe, fading to nothing at the outer edge.
-    float i = pow(clamp(-dot(vN, vec3(0.0, 0.0, 1.0)) / 0.55, 0.0, 1.0), 1.7) * 0.85;
-    gl_FragColor = vec4(vec3(0.16, 0.95, 0.60) * i, i);
+    float i = pow(clamp(-dot(vN, vec3(0.0, 0.0, 1.0)) / 0.55, 0.0, 1.0), 1.7) * uGlowStrength;
+    gl_FragColor = vec4(uGlow, i);
   }`;
 
 /** Returns null when WebGL is unavailable; the caller keeps its static placeholder. */
-export function createGlobe(host: HTMLElement, opts: { reducedMotion: boolean; centerLon?: number }): GlobeHandle | null {
+export function createGlobe(host: HTMLElement, opts: { reducedMotion: boolean; palette: GlobePalette; centerLon?: number }): GlobeHandle | null {
   let renderer: WebGLRenderer;
   try {
     renderer = new WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
@@ -140,13 +162,16 @@ export function createGlobe(host: HTMLElement, opts: { reducedMotion: boolean; c
 
   // Solid core: hides the far side and carries the rim light.
   const coreGeo = keep(new SphereGeometry(1, 64, 48));
-  spin.add(new Mesh(coreGeo, keep(new ShaderMaterial({ vertexShader: CORE_VERT, fragmentShader: CORE_FRAG }))));
+  const coreU = { uLight: { value: new Color() }, uShade: { value: new Color() }, uRim: { value: new Color() }, uRimStrength: { value: 0.4 } };
+  spin.add(new Mesh(coreGeo, keep(new ShaderMaterial({ vertexShader: CORE_VERT, fragmentShader: CORE_FRAG, uniforms: coreU }))));
   // Atmosphere halo.
+  const glowU = { uGlow: { value: new Color() }, uGlowStrength: { value: 0.4 } };
   const glow = new Mesh(keep(new SphereGeometry(1.2, 48, 32)), keep(new ShaderMaterial({
-    vertexShader: CORE_VERT, fragmentShader: GLOW_FRAG, side: BackSide, blending: AdditiveBlending, transparent: true, depthWrite: false,
+    vertexShader: CORE_VERT, fragmentShader: GLOW_FRAG, side: BackSide, transparent: true, depthWrite: false, uniforms: glowU,
   })));
   scene.add(glow);
-  spin.add(new LineSegments(keep(graticule()), keep(new LineBasicMaterial({ color: 0x35e89e, transparent: true, opacity: 0.15 }))));
+  const gridMat = keep(new LineBasicMaterial({ transparent: true, opacity: 0.8 }));
+  spin.add(new LineSegments(keep(graticule()), gridMat));
 
   // Land dots: each 2.5° cell becomes four dots; rows thin out toward the poles to keep an even density.
   const cells = landDots();
@@ -172,16 +197,18 @@ export function createGlobe(host: HTMLElement, opts: { reducedMotion: boolean; c
   dotGeo.setAttribute('aLevel', level);
   dotGeo.setAttribute('aLive', live);
   const dotMat = keep(new ShaderMaterial({
-    vertexShader: DOT_VERT, fragmentShader: DOT_FRAG, transparent: true, depthWrite: false, blending: AdditiveBlending,
-    uniforms: { uPx: { value: 1000 }, uTime: { value: 0 } },
+    vertexShader: DOT_VERT, fragmentShader: DOT_FRAG, transparent: true, depthWrite: false,
+    uniforms: { uPx: { value: 1000 }, uTime: { value: 0 }, uDim: { value: new Color() }, uLit: { value: new Color() }, uDimAlpha: { value: 0.9 } },
   }));
   spin.add(new Points(dotGeo, dotMat));
 
   // Orbit ring with a small satellite, as in the brand illustration.
   const orbit = new Group();
   orbit.rotation.set(72 * DEG, 0, -17 * DEG);
-  orbit.add(new Mesh(keep(new TorusGeometry(1.43, 0.0045, 6, 220)), keep(new MeshBasicMaterial({ color: 0x35e89e, transparent: true, opacity: 0.6, blending: AdditiveBlending, depthWrite: false }))));
-  const sat = new Mesh(keep(new SphereGeometry(0.02, 12, 12)), keep(new MeshBasicMaterial({ color: 0xbfffe3 })));
+  const orbitMat = keep(new MeshBasicMaterial({ transparent: true, opacity: 0.55, depthWrite: false }));
+  orbit.add(new Mesh(keep(new TorusGeometry(1.43, 0.0045, 6, 220)), orbitMat));
+  const satMat = keep(new MeshBasicMaterial());
+  const sat = new Mesh(keep(new SphereGeometry(0.02, 12, 12)), satMat);
   orbit.add(sat);
   scene.add(orbit);
 
@@ -209,7 +236,7 @@ export function createGlobe(host: HTMLElement, opts: { reducedMotion: boolean; c
     markerMats = [];
     pulses = [];
     const mat = (opacity: number) => {
-      const m = new MeshBasicMaterial({ color: 0x8dffc9, transparent: true, opacity, blending: AdditiveBlending, depthWrite: false });
+      const m = new MeshBasicMaterial({ color: accent, transparent: true, opacity, depthWrite: false });
       markerMats.push(m);
       return m;
     };
@@ -224,6 +251,27 @@ export function createGlobe(host: HTMLElement, opts: { reducedMotion: boolean; c
   }
 
   let dirty = true;
+  const accent = new Color();
+  function setPalette(p: GlobePalette) {
+    const mix = (a: [number, number, number], b: [number, number, number], k: number) => rgb(a).lerp(rgb(b), k);
+    accent.copy(rgb(p.accent));
+    coreU.uLight.value.copy(p.dark ? rgb(p.well) : rgb(p.surface));
+    coreU.uShade.value.copy(p.dark ? rgb(p.canvas) : mix(p.well, p.line, 0.6));
+    coreU.uRim.value.copy(accent);
+    coreU.uRimStrength.value = p.dark ? 0.5 : 0.28;
+    glowU.uGlow.value.copy(accent);
+    glowU.uGlowStrength.value = p.dark ? 0.5 : 0.2;
+    gridMat.color.copy(rgb(p.line));
+    gridMat.opacity = p.dark ? 0.75 : 1;
+    const u = dotMat.uniforms;
+    (u.uDim.value as Color).copy(mix(p.lineStrong, p.ink4, p.dark ? 0.3 : 0.4));
+    (u.uLit.value as Color).copy(accent);
+    u.uDimAlpha.value = p.dark ? 0.8 : 0.9;
+    orbitMat.color.copy(accent);
+    satMat.color.copy(accent);
+    for (const m of markerMats) m.color.copy(accent);
+    dirty = true;
+  }
   function setData(data: GlobeData) {
     const max = Math.max(1, ...Object.values(data.period));
     const liveSet = new Set(data.live);
@@ -258,6 +306,7 @@ export function createGlobe(host: HTMLElement, opts: { reducedMotion: boolean; c
   const ro = new ResizeObserver(resize);
   ro.observe(host);
   resize();
+  setPalette(opts.palette);
 
   // Drag to rotate (horizontal drags only on touch, so the page still scrolls), with a little inertia.
   let dragging = false, lastX = 0, lastY = 0, velocity = 0;
@@ -334,6 +383,7 @@ export function createGlobe(host: HTMLElement, opts: { reducedMotion: boolean; c
 
   return {
     setData,
+    setPalette,
     dispose() {
       cancelAnimationFrame(raf);
       io.disconnect();

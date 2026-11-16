@@ -4,8 +4,8 @@ import { NumberTicker } from '../components/NumberTicker';
 import { UiIcon, type UiIconName } from '../components/UiIcon';
 import { channelName } from '../lib/format';
 import { DOT_H, DOT_W, cellOf, centroidOf, landDots } from '../lib/dotmap';
-import type { GlobeData, GlobeHandle } from './hero/globe';
-import { TrustStrip } from './LandingUi';
+import type { GlobeData, GlobeHandle, GlobePalette } from './hero/globe';
+import { ShimmerLink, TrustStrip } from './LandingUi';
 
 type Group = { label: string; value: number; short?: string };
 interface Demo {
@@ -86,16 +86,54 @@ function useHeroData() {
   return { demo, live, world, bots, failed, siteId };
 }
 
+type Rgb = [number, number, number];
+const FALLBACK: GlobePalette = {
+  dark: false, accent: [37, 99, 235], canvas: [255, 255, 255], surface: [255, 255, 255], well: [250, 250, 250],
+  line: [234, 234, 236], lineStrong: [212, 212, 216], ink4: [161, 161, 170],
+};
+
+function readPalette(): GlobePalette {
+  if (typeof document === 'undefined') return FALLBACK;
+  const cs = getComputedStyle(document.documentElement);
+  const v = (name: string, fb: Rgb): Rgb => {
+    const parts = cs.getPropertyValue(`--${name}`).trim().split(/\s+/).map(Number);
+    return parts.length === 3 && parts.every((n) => Number.isFinite(n)) ? (parts as Rgb) : fb;
+  };
+  return {
+    dark: document.documentElement.classList.contains('dark'),
+    accent: v('accent', FALLBACK.accent), canvas: v('canvas', FALLBACK.canvas), surface: v('surface', FALLBACK.surface),
+    well: v('well', FALLBACK.well), line: v('line', FALLBACK.line), lineStrong: v('line-strong', FALLBACK.lineStrong), ink4: v('ink-4', FALLBACK.ink4),
+  };
+}
+
+/** The site's colour tokens for canvas / WebGL drawing, updated when the light / dark theme changes. */
+function useSitePalette(): GlobePalette {
+  const [palette, setPalette] = useState<GlobePalette>(FALLBACK);
+  useEffect(() => {
+    setPalette(readPalette());
+    const mo = new MutationObserver(() => setPalette(readPalette()));
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => mo.disconnect();
+  }, []);
+  return palette;
+}
+const css = (c: Rgb, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
 /** The 3D globe. three.js loads after the first paint; until then (and without WebGL) a CSS sphere holds the place. */
-function Globe({ data, online, failed }: { data: GlobeData; online: number | null; failed: boolean }) {
+function Globe({ data, online, failed, palette }: { data: GlobeData; online: number | null; failed: boolean; palette: GlobePalette }) {
   const host = useRef<HTMLDivElement>(null);
   const handle = useRef<GlobeHandle | null>(null);
   const latest = useRef(data);
+  const latestPalette = useRef(palette);
   const [ready, setReady] = useState(false);
   useEffect(() => {
     latest.current = data;
     handle.current?.setData(data);
   }, [data]);
+  useEffect(() => {
+    latestPalette.current = palette;
+    handle.current?.setPalette(palette);
+  }, [palette]);
   useEffect(() => {
     const el = host.current;
     if (!el) return;
@@ -104,7 +142,7 @@ function Globe({ data, online, failed }: { data: GlobeData; online: number | nul
       import('./hero/globe')
         .then(({ createGlobe }) => {
           if (dead) return;
-          const h = createGlobe(el, { reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches });
+          const h = createGlobe(el, { reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches, palette: latestPalette.current });
           if (!h) return;
           handle.current = h;
           h.setData(latest.current);
@@ -138,7 +176,7 @@ function Globe({ data, online, failed }: { data: GlobeData; online: number | nul
 }
 
 /** Flat dot map on a canvas (no SVG markup in the prerendered HTML): same grid and data as the globe. */
-function DotMap({ data }: { data: GlobeData }) {
+function DotMap({ data, palette }: { data: GlobeData; palette: GlobePalette }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const cv = ref.current;
@@ -159,7 +197,7 @@ function DotMap({ data }: { data: GlobeData }) {
       const dot = (x: number, y: number, r: number, color: string, glow = 0) => {
         g.beginPath();
         g.shadowBlur = glow;
-        g.shadowColor = 'rgb(52 232 158)';
+        g.shadowColor = css(palette.accent, 0.6);
         g.fillStyle = color;
         g.arc((x + 0.5) * cell, (y + 0.5) * cell, r, 0, Math.PI * 2);
         g.fill();
@@ -168,23 +206,23 @@ function DotMap({ data }: { data: GlobeData }) {
         const v = data.period[d.cc] ?? 0;
         const on = liveSet.has(d.cc) || recent.has(d.cc);
         if (v || on) seen.add(d.cc);
-        if (on) dot(d.x, d.y, cell * 0.4, 'rgb(150 255 208)', cell * 1.2);
-        else if (v) dot(d.x, d.y, cell * 0.36, `rgba(52,232,158,${(0.4 + 0.5 * Math.sqrt(v / max)).toFixed(2)})`);
-        else dot(d.x, d.y, cell * 0.3, 'rgba(52,232,158,0.15)');
+        if (on) dot(d.x, d.y, cell * 0.42, css(palette.accent), cell * 1.2);
+        else if (v) dot(d.x, d.y, cell * 0.36, css(palette.accent, 0.35 + 0.6 * Math.sqrt(v / max)));
+        else dot(d.x, d.y, cell * 0.3, css(palette.lineStrong, palette.dark ? 0.9 : 1));
       }
       // Small countries without a grid cell still show at their centroid.
       for (const cc of new Set([...Object.keys(data.period), ...data.live, ...data.recent])) {
         if (seen.has(cc)) continue;
         const ll = centroidOf(cc);
         const c = ll && cellOf(ll[0], ll[1]);
-        if (c) dot(c.x, c.y, cell * 0.5, 'rgb(150 255 208)', cell * 1.4);
+        if (c) dot(c.x, c.y, cell * 0.5, css(palette.accent), cell * 1.4);
       }
     };
     draw();
     const ro = new ResizeObserver(draw);
     ro.observe(cv);
     return () => ro.disconnect();
-  }, [data]);
+  }, [data, palette]);
   return <canvas ref={ref} className="block w-full" style={{ aspectRatio: `${DOT_W} / ${DOT_H}` }} aria-hidden />;
 }
 
@@ -206,12 +244,12 @@ function Sparkline({ values }: { values: number[] }) {
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full overflow-visible">
         <defs>
           <linearGradient id="ml-hx-area" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="rgb(52 232 158)" stopOpacity=".28" />
-            <stop offset="1" stopColor="rgb(52 232 158)" stopOpacity="0" />
+            <stop offset="0" stopColor="rgb(var(--accent))" stopOpacity=".22" />
+            <stop offset="1" stopColor="rgb(var(--accent))" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d={`${d} L${W},${H} L0,${H} Z`} fill="url(#ml-hx-area)" />
-        <path d={d} fill="none" stroke="rgb(52 232 158)" strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        <path d={d} fill="none" stroke="rgb(var(--accent))" strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
       </svg>
       <span className="ml-hx-spark-dot" style={{ top: `${(lastY / H) * 100}%` }} />
     </div>
@@ -300,6 +338,7 @@ const EMPTY: GlobeData = { period: {}, live: [], recent: [] };
 
 export function LandingHero() {
   const { demo, live, world, bots, failed, siteId } = useHeroData();
+  const palette = useSitePalette();
   const globe = useMemo<GlobeData>(() => {
     if (!world && !live) return EMPTY;
     const period: Record<string, number> = {};
@@ -311,7 +350,7 @@ export function LandingHero() {
   const sourcesTotal = demo ? demo.sources.reduce((n, s) => n + s.value, 0) : 0;
   const countries = world ? world.countries.length : null;
   return (
-    <section id="hero" className="ml-hx relative overflow-hidden" aria-labelledby="hero-title">
+    <section id="hero" className="relative overflow-hidden" aria-labelledby="hero-title">
       <div className="ml-hx-aurora" aria-hidden />
       <div className="relative mx-auto max-w-[1120px] px-4 pb-10 pt-8 sm:px-6 sm:pb-14 sm:pt-14 lg:pt-16">
         <div className="mx-auto max-w-[760px] text-center">
@@ -326,7 +365,7 @@ export function LandingHero() {
           </p>
         </div>
 
-        <Globe data={globe} online={online} failed={failed} />
+        <Globe data={globe} online={online} failed={failed} palette={palette} />
 
         {failed ? (
           <p className="ml-hx-card relative mx-auto max-w-[520px] text-center text-[14px] text-ink-3">
@@ -348,7 +387,7 @@ export function LandingHero() {
               <Rows rows={demo?.sources.map((s) => ({ label: channelName(s.label), short: SHORT_CHANNEL[s.label], value: s.value }))} total={sourcesTotal} />
             </Card>
             <Card icon="globe" title="Visiteurs dans le monde" short="Dans le monde" className="lg:order-2">
-              <div className="mt-3"><DotMap data={globe} /></div>
+              <div className="mt-3"><DotMap data={globe} palette={palette} /></div>
               <p className="mt-auto pt-2 text-[12px] text-ink-3 sm:text-[13px]">
                 {countries === null ? <span className="ml-hx-skel h-3.5 w-24" /> : <><span className="tnum font-medium text-ink-2">{countries}</span> pays sur 30 jours</>}
               </p>
@@ -361,7 +400,7 @@ export function LandingHero() {
         )}
 
         <div className="mt-8 flex flex-col items-center text-center sm:mt-10">
-          <Link href="/signup" className="ml-hx-cta">Réserver mon accès <UiIcon name="arrow-right" size={20} /></Link>
+          <ShimmerLink href="/signup" className="ml-hx-cta">Réserver mon accès <UiIcon name="arrow-right" size={18} /></ShimmerLink>
           <Link href={`/demo${siteQuery}`} className="mt-4 inline-flex min-h-[44px] items-center text-[16px] font-medium text-ink underline decoration-ink-4 underline-offset-[5px] transition-colors hover:decoration-accent sm:text-[17px]">Voir la démo en direct</Link>
           <p className="text-[13px] text-ink-3 sm:text-[14px]">Liste d’attente gratuite · Aucune carte requise</p>
           {!failed && <p className="mt-1 text-[12px] text-ink-4">Chiffres réels et agrégés d’un site en production.</p>}

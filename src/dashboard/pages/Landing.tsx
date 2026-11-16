@@ -97,23 +97,10 @@ export function Landing() {
   useEffect(() => {
     document.title = 'Minilytics — Des analytics simples et précis pour votre site';
   }, []);
-  // The hero is always dark: the sticky header wears the same palette until the hero has scrolled away.
-  const [overHero, setOverHero] = useState(true);
-  useEffect(() => {
-    const hero = document.getElementById('hero');
-    if (!hero) return;
-    let raf = 0;
-    const check = () => { raf = 0; setOverHero(hero.getBoundingClientRect().bottom > 56); };
-    const onScroll = () => { raf ||= requestAnimationFrame(check); };
-    check();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); };
-  }, []);
   return (
     <div className="min-h-screen bg-canvas text-ink">
       <a href="#contenu" className="ml-skip">Aller au contenu</a>
-      <header className={`sticky top-0 z-50 border-b border-line bg-canvas/80 backdrop-blur-xl transition-colors duration-200 ${overHero ? 'ml-hx ml-hx-header' : ''}`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <header className="sticky top-0 z-50 border-b border-line bg-canvas/80 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex items-center gap-8">
             <Link href="/" aria-label="Minilytics, accueil" className="flex min-h-[44px] items-center rounded-md"><Logo /></Link>
