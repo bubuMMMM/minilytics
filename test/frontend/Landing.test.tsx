@@ -30,8 +30,8 @@ import { eventsPerMonthLabel } from '../../src/dashboard/lib/planLabels';
 describe('Landing', () => {
   it('renders the hero heading and primary actions', () => {
     render(<Landing />);
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Vos visiteurs, enfin/i);
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/lisibles/i);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Votre site vit/i);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/Regardez/i);
     expect(screen.getAllByText('Réserver mon accès').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Voir la démo/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(eventsPerMonthLabel(PLANS.starter.eventsPerMonth)).length).toBeGreaterThan(0);
