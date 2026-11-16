@@ -877,7 +877,7 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
     radial-gradient(60% 30% at 50% 40%, rgb(var(--accent) / .12), transparent 70%);
 }
 .ml-hx-pill {
-  display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 18px;
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px 0 12px;
   border: 1px solid rgb(var(--line)); border-radius: 999px;
   background: rgb(var(--surface));
   color: rgb(var(--ink-2)); font-size: 14px; font-weight: 500;
@@ -885,21 +885,30 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
   transition: background-color .15s ease, border-color .15s ease;
 }
 .ml-hx-pill:hover { border-color: rgb(var(--line-strong)); color: rgb(var(--ink)); }
-.ml-hx-live-dot {
-  position: relative; flex: none; width: 9px; height: 9px; border-radius: 999px;
-  background: rgb(var(--success));
+.ml-hx-pill .tnum { font-variant-numeric: tabular-nums; }
+/* Live indicator: 6 px dot, a faint static ring, and a slow halo that breathes (no hard ping). */
+.ml-hx-live { position: relative; flex: none; display: inline-flex; width: 14px; height: 14px; align-items: center; justify-content: center; }
+.ml-hx-live::before {
+  content: ""; position: absolute; inset: 0; border-radius: 999px;
+  background: radial-gradient(circle, rgb(var(--success) / .28) 0%, rgb(var(--success) / 0) 70%);
+  animation: ml-hx-breathe 2.8s ease-in-out infinite;
 }
-.ml-hx-live-dot::after {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; background: rgb(var(--success));
-  animation: ping2 1.8s cubic-bezier(0, 0, .2, 1) infinite;
+.ml-hx-live > span {
+  position: relative; width: 6px; height: 6px; border-radius: 999px;
+  background: rgb(var(--success));
+  box-shadow: 0 0 0 2px rgb(var(--success) / .16);
+}
+@keyframes ml-hx-breathe {
+  0%, 100% { opacity: .35; transform: scale(.7); }
+  50% { opacity: 1; transform: scale(1.15); }
 }
 
 /* Globe stage: a square whose empty corners tuck under the title and behind the cards. */
 .ml-hx-globe {
-  position: relative; width: min(100%, 640px); aspect-ratio: 1; margin: -9% auto -15%;
+  position: relative; width: min(100%, 640px); aspect-ratio: 1; margin: -9% auto -9%;
   -webkit-user-select: none; user-select: none;
 }
-@media (min-width: 640px) { .ml-hx-globe { margin: -56px auto -96px; } }
+@media (min-width: 640px) { .ml-hx-globe { margin: -56px auto -60px; } }
 .ml-hx-sphere {
   position: absolute; inset: 17.8%; border-radius: 999px; pointer-events: none;
   background: radial-gradient(circle at 34% 30%, rgb(var(--surface)), rgb(var(--well)) 62%);
@@ -908,17 +917,6 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
   transition: opacity .6s ease;
 }
 .ml-hx-sphere.is-hidden { opacity: 0; }
-.ml-hx-online {
-  position: absolute; left: 50%; bottom: 23%; transform: translateX(-50%);
-  display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; pointer-events: none;
-  padding: 9px 18px; border-radius: 999px;
-  border: 1px solid rgb(var(--line));
-  background: rgb(var(--surface) / .82); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  font-size: 15px; color: rgb(var(--ink));
-  box-shadow: 0 8px 24px -6px rgb(var(--shadow-color) / .14);
-}
-@media (min-width: 640px) { .ml-hx-online { font-size: 17px; padding: 10px 22px; } }
-
 .ml-hx-card {
   min-width: 0; padding: 14px; border-radius: 14px;
   border: 1px solid rgb(var(--line));
@@ -964,6 +962,7 @@ input.outline-none:focus-visible, textarea.outline-none:focus-visible { outline:
 .ml-hx-cta { width: 100%; max-width: 340px; min-height: 56px !important; border-radius: 14px !important; font-size: 17px !important; font-weight: 600; }
 .ml-hx-cta::after { border-radius: 12.5px; }
 @media (prefers-reduced-motion: reduce) {
-  .ml-hx-live-dot::after, .ml-hx-skel { animation: none; }
+  .ml-hx-live::before, .ml-hx-skel { animation: none; }
+  .ml-hx-live::before { opacity: .6; transform: none; }
   .ml-hx-sphere { transition: none; }
 }

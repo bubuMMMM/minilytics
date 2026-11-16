@@ -119,8 +119,13 @@ function useSitePalette(): GlobePalette {
 }
 const css = (c: Rgb, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 
+/** Live indicator: a small steady dot with a soft halo that slowly breathes. */
+function LiveDot() {
+  return <span className="ml-hx-live" aria-hidden><span /></span>;
+}
+
 /** The 3D globe. three.js loads after the first paint; until then (and without WebGL) a CSS sphere holds the place. */
-function Globe({ data, online, failed, palette }: { data: GlobeData; online: number | null; failed: boolean; palette: GlobePalette }) {
+function Globe({ data, online, palette }: { data: GlobeData; online: number | null; palette: GlobePalette }) {
   const host = useRef<HTMLDivElement>(null);
   const handle = useRef<GlobeHandle | null>(null);
   const latest = useRef(data);
@@ -163,14 +168,6 @@ function Globe({ data, online, failed, palette }: { data: GlobeData; online: num
     <div className="ml-hx-globe" role="img" aria-label={label}>
       <div className={`ml-hx-sphere ${ready ? 'is-hidden' : ''}`} aria-hidden />
       <div ref={host} className="absolute inset-0" />
-      {!(failed && online === null) && (
-        <div className="ml-hx-online" aria-hidden>
-          <span className="ml-hx-live-dot" />
-          {online === null
-            ? <span className="ml-hx-skel h-4 w-32" />
-            : <span><span className="tnum font-semibold">{nf(online)}</span> {online > 1 ? 'visiteurs en ligne' : 'visiteur en ligne'}</span>}
-        </div>
-      )}
     </div>
   );
 }
@@ -354,8 +351,12 @@ export function LandingHero() {
       <div className="ml-hx-aurora" aria-hidden />
       <div className="relative mx-auto max-w-[1120px] px-4 pb-10 pt-8 sm:px-6 sm:pb-14 sm:pt-14 lg:pt-16">
         <div className="mx-auto max-w-[760px] text-center">
-          <Link href={`/demo/map${siteQuery}`} className="ml-hx-pill">
-            <span className="ml-hx-live-dot" aria-hidden /> Le monde en direct
+          <Link href={`/demo/map${siteQuery}`} className="ml-hx-pill" aria-live="polite">
+            <LiveDot />
+            {online !== null
+              ? <span><span className="tnum font-semibold text-ink">{nf(online)}</span> {online > 1 ? 'visiteurs en ligne' : 'visiteur en ligne'}</span>
+              : failed ? <span>Démo en direct</span> : <><span className="sr-only">Chargement des visiteurs en ligne</span><span className="ml-hx-skel h-3.5 w-36" aria-hidden /></>}
+            <UiIcon name="arrow-right" size={13} className="text-ink-4" />
           </Link>
           <h1 id="hero-title" className="mt-5 text-[clamp(2.75rem,11.5vw,5.25rem)] font-bold leading-[0.98] tracking-[-0.05em] text-ink sm:mt-6">
             Votre site vit.<br />Regardez.
@@ -365,7 +366,7 @@ export function LandingHero() {
           </p>
         </div>
 
-        <Globe data={globe} online={online} failed={failed} palette={palette} />
+        <Globe data={globe} online={online} palette={palette} />
 
         {failed ? (
           <p className="ml-hx-card relative mx-auto max-w-[520px] text-center text-[14px] text-ink-3">
