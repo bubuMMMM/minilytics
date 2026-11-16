@@ -5,6 +5,10 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/js/script.hash.js",
+      "destination": "/js/script.js"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api"
     },

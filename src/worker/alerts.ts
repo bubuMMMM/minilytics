@@ -11,7 +11,7 @@ import { resolveRange, startOfDay, tzOffset } from './lib/time.js';
 import { currencyDecimals } from './payments.js';
 import { authenticate, canAccess } from './auth.js';
 
-export type NotificationKind = 'goal' | 'new_goal' | 'spike' | 'drop' | 'payment' | 'mention' | 'commit' | 'report';
+export type NotificationKind = 'goal' | 'new_goal' | 'spike' | 'drop' | 'payment' | 'mention' | 'commit' | 'report' | 'quota';
 export interface NotifyInput { kind: NotificationKind; title: string; body?: string | null; url?: string | null; dedupe?: string | null; ts?: number }
 
 const KIND_SETTING: Partial<Record<NotificationKind, keyof SiteSettings['alerts']>> = {

@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/surendrapandar/minilytics.git"
+    "url": "https://github.com/bubuMMMM/minilytics.git"
   },
   "type": "module",
   "scripts": {
@@ -56,5 +56,12 @@
     "vite": "^6.4.5",
     "vitest": "^4.1.12",
     "wrangler": "^4.152.0"
+  },
+  "overrides": {
+    "fflate": "$fflate"
+  },
+  "homepage": "https://github.com/bubuMMMM/minilytics",
+  "bugs": {
+    "url": "https://github.com/bubuMMMM/minilytics/issues"
   }
 }

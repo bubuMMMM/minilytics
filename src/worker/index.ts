@@ -6,9 +6,12 @@ import { publicDemoStats, listPublicSites, resolvePublicSite } from './demo.js';
 import { resolveRange, tzOffset } from './lib/time.js';
 import { liveGlobeStats } from './live-globe.js';
 import { liveMap, mapReport } from './map.js';
-import { forgetSite, type AppEnv, type Principal, type Site } from './env.js';
+import { forgetSite, getSite, type AppEnv, type Principal, type Site } from './env.js';
 import { deleteSiteStatements } from './site-data.js';
 import { purgeExpiredRateLimits } from './lib/rate-limit.js';
+import { mapBudget } from './lib/pool.js';
+import { purgeExpiredData } from './retention.js';
+import { maybeQuotaNotifications } from './quota.js';
 import { randomId } from './lib/crypto.js';
 import { PUBLIC_CACHE, csrfGuard } from './lib/security.js';
 import { handleDodoWebhook, handleGoalApi, handlePaymentApi, rematchPayments } from './payments.js';
@@ -162,8 +165,10 @@ app.get('/api/cron/x-sync', async (c) => {
   if (!token) return c.json({ skipped: 'X_BEARER_TOKEN missing' });
   const sites = (await c.env.DB.prepare('SELECT * FROM sites').all<Site>()).results;
   const out: Record<string, unknown> = {};
-  for (const s of sites) out[s.domain] = await syncX(c.env.DB, s, token);
-  return c.json(out);
+  const ran = await mapBudget(sites, 4, 45_000, async (s) => {
+    out[s.domain] = await syncX(c.env.DB, s, token);
+  });
+  return c.json({ ...out, remaining: ran.remaining });
 });
 
 app.post('/api/v1/payments', handlePaymentApi);
@@ -175,15 +180,20 @@ app.get('/api/cron/daily', async (c) => {
   const sites = (await c.env.DB.prepare('SELECT * FROM sites').all<Site>()).results;
   const origin = new URL(c.req.url).origin;
   const sources: Record<string, unknown> = {};
-  for (const s of sites) {
+  const ran = await mapBudget(sites, 4, 40_000, async (s) => {
     const st = readSettings(s);
     sources[s.domain] = {
       github: st.github.repo ? await syncGithub(c.env.DB, s, c.env).catch((e) => ({ ok: false, error: String(e) })) : null,
       reddit: st.reddit.keywords.length ? await syncReddit(c.env.DB, s, c.env).catch((e) => ({ ok: false, error: String(e) })) : null,
     };
-  }
-  const rateLimits = await purgeExpiredRateLimits(c.env.DB).catch(() => 0);
-  return c.json({ alerts: await runDailyAlerts(c.env, sites, Date.now(), origin), sources, rateLimits });
+  });
+  const now = Date.now();
+  const [rateLimits, retention, quota] = await Promise.all([
+    purgeExpiredRateLimits(c.env.DB).catch(() => 0),
+    purgeExpiredData(c.env.DB, now).catch((e) => ({ error: String(e) })),
+    maybeQuotaNotifications(c.env.DB, sites, now).catch((e) => ({ error: String(e) })),
+  ]);
+  return c.json({ alerts: await runDailyAlerts(c.env, sites, now, origin), sources, remaining: ran.remaining, rateLimits, retention, quota });
 });
 registerPlatform(app);
 
@@ -198,7 +208,7 @@ const loadSite = async (c: Context<AppEnv>, next: Next) => {
   const id = c.req.param('id') ?? '';
   // Members only see the sites they were given; others look like they don't exist.
   if (!canAccess(c.get('principal'), id)) return c.json({ error: 'site not found' }, 404);
-  const site = await c.env.DB.prepare('SELECT * FROM sites WHERE id = ?').bind(id).first<Site>();
+  const site = await getSite(c.env.DB, id);
   if (!site) return c.json({ error: 'site not found' }, 404);
   c.set('site', site);
   await next();
