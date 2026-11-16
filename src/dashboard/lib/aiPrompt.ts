@@ -47,7 +47,7 @@ Track at least: the main signup/get-started button(s), pricing-page plan buttons
 
 ## TypeScript
 If the project uses TypeScript, add a global declaration so calls type-check:
-  declare global { interface Window { minilytics?: ((cmd: 'goal' | 'identify' | 'pageview', a?: any, b?: any) => void) & { attribution?: () => { ml_visitor_id?: string; ml_session_id?: string } } } }
+  declare global { interface Window { minilytics?: ((cmd: 'goal' | 'identify' | 'pageview', a?: unknown, b?: unknown) => void) & { attribution?: () => { ml_visitor_id?: string; ml_session_id?: string } } } }
 Always call it with optional chaining (window.minilytics?.(...)) so pages never break if the script is blocked.
 
 ## Rules

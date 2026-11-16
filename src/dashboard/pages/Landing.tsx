@@ -6,6 +6,8 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { UiIcon } from '../components/UiIcon';
 import { NumberTicker } from '../components/NumberTicker';
 import { channelName } from '../lib/format';
+import { PLANS as PLAN_LIMITS } from '../../shared/plans';
+import { botsLabel, pricingCards, quotaFaq } from '../lib/planLabels';
 import { FeaturesBento } from './LandingFeatures';
 import { LandingLiveGlobe } from './LandingGlobe';
 import { LandingBeams } from './LandingBeams';
@@ -68,25 +70,12 @@ const USE_CASES: { icon: IconName; title: string; text: string }[] = [
   { icon: 'eye', title: 'Portfolios', text: 'Qui vous découvre, d’où, et quels projets sont regardés.' },
 ];
 
-/** Pricing lines are kept word for word; a short tag says when a line needs setup or is not available yet. */
+/** Pricing lines come from `src/shared/plans.ts` so the page stays in sync with server quotas. */
 const FEATURE_TAG: Record<string, string> = {
-  '100K requêtes de bots IA': 'Extrait serveur requis',
+  [botsLabel(PLAN_LIMITS.growth.botRequests)]: 'Extrait serveur requis',
   'Mentions sur les réseaux sociaux': 'Clé API X ou Reddit requise',
 };
-const PLANS: { name: string; price: string; features: string[]; note?: string; highlight?: boolean }[] = [
-  {
-    name: 'Starter',
-    price: '9',
-    features: ['10k événements par mois', '1 site', '1 membre d’équipe', '3 ans de conservation des données', '100K requêtes de bots IA', 'API, CLI & MCP', 'Mentions sur les réseaux sociaux', 'Attribution des liens 𝕏'],
-    note: 'Réservez votre place : 0,00 € aujourd’hui, aucune carte requise.',
-  },
-  {
-    name: 'Growth',
-    price: '19',
-    highlight: true,
-    features: ['10k événements par mois', '30 sites', '30 membres d’équipe', '5+ ans de conservation', '100K requêtes de bots IA', 'API, CLI & MCP', 'Mentions sur les réseaux sociaux', 'Attribution des liens 𝕏'],
-  },
-];
+const PLANS = pricingCards();
 
 const FAQ: { q: string; a: string }[] = [
   { q: 'Minilytics convient-il à mon site ?', a: 'Oui, quel que soit son type : blog, landing page, boutique, SaaS, portfolio ou site vitrine. Visiteurs, sources, campagnes, objectifs et temps réel fonctionnent partout. Les vues Vidéos et Sponsors sont des options : elles restent vides si vous ne vous en servez pas.' },
@@ -97,6 +86,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Comment savoir quel post 𝕏 m’amène des visiteurs ?', a: 'X ne transmet que « t.co » comme référent. Créez un lien traçable dans la vue Réseaux sociaux : chaque visite est attribuée à son post. Avec votre clé de l’API X, les posts qui citent votre domaine s’affichent aussi.' },
   { q: 'Puis-je m’exclure de mes propres statistiques ?', a: 'Oui : ouvrez votre site une fois avec ?ml_ignore=true dans l’adresse. Revenez avec ?ml_ignore=false pour annuler.' },
   { q: 'Dois-je payer pour commencer ?', a: 'Non. Les inscriptions ouvrent progressivement : réservez votre place sur la liste d’attente, sans carte bancaire. Vous recevrez un e-mail à l’ouverture, et la démo publique est accessible dès maintenant.' },
+  quotaFaq(),
 ];
 
 const fmtDur = (ms: number) => { const s = Math.round(ms / 1000); return s >= 60 ? `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')}` : `${s} s`; };

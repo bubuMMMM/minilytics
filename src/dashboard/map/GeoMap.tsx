@@ -102,7 +102,7 @@ export const GeoMap = forwardRef<GeoMapHandle, Props>(function GeoMap(props, ref
   }
   function flyTo(lon: number, lat: number, k: number, dur = 1000) {
     const from = { ...view.current };
-    let dl = wrap(lon - from.lon);
+    const dl = wrap(lon - from.lon);
     const to = clampView({ lon: from.lon + dl, lat, k });
     to.lon = from.lon + dl;
     anim.current = { from, to, start: performance.now(), dur: reduced ? 1 : dur };

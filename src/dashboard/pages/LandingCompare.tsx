@@ -1,4 +1,5 @@
 import { UiIcon } from '../components/UiIcon';
+import { comparePriceCell, compareQuotaCell, compareRetentionCell } from '../lib/planLabels';
 import { SectionHead, useReveal } from './LandingUi';
 
 type Cell = { ml: string; ga: string };
@@ -12,9 +13,10 @@ const ROWS: { label: string; cells: Cell }[] = [
   { label: 'Revenus', cells: { ml: 'Attribution depuis Stripe, Lemon Squeezy, Polar et Dodo Payments', ga: 'E-commerce à configurer dans GA4' } },
   { label: 'Robots d’IA', cells: { ml: 'Vue dédiée (GPTBot, ClaudeBot, Perplexity…)', ga: 'Pas de vue équivalente dédiée aux robots d’IA' } },
   { label: 'Carte en direct', cells: { ml: 'Globe, replay 30 min ou 24 h, flux des visites', ga: 'Temps réel, sans cette carte' } },
-  { label: 'Conservation', cells: { ml: '3 ans (Starter) à 5 ans et plus (Growth)', ga: '2 ou 14 mois par défaut' } },
+  { label: 'Événements', cells: { ml: compareQuotaCell(), ga: 'Volume élevé inclus dans l’offre gratuite, sous les limites de GA4' } },
+  { label: 'Conservation', cells: { ml: compareRetentionCell(), ga: '2 ou 14 mois par défaut' } },
   { label: 'Code source', cells: { ml: 'Ouvert sur GitHub', ga: 'Propriétaire' } },
-  { label: 'Prix', cells: { ml: '9 € ou 19 € par mois, en euros', ga: 'GA4 est gratuit avec un compte Google ; Analytics 360 est sur devis' } },
+  { label: 'Prix', cells: { ml: comparePriceCell(), ga: 'GA4 est gratuit avec un compte Google ; Analytics 360 est sur devis' } },
   { label: 'Installation', cells: { ml: 'Une balise à coller', ga: 'Compte Google, balise, souvent un gestionnaire de tags' } },
 ];
 

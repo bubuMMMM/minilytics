@@ -44,8 +44,9 @@ function useWorld(detailed: boolean) {
     const res = detailed ? '50m' : '110m';
     if (world?.res === '50m' || world?.res === res) return;
     let alive = true;
-    fetch(`/maps/countries-${res}.json`).then((r) => r.json()).then((topo: any) => {
+    fetch(`/maps/countries-${res}.json`).then((r) => r.json()).then((raw: unknown) => {
       if (!alive) return;
+      const topo = raw as Parameters<typeof feature>[0];
       const fc = feature(topo, topo.objects.countries) as unknown as { features: (Feature<Polygon | MultiPolygon> & { id?: string; properties: { name?: string } })[] };
       const list: CountryFeature[] = [];
       for (const f of fc.features) {

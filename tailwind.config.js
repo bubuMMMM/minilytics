@@ -17,9 +17,8 @@ export default {
         success: { DEFAULT: v('success'), soft: v('success-soft') },
         danger: { DEFAULT: v('danger'), soft: v('danger-soft') },
         warning: { DEFAULT: v('warning'), soft: v('warning-soft') },
-        // legacy names used by a few components, now on the same tokens
-        paper: v('surface'), visitors: v('accent'), revenue: v('success'), revenueSoft: v('success-soft'), visitorsSoft: v('accent-soft'),
-        brand: { DEFAULT: v('accent'), soft: v('accent-soft') },
+        // Semantic aliases (revenue is success, not a third hue)
+        revenue: v('success'), revenueSoft: v('success-soft'),
       },
       borderRadius: { sm: '6px', DEFAULT: '8px', md: '8px', lg: '10px', xl: '12px', '2xl': '16px' },
       boxShadow: {

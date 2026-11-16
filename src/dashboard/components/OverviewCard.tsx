@@ -77,8 +77,8 @@ export function OverviewCard({ data }: { data: Overview | null }) {
 
   const kpis: KpiDef[] = c
     ? ([
-        { key: 'visitors', label: 'Visiteurs', value: fmtNumber(c.visitors), spark: s.map((x) => x.visitors), color: 'text-visitors', hint: 'Personnes distinctes (un cookie visiteur first-party par navigateur), robots exclus.' },
-        { key: 'pageviews', label: 'Pages vues', value: fmtNumber(c.pageviews), spark: s.map((x) => x.pageviews), color: 'text-brand', hint: 'Chaque page affichée, navigations internes des applications React/Next.js comprises. Les doublons de moins de 1,5 s sont ignorés.' },
+        { key: 'visitors', label: 'Visiteurs', value: fmtNumber(c.visitors), spark: s.map((x) => x.visitors), color: 'text-accent', hint: 'Personnes distinctes (un cookie visiteur first-party par navigateur), robots exclus.' },
+        { key: 'pageviews', label: 'Pages vues', value: fmtNumber(c.pageviews), spark: s.map((x) => x.pageviews), color: 'text-accent', hint: 'Chaque page affichée, navigations internes des applications React/Next.js comprises. Les doublons de moins de 1,5 s sont ignorés.' },
         { key: 'revenue', label: 'Revenus', value: money(c.revenue, true), spark: s.map((x) => x.revenue), color: 'text-revenue' },
         { key: 'conversionRate', label: 'Conversion', value: fmtPct(c.conversionRate, c.conversionRate >= 0.1 ? 0 : 2), hint: 'Clients / visiteurs' },
         { key: 'bounceRate', label: 'Taux de rebond', value: fmtPct(c.bounceRate), invert: true, hint: 'Visites d’une seule page, sans clic, vidéo, objectif ni 10 s d’activité' },
@@ -88,7 +88,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
 
   const g = data?.range.granularity ?? 'day';
   const legend: { key: Series; label: string; swatch: string; show: boolean }[] = [
-    { key: 'visitors', label: 'Visiteurs', swatch: 'bg-visitors', show: true },
+    { key: 'visitors', label: 'Visiteurs', swatch: 'bg-accent', show: true },
     { key: 'prev', label: 'Période précédente', swatch: 'bg-ink-4', show: true },
     { key: 'revenue', label: 'Revenus', swatch: 'bg-revenue', show: hasRevenue },
   ];
@@ -135,7 +135,7 @@ export function OverviewCard({ data }: { data: Overview | null }) {
               buckets={data.series.map((x) => x.bucket)}
               granularity={g}
               height={240}
-              series={[{ key: metric, label: TREND[metric].label, color: TREND[metric].color, values: data.series.map((x) => Number((x as any)[metric] ?? 0)) }]}
+              series={[{ key: metric, label: TREND[metric].label, color: TREND[metric].color, values: data.series.map((x) => Number(x[metric] ?? 0)) }]}
               format={(n) => TREND[metric].format(n, money)}
             />
           )}
@@ -170,9 +170,9 @@ export function OverviewCard({ data }: { data: Overview | null }) {
                     return (
                       <div className="min-w-[180px] rounded-lg border border-line bg-surface px-3 py-2.5 text-[12px] shadow-pop">
                         <div className="mb-2 font-semibold text-ink">{bucketLabel(d.bucket, g, true)}</div>
-                        <Row color="bg-visitors" label="Visiteurs" value={fmtNumber(d.visitors)} />
+                        <Row color="bg-accent" label="Visiteurs" value={fmtNumber(d.visitors)} />
                         {!hidden.prev && <Row color="bg-line-strong" label="Période précédente" value={fmtNumber(d.prevVisitors ?? 0)} />}
-                        <Row color="bg-brand" label="Pages vues" value={fmtNumber(d.pageviews)} />
+                        <Row color="bg-accent" label="Pages vues" value={fmtNumber(d.pageviews)} />
                         {hasRevenue && <Row color="bg-revenue" label="Revenus" value={money(d.revenue)} />}
                         {d.payments > 0 && <Row color="bg-revenueSoft" label="Paiements" value={String(d.payments)} />}
                         {(annByBucket.get(d.bucket) ?? []).slice(0, 3).map((a, i) => (

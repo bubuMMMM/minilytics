@@ -1,5 +1,5 @@
 /** Tiny dependency-free SVG sparkline (area + line). */
-export function Sparkline({ data, className = 'text-visitors', height = 36, width = 120 }: { data: number[]; className?: string; height?: number; width?: number }) {
+export function Sparkline({ data, className = 'text-accent', height = 36, width = 120 }: { data: number[]; className?: string; height?: number; width?: number }) {
   if (!data.length) return null;
   const max = Math.max(1, ...data);
   const step = data.length > 1 ? width / (data.length - 1) : width;

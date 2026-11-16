@@ -21,9 +21,14 @@ export function ApiDocs() {
   const tokenRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     document.title = 'API — Minilytics';
-    fetch('/api/v1/openapi.json').then((r) => r.json()).then((spec: any) => {
+    fetch('/api/v1/openapi.json').then((r) => r.json()).then((raw: unknown) => {
+      const spec = raw as { paths?: Record<string, Record<string, { summary?: string; parameters?: Op['params'] }>> };
       const list: Op[] = [];
-      for (const [path, item] of Object.entries<any>(spec.paths)) for (const [method, op] of Object.entries<any>(item)) list.push({ method: method.toUpperCase(), path, summary: op.summary, params: op.parameters ?? [] });
+      for (const [path, item] of Object.entries(spec.paths ?? {})) {
+        for (const [method, op] of Object.entries(item ?? {})) {
+          list.push({ method: method.toUpperCase(), path, summary: op.summary ?? '', params: op.parameters ?? [] });
+        }
+      }
       setOps(list);
     });
   }, []);

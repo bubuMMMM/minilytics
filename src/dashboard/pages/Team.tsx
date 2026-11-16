@@ -249,7 +249,7 @@ export function Invite({ token, onJoined }: { token: string; onJoined: () => voi
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     document.title = 'Invitation — Minilytics';
-    api(`/api/invites/${token}`).then(setInfo, () => setInfo({ valid: false }));
+    api<{ valid: boolean; role?: Role; allSites?: boolean; sites?: string[] | null; expires_at?: number }>(`/api/invites/${token}`).then(setInfo, () => setInfo({ valid: false }));
   }, [token]);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
   return (

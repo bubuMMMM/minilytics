@@ -57,7 +57,7 @@ export function SharePage({ token, view: viewParam }: { token: string; view?: st
   const [err, setErr] = useState<{ status: number; message: string } | null>(null);
   const load = useCallback(() => {
     fetch(`/api/share/${token}`, { credentials: 'same-origin' })
-      .then(async (r) => { const b: any = await r.json().catch(() => ({})); if (!r.ok) setErr({ status: r.status, message: b.error ?? 'Lien indisponible' }); else { setErr(null); setMeta(b); } })
+      .then(async (r) => { const b = await r.json().catch(() => ({})) as Meta & { error?: string }; if (!r.ok) setErr({ status: r.status, message: b.error ?? 'Lien indisponible' }); else { setErr(null); setMeta(b); } })
       .catch(() => setErr({ status: 0, message: 'Connexion impossible. Réessayez.' }));
   }, [token]);
   useEffect(load, [load]);
@@ -99,7 +99,7 @@ function Unlock({ token, meta, onDone }: { token: string; meta: { label: string;
     setBusy(true); setError('');
     try {
       const r = await fetch(`/api/share/${token}/unlock`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: pw }), credentials: 'same-origin' });
-      const b: any = await r.json().catch(() => ({}));
+      const b = await r.json().catch(() => ({})) as { error?: string };
       if (!r.ok) { setError(b.error ?? 'Mot de passe incorrect'); setPw(''); return; }
       onDone();
     } finally { setBusy(false); }

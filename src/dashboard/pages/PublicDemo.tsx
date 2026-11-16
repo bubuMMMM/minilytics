@@ -65,6 +65,11 @@ function SectionHeading({ eyebrow, title, description, action }: { eyebrow: stri
   </div>;
 }
 
+type VideosPayload = {
+  totals: { plays: number; viewers: number; watchSeconds: number; completionRate: number };
+  videos: { id: string; title: string | null; channel: string | null; plays: number; viewers: number; watchSeconds: number; avgWatchSeconds: number; completionRate: number }[];
+};
+
 export function PublicDemo() {
   const [days, setDays] = useState<7|30>(7);
   const [data, setData] = useState<LiveData|null>(null);
@@ -72,11 +77,15 @@ export function PublicDemo() {
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
   const [sites, setSites] = useState<{id:string;name:string;domain:string}[]>([]);
-  const [siteId, setSiteId] = useState<string>(() => new URLSearchParams(window.location.search).get('site') || '');
+  const [siteId, setSiteId] = useState('');
   useEffect(() => {
+    const fromUrl = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('site') || '') : '';
     fetch('/api/public/sites', { cache: 'no-store' }).then(r => (r.ok ? r.json() : []) as Promise<{id:string;name:string;domain:string}[]>).then(list => {
       setSites(list);
-      setSiteId(current => current && list.some(s => s.id === current) ? current : (list.find(s => s.domain.replace(/^www\./, '') === 'n0.pub')?.id || list[0]?.id || ''));
+      setSiteId(current => {
+        const wanted = current || fromUrl;
+        return wanted && list.some(s => s.id === wanted) ? wanted : (list.find(s => s.domain.replace(/^www\./, '') === 'n0.pub')?.id || list[0]?.id || '');
+      });
     }).catch(() => {});
   }, []);
   const pickSite = (id: string) => {
@@ -88,7 +97,7 @@ export function PublicDemo() {
     if (!siteId) return;
     const controller = new AbortController();
     fetch('/api/public/videos?days=' + days + '&site=' + encodeURIComponent(siteId), { signal: controller.signal, cache: 'no-store' })
-      .then(r => r.ok ? r.json() : null).then((v: any) => { if (!controller.signal.aborted) setVids(v ? { siteId, ...(v as any) } : null); }).catch(() => {});
+      .then(r => r.ok ? r.json() as Promise<VideosPayload | null> : null).then((v) => { if (!controller.signal.aborted) setVids(v ? { siteId, ...v } : null); }).catch(() => {});
     return () => controller.abort();
   }, [siteId, days, reload]);
   const refresh = useCallback(() => setReload(n => n + 1), []);

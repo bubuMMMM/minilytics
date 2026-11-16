@@ -12,6 +12,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // Long-lived vendor chunks: a dashboard deploy doesn't invalidate React/recharts in visitors' caches.
+        // recharts lives only in OverviewCard (lazy dashboard). The landing / signup route must not import it.
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
           if (/[\\/]node_modules[\\/](recharts|d3-(?!geo)[^\\/]+|victory-vendor|internmap|decimal\.js-light|lodash|react-smooth|recharts-scale|eventemitter3|tiny-invariant|clsx|fast-equals|react-transition-group|dom-helpers)[\\/]/.test(id)) return 'charts';

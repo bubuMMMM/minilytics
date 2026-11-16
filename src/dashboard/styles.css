@@ -65,10 +65,10 @@ code, kbd, pre, .font-mono { font-family: 'Geist Mono', ui-monospace, SFMono-Reg
 
   /* Buttons: 36px desktop, 44px touch */
   .btn { @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-line bg-surface px-3.5 text-[13px] font-medium text-ink shadow-xs transition-[color,background-color,border-color,box-shadow,transform] duration-150 hover:border-line-strong hover:bg-well disabled:pointer-events-none disabled:opacity-50; min-height: 36px; }
-  .btn-dark, .btn-brand { @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-ink px-3.5 text-[13px] font-medium text-canvas transition-[background-color,box-shadow,opacity,transform] duration-150 hover:opacity-90 disabled:pointer-events-none disabled:opacity-50; min-height: 36px; }
+  .btn-dark { @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-ink px-3.5 text-[13px] font-medium text-canvas transition-[background-color,box-shadow,opacity,transform] duration-150 hover:opacity-90 disabled:pointer-events-none disabled:opacity-50; min-height: 36px; }
   .btn-accent { @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent px-3.5 text-[13px] font-medium text-accent-fg transition-[opacity,transform] duration-150 hover:opacity-90; min-height: 36px; }
   .btn-ghost { @apply inline-flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-ink-3 transition-[color,background-color,transform] duration-150 hover:bg-well hover:text-ink; }
-  .btn:active:not(:disabled), .btn-dark:active:not(:disabled), .btn-brand:active:not(:disabled), .btn-accent:active:not(:disabled), .btn-ghost:active:not(:disabled) { transform: scale(.98); }
+  .btn:active:not(:disabled), .btn-dark:active:not(:disabled), .btn-accent:active:not(:disabled), .btn-ghost:active:not(:disabled) { transform: scale(.98); }
 
   /* Form controls */
   .input { @apply w-full rounded-lg border border-line bg-surface px-3 text-[14px] text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-ink-4 hover:border-line-strong focus:border-accent focus:ring-4 focus:ring-accent/15; min-height: 38px; }
@@ -140,7 +140,7 @@ select { background-color: rgb(var(--surface)); color: rgb(var(--ink)); }
 }
 .ml-scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
 @media (pointer: coarse), (max-width: 767px) {
-  .btn, .btn-dark, .btn-brand, .btn-accent { min-height: 44px; }
+  .btn, .btn-dark, .btn-accent { min-height: 44px; }
   .btn-ghost { min-height: 44px; padding-left: .75rem; padding-right: .75rem; }
   .tab, .ml-tab { min-height: 44px; padding-left: .85rem; padding-right: .85rem; }
   .input, select.input, textarea.input { min-height: 44px; font-size: 16px; }

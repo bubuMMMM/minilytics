@@ -7,14 +7,14 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T = any>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
+export async function api<T = unknown>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
   const res = await fetch(path, {
     ...init,
     credentials: 'same-origin',
     headers: init?.json !== undefined ? { 'Content-Type': 'application/json' } : undefined,
     body: init?.json !== undefined ? JSON.stringify(init.json) : init?.body,
   });
-  const data: any = await res.json().catch(() => ({}));
+  const data = await res.json().catch(() => ({})) as { error?: string };
   if (res.status === 401 && !path.startsWith('/api/auth')) {
     window.dispatchEvent(new Event('ml:logout'));
   }

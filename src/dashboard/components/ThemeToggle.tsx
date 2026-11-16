@@ -14,7 +14,7 @@ export function applyTheme(dark: boolean) {
 
 /** Light / dark switch (persisted). The initial theme is set before paint by /js/theme.js. */
 export function ThemeToggle({ className = '' }: { className?: string }) {
-  const [dark, setDark] = useState(isDark);
+  const [dark, setDark] = useState(false); // false on first paint so SSR/hydrate match; /js/theme.js already set the theme
   useEffect(() => setDark(isDark()), []);
   return (
     <button

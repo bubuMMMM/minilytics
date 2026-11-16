@@ -135,7 +135,7 @@ function AudienceBox({ title, tabs, data }: { title: string; tabs: { key: string
       <div className="space-y-1">
         {rows.map((r, i) => (
           <div key={i} className="relative flex h-8 items-center rounded-lg">
-            <div className="absolute inset-y-0 left-0 rounded-lg bg-visitorsSoft" style={{ width: `${(r.visitors / max) * 100}%` }} />
+            <div className="absolute inset-y-0 left-0 rounded-lg bg-accent-soft" style={{ width: `${(r.visitors / max) * 100}%` }} />
             <div className="relative flex min-w-0 flex-1 items-center gap-2 px-2.5 text-[13px]">
               {active === 'country' ? <><Flag cc={r.label} /><span className="truncate">{countryName(r.label)}</span></>
                 : active === 'referrer' ? <span className="truncate">{r.label ?? 'Direct'}</span>

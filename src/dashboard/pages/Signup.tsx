@@ -3,17 +3,20 @@ import { Link } from '../components/Link';
 import { Logo } from '../components/Logo';
 import { Segmented } from '../components/ui';
 import { UiIcon } from '../components/UiIcon';
+import { PLANS } from '../../shared/plans';
 
 type Plan = 'starter' | 'growth';
-const PLAN_LABEL: Record<Plan, string> = { starter: 'Starter · 9 €/mois', growth: 'Growth · 19 €/mois' };
+const PLAN_LABEL: Record<Plan, string> = { starter: `${PLANS.starter.name} · ${PLANS.starter.priceEur} €/mois`, growth: `${PLANS.growth.name} · ${PLANS.growth.priceEur} €/mois` };
 
-function initialPlan(): Plan {
+function readPlan(): Plan {
+  if (typeof window === 'undefined') return 'starter';
   const p = new URLSearchParams(window.location.search).get('plan');
   return p === 'growth' ? 'growth' : 'starter';
 }
 
 /** Where this visitor came from (UTM or referrer), so the waitlist says which channel brings sign-ups. */
 function sourceHint(): string {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return '';
   const q = new URLSearchParams(window.location.search);
   const utm = q.get('utm_source') || q.get('ref');
   if (utm) return utm.slice(0, 120);
@@ -26,16 +29,21 @@ function sourceHint(): string {
 
 /** /signup: self-serve accounts aren't open yet, so this collects a waitlist instead of a dead end. */
 export function Signup() {
-  const [plan, setPlan] = useState<Plan>(initialPlan);
+  const [plan, setPlan] = useState<Plan>('starter');
   const [email, setEmail] = useState('');
   const [website, setWebsite] = useState('');
   const [company, setCompany] = useState(''); // honeypot
   const [state, setState] = useState<'idle' | 'sending' | 'done'>('idle');
   const [error, setError] = useState('');
   const emailRef = useRef<HTMLInputElement>(null);
-  const source = useRef(sourceHint());
+  const source = useRef('');
 
-  useEffect(() => { document.title = 'Liste d’attente — Minilytics'; }, []);
+  useEffect(() => {
+    document.title = 'Liste d’attente — Minilytics';
+    const next = readPlan();
+    if (next !== 'starter') setPlan(next);
+    source.current = sourceHint();
+  }, []);
 
   async function submit(e: FormEvent) {
     e.preventDefault();

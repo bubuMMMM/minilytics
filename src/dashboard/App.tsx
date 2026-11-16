@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react';
 import { loadMe } from './lib/me';
 import { Landing } from './pages/Landing';
 import { Signup } from './pages/Signup';
@@ -8,7 +8,23 @@ import { Login } from './pages/Login';
 // Route-level code splitting: the landing page never downloads the charts, globe or dashboard.
 const Dashboard = lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })));
 const Realtime = lazy(() => import('./pages/Realtime').then((m) => ({ default: m.Realtime })));
-const PublicDemo = lazy(() => import('./pages/PublicDemo').then((m) => ({ default: m.PublicDemo })));
+let publicDemoMod: { default: ComponentType } | null = null;
+export function loadPublicDemo() {
+  return import('./pages/PublicDemo').then((m) => {
+    const v = { default: m.PublicDemo };
+    publicDemoMod = v;
+    return v;
+  });
+}
+const PublicDemo = lazy(loadPublicDemo);
+
+function PublicDemoRoute() {
+  if (publicDemoMod) {
+    const C = publicDemoMod.default;
+    return <C />;
+  }
+  return <Suspense fallback={<Loading />}><PublicDemo /></Suspense>;
+}
 const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
 const MapPage = lazy(() => import('./map/MapPage').then((m) => ({ default: m.MapPage })));
 const Sites = lazy(() => import('./pages/Sites').then((m) => ({ default: m.Sites })));
@@ -26,7 +42,7 @@ export function navigate(to: string) {
 }
 
 function usePath() {
-  const [path, setPath] = useState(window.location.pathname);
+  const [path, setPath] = useState(() => (typeof window === 'undefined' ? '/' : window.location.pathname));
   useEffect(() => {
     const on = () => setPath(window.location.pathname);
     window.addEventListener('popstate', on);
@@ -63,7 +79,7 @@ export function App() {
   // A genuine, read-only public demonstration; private customer data stays behind authentication.
   if (path === '/demo/map') return <Suspense fallback={<Loading />}><MapPage publicSiteId={new URLSearchParams(window.location.search).get('site') || '2z1f1t02626v5c5w'} /></Suspense>;
   if (path === '/api-docs') return <Suspense fallback={<Loading />}><ApiDocs /></Suspense>;
-  if (path === '/demo') return <Suspense fallback={<Loading />}><PublicDemo /></Suspense>;
+  if (path === '/demo') return <PublicDemoRoute />;
   // Read-only shared dashboards: no login, the link (and its optional password) is the credential.
   const share = /^\/share\/([\w-]{20,80})(?:\/(\w+))?$/.exec(path);
   if (share) return <Suspense fallback={<Loading />}><SharePage key={share[1]} token={share[1]} view={share[2]} /></Suspense>;

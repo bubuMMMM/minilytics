@@ -50,7 +50,7 @@ function List({ title, rows, render }: { title: string; rows: { label: string | 
       <div className="space-y-1">
         {rows.map((r, i) => (
           <div key={i} className="relative flex h-9 items-center rounded-lg">
-            <div className="absolute inset-y-0 left-0 rounded-lg bg-visitorsSoft transition-[width] duration-200" style={{ width: `${(r.visitors / max) * 100}%` }} />
+            <div className="absolute inset-y-0 left-0 rounded-lg bg-accent-soft transition-[width] duration-200" style={{ width: `${(r.visitors / max) * 100}%` }} />
             <div className="relative flex min-w-0 flex-1 items-center gap-2 px-3 text-sm">{render(r.label)}</div>
             <div className="tnum relative pr-3 text-sm font-semibold">{r.visitors}</div>
           </div>
@@ -61,8 +61,8 @@ function List({ title, rows, render }: { title: string; rows: { label: string | 
 }
 
 const EVENT_STYLE: Record<string, { label: string; cls: string }> = {
-  pageview: { label: 'Vue', cls: 'bg-visitors/10 text-visitors' },
-  goal: { label: 'Objectif', cls: 'bg-brand/10 text-brand' },
+  pageview: { label: 'Vue', cls: 'bg-accent/10 text-accent' },
+  goal: { label: 'Objectif', cls: 'bg-accent/10 text-accent' },
   outbound: { label: 'Clic sortant', cls: 'bg-amber-500/10 text-warning dark:text-warning' },
   click: { label: 'Clic', cls: 'bg-accent-soft text-accent' },
   scroll: { label: 'Scroll', cls: 'bg-well text-ink-2' },

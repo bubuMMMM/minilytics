@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { api, qs, type BreakdownRow } from '../lib/api';
 import { useDash } from '../lib/context';
 import { countryName, fmtAgo, fmtDateTime, fmtDuration, fmtNumber, fmtPct, shortId } from '../lib/format';
@@ -158,7 +158,7 @@ function Funnels() {
                 <span className="min-w-0 truncate font-medium">{i + 1}. {s.type === 'goal' ? '🎯 ' : ''}{s.value}</span>
                 <span className="tnum shrink-0 font-semibold">{fmtNumber(s.visitors)} · {fmtPct(pct)}</span>
               </div>
-              <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-well"><div className="h-full rounded-full bg-visitors/70" style={{ width: `${Math.max(pct * 100, 2)}%` }} /></div>
+              <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-well"><div className="h-full rounded-full bg-accent/70" style={{ width: `${Math.max(pct * 100, 2)}%` }} /></div>
               {i > 0 && <div className="mt-1 text-xs text-danger">−{prev ? fmtPct(1 - s.visitors / prev) : '0 %'} d’abandon</div>}
               <StepInsights s={s} i={i} money={money} />
             </div>
@@ -172,7 +172,7 @@ function Funnels() {
           return (
             <div key={i} className="min-w-0">
               <div className="flex h-48 items-end rounded-xl bg-well">
-                <div className="w-full rounded-xl bg-visitors/70 transition-all" style={{ height: `${Math.max(pct * 100, 2)}%` }} />
+                <div className="w-full rounded-xl bg-accent/70 transition-all" style={{ height: `${Math.max(pct * 100, 2)}%` }} />
               </div>
               <div className="mt-2 truncate text-sm font-medium" title={s.value}>
                 {i + 1}. {s.type === 'goal' ? '🎯 ' : ''}
@@ -267,28 +267,68 @@ function FunnelForm({ onDone, canCancel }: { onDone: (id?: string) => void; canC
   );
 }
 
-function VisitorCell({ id, name, email, country, city, device, os, browser, badge }: Record<string, any>) {
+type DirectoryRow = {
+  id?: string;
+  visitor_id?: string;
+  session_id?: string | null;
+  name?: string | null;
+  email?: string | null;
+  pay_email?: string | null;
+  pay_name?: string | null;
+  source: string | null;
+  country: string | null;
+  city: string | null;
+  device: string | null;
+  os: string | null;
+  browser: string | null;
+  utm_campaign?: string | null;
+  ref?: string | null;
+  referrer_domain: string | null;
+  spent: number;
+  sessions: number;
+  pageviews: number;
+  duration: number;
+  last_seen: number;
+  first_seen?: number;
+  ts: number;
+  amount: number;
+  visits: number;
+  renewal?: boolean;
+  matched_by?: string | null;
+};
+
+function VisitorCell({ id, name, email, country, city, device, os, browser, badge }: {
+  id?: string | null;
+  name?: string | null;
+  email?: string | null;
+  country?: string | null;
+  city?: string | null;
+  device?: string | null;
+  os?: string | null;
+  browser?: string | null;
+  badge?: ReactNode;
+}) {
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <Avatar id={id} size={44} name={name} email={email} />
+      <Avatar id={id ?? ''} size={44} name={name ?? null} email={email ?? null} />
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <span className="truncate font-medium">{name || email || `Visiteur ${shortId(id)}`}</span>
+          <span className="truncate font-medium">{name || email || `Visiteur ${shortId(id ?? '')}`}</span>
           {badge}
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[13px] text-ink-3 sm:text-sm">
           <span className="flex items-center gap-1">
-            <Flag cc={country} size={15} /> {city ? `${city}, ` : ''}
-            {countryName(country)}
+            <Flag cc={country ?? null} size={15} /> {city ? `${city}, ` : ''}
+            {countryName(country ?? null)}
           </span>
           <span className="flex items-center gap-1">
-            <DeviceIcon name={device} size={15} /> {device}
+            <DeviceIcon name={device ?? null} size={15} /> {device}
           </span>
           <span className="flex items-center gap-1">
-            <OSIcon name={os} size={15} /> {os}
+            <OSIcon name={os ?? null} size={15} /> {os}
           </span>
           <span className="flex items-center gap-1">
-            <BrowserIcon name={browser} size={15} /> {browser}
+            <BrowserIcon name={browser ?? null} size={15} /> {browser}
           </span>
         </div>
       </div>
@@ -296,12 +336,11 @@ function VisitorCell({ id, name, email, country, city, device, os, browser, badg
   );
 }
 
-function matches(r: Record<string, any>, search: string) {
+function matches(r: DirectoryRow, search: string) {
   if (!search) return true;
   const s = search.toLowerCase();
-  return ['name', 'email', 'pay_email', 'pay_name', 'source', 'country', 'city', 'visitor_id', 'utm_campaign', 'ref'].some((k) =>
-    String(r[k] ?? '').toLowerCase().includes(s),
-  );
+  const fields: (keyof DirectoryRow)[] = ['name', 'email', 'pay_email', 'pay_name', 'source', 'country', 'city', 'visitor_id', 'utm_campaign', 'ref'];
+  return fields.some((k) => String(r[k] ?? '').toLowerCase().includes(s));
 }
 
 function ShowAll({ total, shown, onClick }: { total: number; shown: number; onClick: () => void }) {
@@ -326,7 +365,7 @@ function Journey({ search }: { search: string }) {
   const [version, setVersion] = useState(0);
   const [rematch, setRematch] = useState<string | null>(null);
   const [reasons, setReasons] = useState<{ id: string; name: string | null; matched: boolean; reason: string | null }[]>([]);
-  const { data } = useApi<any[]>(`/api/sites/${site.id}/customers?${qs(q)}`, reloadKey + version);
+  const { data } = useApi<DirectoryRow[]>(`/api/sites/${site.id}/customers?${qs(q)}`, reloadKey + version);
   if (!data) return <div className="h-40 animate-pulse" />;
   if (!data.length)
     return <div className="p-8 text-center text-sm text-ink-3">Aucun paiement sur cette période. Connectez Dodo Payments dans les réglages pour voir qui a payé et d’où il venait.</div>;
@@ -460,7 +499,7 @@ function Journey({ search }: { search: string }) {
 function Users({ search }: { search: string }) {
   const { site, q, reloadKey, money, openVisitor } = useDash();
   const [all, setAll] = useState(false);
-  const { data } = useApi<any[]>(`/api/sites/${site.id}/visitors?${qs(q)}`, reloadKey);
+  const { data } = useApi<DirectoryRow[]>(`/api/sites/${site.id}/visitors?${qs(q)}`, reloadKey);
   if (!data) return <div className="h-40 animate-pulse" />;
   if (!data.length) return <div className="p-8 text-center text-sm text-ink-3">Aucun visiteur sur cette période.</div>;
   const rows = data.filter((r) => matches(r, search)).slice(0, all || search ? undefined : 10);
@@ -469,7 +508,7 @@ function Users({ search }: { search: string }) {
       <ul className="space-y-2 md:hidden">
         {rows.map((r) => (
           <li key={r.visitor_id}>
-            <button className="w-full rounded-xl border border-line p-3 text-left active:bg-well" onClick={() => openVisitor(r.visitor_id)}>
+            <button className="w-full rounded-xl border border-line p-3 text-left active:bg-well" onClick={() => { if (r.visitor_id) openVisitor(r.visitor_id); }}>
               <VisitorCell id={r.visitor_id} name={r.name} email={r.email} country={r.country} city={r.city} device={r.device} os={r.os} browser={r.browser}
                 badge={r.spent > 0 ? <span className="rounded-md border border-revenue/30 bg-revenueSoft/50 px-1.5 py-0.5 text-xs text-revenue">Client</span> : null} />
               <div className="mt-3 grid grid-cols-4 gap-2 border-t border-line pt-2 text-center text-[11px] text-ink-3">
@@ -501,7 +540,7 @@ function Users({ search }: { search: string }) {
             .filter((r) => matches(r, search))
             .slice(0, all || search ? undefined : 10)
             .map((r) => (
-              <tr key={r.visitor_id} className="cursor-pointer border-t border-line hover:bg-well" onClick={() => openVisitor(r.visitor_id)}>
+              <tr key={r.visitor_id} className="cursor-pointer border-t border-line hover:bg-well" onClick={() => { if (r.visitor_id) openVisitor(r.visitor_id); }}>
                 <td className="px-3 py-3">
                   <VisitorCell
                     id={r.visitor_id}

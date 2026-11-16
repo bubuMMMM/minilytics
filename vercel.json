@@ -25,8 +25,24 @@
       "destination": "/api"
     },
     {
-      "source": "/((?!js/|assets/).*)",
-      "destination": "/index.html"
+      "source": "/signup",
+      "destination": "/signup/index.html"
+    },
+    {
+      "source": "/signup/",
+      "destination": "/signup/index.html"
+    },
+    {
+      "source": "/demo",
+      "destination": "/demo/index.html"
+    },
+    {
+      "source": "/demo/",
+      "destination": "/demo/index.html"
+    },
+    {
+      "source": "/((?!js/|assets/|signup(?:/)?$|demo(?:/)?$).+)",
+      "destination": "/app.html"
     }
   ],
   "headers": [

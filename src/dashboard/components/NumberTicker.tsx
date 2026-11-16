@@ -19,7 +19,7 @@ export function NumberTicker({ value, delay = 0, decimalPlaces = 0, suffix = '',
       started.current = true;
       return;
     }
-    let start = false, raf = 0, io: IntersectionObserver | undefined;
+    let start = false, raf = 0;
     const run = (t0: number) => {
       const tick = (now: number) => {
         const p = Math.min(1, (now - t0) / 1100);
@@ -30,15 +30,15 @@ export function NumberTicker({ value, delay = 0, decimalPlaces = 0, suffix = '',
       };
       raf = requestAnimationFrame(tick);
     };
-    io = new IntersectionObserver(([e]) => {
+    const io = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting || start) return;
       start = true;
-      io?.disconnect();
+      io.disconnect();
       el.textContent = fmt(0);
       window.setTimeout(() => run(performance.now()), delay * 1000);
     }, { threshold: 0.15 });
     io.observe(el);
-    return () => { io?.disconnect(); cancelAnimationFrame(raf); };
+    return () => { io.disconnect(); cancelAnimationFrame(raf); };
   }, [value, delay, decimalPlaces, suffix]);
   return <span ref={ref} className={`tnum inline-block tabular-nums ${className}`} />;
 }
