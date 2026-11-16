@@ -215,21 +215,45 @@ async function scanVisitorTotals(db: D1Database, site: Site, now: number, origin
   return out;
 }
 
+async function monthRecordReachedAt(db: D1Database, site: Site, month: string, prevBest: number): Promise<number | null> {
+  const row = await db
+    .prepare(
+      `SELECT first_at AS reached FROM (
+         SELECT MIN(started_at) AS first_at
+         FROM sessions
+         WHERE site_id = ? AND ${monthSql('started_at')} = ?
+         GROUP BY visitor_id
+       ) t
+       ORDER BY first_at ASC
+       LIMIT 1 OFFSET ?`,
+    )
+    .bind(site.id, site.timezone, month, prevBest)
+    .first<{ reached: number }>();
+  return row ? Number(row.reached) : null;
+}
+
 async function scanMonthRecords(db: D1Database, site: Site, now: number, origin: string, have: Set<string>) {
   const r = await db.prepare(
-    `SELECT ${monthSql('started_at')} AS month, COUNT(DISTINCT visitor_id) AS n, MAX(started_at) AS reached
+    `SELECT ${monthSql('started_at')} AS month, COUNT(DISTINCT visitor_id) AS n
      FROM sessions WHERE site_id = ? GROUP BY 1 ORDER BY 1`,
-  ).bind(site.timezone, site.id).all<{ month: string; n: number; reached: number }>();
+  ).bind(site.timezone, site.id).all<{ month: string; n: number }>();
   const out = { inserted: 0, notified: 0 };
   let best = 0;
   for (const row of r.results ?? []) {
     const n = Number(row.n);
     if (n <= best || !row.month) continue;
+    const prev = best;
     best = n;
     const key = `visitors_month_record:${row.month}`;
-    if (have.has(key)) continue;
+    const reached = (await monthRecordReachedAt(db, site, row.month, prev)) ?? now;
+    if (have.has(key)) {
+      await db.prepare(
+        `UPDATE milestones SET value = ?, reached_at = ? WHERE site_id = ? AND kind = 'visitors_month_record' AND threshold = ? AND value <= ?`,
+      ).bind(n, reached, site.id, row.month, n).run();
+      continue;
+    }
     const res = await insertMilestone(db, site, now, {
-      kind: 'visitors_month_record', threshold: row.month, value: n, reached_at: Number(row.reached) || now,
+      kind: 'visitors_month_record', threshold: row.month, value: n, reached_at: reached,
     }, origin);
     if (res.inserted) { out.inserted++; have.add(key); }
     if (res.notified) out.notified++;
