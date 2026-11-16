@@ -112,12 +112,12 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
             <g key={s.key}>
               {k === 0 && segments(s.values, s.axis).map((seg, i) => (
                 seg.length > 1
-                  ? <path key={i} d={`${smooth(seg)} L${seg[seg.length - 1][0]},${H - 24} L${seg[0][0]},${H - 24} Z`} fill={`url(#${gid}-${s.key})`} />
+                  ? <path key={i} d={`${linear(seg)} L${seg[seg.length - 1][0]},${H - 24} L${seg[0][0]},${H - 24} Z`} fill={`url(#${gid}-${s.key})`} />
                   : null
               ))}
               {segments(s.values, s.axis).map((seg, i) => (
                 seg.length > 1
-                  ? <path key={i} d={smooth(seg)} fill="none" stroke={s.color} strokeWidth={k === 0 || peers ? 2 : 1.5} strokeDasharray={k === 0 || peers ? undefined : '4 4'} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+                  ? <path key={i} d={linear(seg)} fill="none" stroke={s.color} strokeWidth={k === 0 || peers ? 2 : 1.5} strokeDasharray={k === 0 || peers ? undefined : '4 4'} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
                   : null
               ))}
             </g>
@@ -183,25 +183,8 @@ export function TrendChart({ buckets, granularity, series, height = 220, format 
   );
 }
 
-/** Monotone cubic (Fritsch–Carlson) path: smooth curve that never overshoots below zero. */
-function smooth(p: [number, number][]): string {
-  const n = p.length;
-  if (!n) return '';
-  if (n < 3) return p.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-  const d: number[] = [], m: number[] = [];
-  for (let i = 0; i < n - 1; i++) d.push((p[i + 1][1] - p[i][1]) / (p[i + 1][0] - p[i][0] || 1));
-  m.push(d[0]);
-  for (let i = 1; i < n - 1; i++) m.push(d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2);
-  m.push(d[n - 2]);
-  for (let i = 0; i < n - 1; i++) {
-    if (d[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
-    const a = m[i] / d[i], b = m[i + 1] / d[i], t = a * a + b * b;
-    if (t > 9) { const k = 3 / Math.sqrt(t); m[i] = k * a * d[i]; m[i + 1] = k * b * d[i]; }
-  }
-  let out = `M${p[0][0].toFixed(1)},${p[0][1].toFixed(1)}`;
-  for (let i = 0; i < n - 1; i++) {
-    const h = (p[i + 1][0] - p[i][0]) / 3;
-    out += ` C${(p[i][0] + h).toFixed(1)},${(p[i][1] + m[i] * h).toFixed(1)} ${(p[i + 1][0] - h).toFixed(1)},${(p[i + 1][1] - m[i + 1] * h).toFixed(1)} ${p[i + 1][0].toFixed(1)},${p[i + 1][1].toFixed(1)}`;
-  }
-  return out;
+/** Straight segments so a real daily spike stays a spike, not a bell curve. */
+function linear(p: [number, number][]): string {
+  return p.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
 }
+

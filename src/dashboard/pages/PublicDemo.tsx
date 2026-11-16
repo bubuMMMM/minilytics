@@ -2,7 +2,8 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNod
 import { Thumb, fmtWatch } from '../components/VideosView';
 import { TrendChart } from '../components/TrendChart';
 import { Link } from '../components/Link';
-import { channelName } from '../lib/format';
+import { channelName, fmtShare } from '../lib/format';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { Logo } from '../components/Logo';
 // The WebGL globe is heavy: load it only once its slot nears the viewport.
 const LiveGlobe = lazy(() => import('../components/LiveGlobe').then((m) => ({ default: m.LiveGlobe })));
@@ -41,11 +42,11 @@ function InsightPanel({ title, subtitle, icon, rows, empty }: { title: string; s
     <article className="ml-bento flex min-w-0 flex-col p-5 sm:p-6">
       <div className="flex items-start justify-between">
         <div><h3 className="text-[15px] font-semibold tracking-tight text-ink">{title}</h3><p className="mt-1 text-xs text-ink-3">{subtitle}</p></div>
-        <span className="flex h-8 w-8 items-center justify-center rounded-md border border-line text-ink-3"><UiIcon name={icon} size={16}/></span>
+        <span className="text-ink-4" aria-hidden><UiIcon name={icon} size={16}/></span>
       </div>
-      <div className="mt-6 flex-1 space-y-5">
+      <div className="mt-5 flex-1 space-y-3.5">
         {rows.length ? rows.slice(0, 6).map((row, index) => <div key={row.label + index}>
-          <div className="mb-2 flex min-w-0 items-center justify-between gap-3 text-xs"><span className="min-w-0 truncate font-medium text-ink-2" title={row.label}>{channelName(row.label)}</span><span className="shrink-0 tabular-nums text-ink-3">{nf(row.value)} <span className="ml-1 text-ink-4">/ {total ? Math.round(row.value / total * 100) : 0}%</span></span></div>
+          <div className="mb-1.5 flex min-w-0 items-center gap-3 text-[13px]"><span className={`min-w-0 flex-1 truncate font-medium text-ink ${title === 'Pages populaires' ? 'font-mono text-[12px]' : ''}`} title={row.label}>{title === 'Acquisition' ? channelName(row.label) : row.label}</span><span className="tnum shrink-0 text-ink-2">{nf(row.value)}</span><span className="tnum w-10 shrink-0 text-right text-[12px] text-ink-3">{fmtShare(row.value, total)}</span></div>
           <div className="ml-progress"><div style={{width: Math.max(2, row.value / highest * 100) + '%'}} /></div>
         </div>) : <div className="flex min-h-[130px] flex-col items-center justify-center rounded-xl border border-dashed border-line bg-well p-5 text-center"><UiIcon name={icon} size={22} className="mb-3 text-accent"/><p className="max-w-[230px] text-xs leading-relaxed text-ink-4">{empty}</p></div>}
       </div>
@@ -57,7 +58,7 @@ function InsightPanel({ title, subtitle, icon, rows, empty }: { title: string; s
 function SectionHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: ReactNode }) {
   return <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
     <div>
-      <span className="text-[13px] font-medium text-accent">{eyebrow}</span>
+      <span className="ml-kicker">{eyebrow}</span>
       <h2 className="mt-1 text-xl font-semibold tracking-tight text-ink sm:text-2xl">{title}</h2>
       <p className="mt-2 max-w-[620px] text-[13px] leading-relaxed text-ink-3">{description}</p>
     </div>
@@ -119,26 +120,27 @@ export function PublicDemo() {
   useEffect(() => { document.title = `Démo en direct · ${view?.site.domain ?? 'n0.pub'} — Minilytics`; }, [view?.site.domain]);
   const change = view?.previous.visitors ? Math.round((view.current.visitors-view.previous.visitors)/view.previous.visitors*100) : null;
 
-  return <div className="min-h-screen bg-surface text-ink">
-    <header className="sticky top-0 z-50 border-b border-line bg-surface/95 backdrop-blur-xl">
-      <div className="mx-auto flex h-[76px] max-w-[1370px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
-        <Link href="/" aria-label="Minilytics, accueil" className="rounded-lg"><Logo /></Link>
-        <nav className="hidden items-center gap-8 text-[13px] font-medium text-ink-3 lg:flex" aria-label="Navigation principale">
-          <a href="#analytics" className="hover:text-ink">Tableau de bord</a>
-          <a href="#globe" className="hover:text-ink">Globe</a>
-          <a href="#insights" className="hover:text-ink">Audience</a>
-          <a href="#engagement" className="hover:text-ink">Comportement</a>
-          {vids && vids.videos.length > 0 && <a href="#videos" className="hover:text-ink">Vidéos</a>}
+  return <div className="min-h-screen bg-canvas text-ink">
+    <header className="sticky top-0 z-50 border-b border-line bg-canvas/95 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <div className="mx-auto flex h-14 max-w-[1370px] items-center justify-between gap-3 px-4 sm:px-8 lg:px-10">
+        <Link href="/" aria-label="Minilytics, accueil" className="rounded-md"><Logo /></Link>
+        <nav className="hidden items-center gap-1 lg:flex" aria-label="Navigation principale">
+          <a href="#analytics" className="ml-nav-link">Tableau de bord</a>
+          <a href="#globe" className="ml-nav-link">Globe</a>
+          <a href="#insights" className="ml-nav-link">Audience</a>
+          <a href="#engagement" className="ml-nav-link">Comportement</a>
+          {vids && vids.videos.length > 0 && <a href="#videos" className="ml-nav-link">Vidéos</a>}
         </nav>
-        <div className="flex items-center gap-2.5">
-          <span className="hidden md:inline-flex"><StatusPill active>Démo en direct</StatusPill></span>
-          <Link href="/login" className="btn h-[42px] px-4">Se connecter</Link>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <ThemeToggle />
+          <Link href="/login" className="btn-ghost !text-[14px] hidden sm:inline-flex">Se connecter</Link>
+          <Link href="/signup" className="btn-dark !min-h-9 !whitespace-nowrap !px-2.5 !text-[12px] sm:!min-h-[36px] sm:!px-3 sm:!text-[13px]">Réserver mon accès</Link>
         </div>
       </div>
     </header>
 
     <main className="mx-auto max-w-[1370px] px-5 pb-14 sm:px-8 lg:px-10">
-      <section className="grid items-center gap-10 border-b border-line pb-14 pt-14 md:grid-cols-[1.08fr_.92fr] lg:gap-14 lg:pb-20 lg:pt-20">
+      <section className="grid items-end gap-10 overflow-hidden border-b border-line pb-14 pt-14 md:grid-cols-[1.08fr_.92fr] lg:gap-14 lg:pb-16 lg:pt-16">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-[13px] text-ink-2 shadow-xs"><span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden /> Démo publique · données réelles</span>
           <h1 className="mt-6 max-w-[730px] text-4xl font-semibold leading-[1.05] tracking-[-0.03em] text-ink sm:text-5xl">La démo en direct<br/><span className="text-ink-3" translate="no">{view?.site.domain ?? sites.find(s=>s.id===siteId)?.domain ?? 'n0.pub'}</span></h1>
@@ -151,7 +153,7 @@ export function PublicDemo() {
         </div>
 
         <div className="relative min-w-0 lg:pl-4">
-          <div className="ml-frame p-5 sm:p-6">
+          <div className="ml-bento p-5 sm:p-6">
             <div className="flex items-center justify-between gap-2 border-b border-line pb-5">
               <div className="flex items-center gap-2.5"><span className="flex h-8 w-8 items-center justify-center rounded-md border border-line text-ink-3"><UiIcon name="activity" size={16}/></span><div><div className="text-[13px] font-semibold">Aperçu en direct</div><p className="text-[11px] text-ink-4">{view?.site.domain ?? sites.find(s=>s.id===siteId)?.domain ?? '—'}</p></div></div>
               <StatusPill active>En direct</StatusPill>
@@ -174,7 +176,7 @@ export function PublicDemo() {
                   </div>
       </section>
 
-      <section id="analytics" className="scroll-mt-[104px] pt-16 sm:pt-20">
+      <section id="analytics" className="relative z-10 scroll-mt-20 border-t border-line bg-canvas pt-16 sm:pt-20">
         <SectionHeading eyebrow="Vue d’ensemble" title="Votre tableau de bord" description="Toutes les métriques importantes, en un coup d'œil." action={<StatusPill active>Statistiques réelles</StatusPill>}/>
         <div className="ml-bento flex flex-wrap items-center justify-between gap-4 px-4 py-3.5 sm:px-5">
           <div className="flex min-w-0 items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line text-ink-3"><UiIcon name="globe" size={16}/></span><div className="min-w-0">{sites.length>1 ? <select aria-label="Site affiché" className="input max-w-[260px] truncate !px-2 !py-1 font-semibold" value={siteId} onChange={e=>pickSite(e.target.value)}>{sites.map(s=><option key={s.id} value={s.id}>{s.domain}{s.name!==s.domain?' · '+s.name:''}</option>)}</select> : <div className="truncate text-[13px] font-semibold">{view?.site.domain ?? '—'}</div>}<div className="mt-0.5 text-[11px] text-ink-4">Dernière actualisation {view?timeLabel(view.updatedAt):'en cours…'}</div></div></div>
@@ -213,7 +215,7 @@ export function PublicDemo() {
         </div>
       </section>
 
-      {vids && vids.siteId === siteId && vids.videos.length > 0 && <section id="videos" className="scroll-mt-[104px] pt-20">
+      {vids && vids.siteId === siteId && vids.videos.length > 0 && <section id="videos" className="scroll-mt-20 pt-20">
         <SectionHeading eyebrow="Vidéos" title="Les vidéos les plus regardées" description={`${nf(vids.totals.plays)} lectures · ${nf(vids.totals.viewers)} spectateurs · ${fmtWatch(vids.totals.watchSeconds)} de visionnage · ${Math.round(vids.totals.completionRate * 100)} % de complétion, sur ${days} jours. Chiffres agrégés uniquement.`}/>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {vids.videos.slice(0, 8).map((v, i) => <div key={v.id} className="ml-bento overflow-hidden p-3">
@@ -229,17 +231,17 @@ export function PublicDemo() {
         </div>
       </section>}
 
-      <section id="engagement" className="scroll-mt-[104px] pt-20">
+      <section id="engagement" className="scroll-mt-20 pt-20">
         <SectionHeading eyebrow="Comportement" title="Ce que font vraiment vos visiteurs" description="Profondeur de scroll, temps actif, pages consultées, clics internes et formulaires. Des mesures enregistrées, jamais inventées."/>
         <EngagementPanel key={siteId} days={days} publicSiteId={siteId||undefined}/>
       </section>
 
-      <section id="globe" className="scroll-mt-[104px] pt-20">
+      <section id="globe" className="scroll-mt-20 overflow-hidden pt-20">
         <SectionHeading eyebrow="Carte en direct" title="Une audience sans frontières" description="La carte mondiale des connexions réelles, actualisée toutes les 15 secondes." action={<a href={`/demo/map?site=${encodeURIComponent(siteId || '')}`} className="btn">Explorer la carte <span aria-hidden>→</span></a>}/>
         <div className="ml-live-globe"><WhenVisible><Suspense fallback={<div className="ml-loading h-full min-h-[280px] rounded-xl"/>}><LiveGlobe key={siteId} publicSiteId={siteId||undefined}/></Suspense></WhenVisible></div>
       </section>
 
-      <section id="insights" className="scroll-mt-[104px] pt-20">
+      <section id="insights" className="scroll-mt-20 pt-20">
         <SectionHeading eyebrow="Audience" title="Comprendre ce qui fonctionne" description="Les canaux qui apportent du trafic, les pages qui intéressent et les appareils utilisés."/>
         <div className="grid gap-4 md:grid-cols-3">
           <InsightPanel title="Acquisition" subtitle="D'où viennent les visiteurs ?" icon="link" rows={view?.sources??[]} empty="Aucune source à afficher pour l'instant."/>
@@ -249,8 +251,8 @@ export function PublicDemo() {
       </section>
 
       <section className="relative mt-20 overflow-hidden rounded-xl border border-line bg-surface p-7 shadow-card sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-10 lg:p-12">
-        <div className="relative z-10 max-w-[680px]"><span className="text-[13px] font-medium text-accent">Votre site</span><h2 className="mt-2 max-w-[590px] text-2xl font-semibold tracking-tight sm:text-3xl">Les bonnes décisions commencent avec les bonnes données.</h2><p className="mt-4 max-w-[580px] text-[14px] leading-relaxed text-ink-3">Branchez votre site et suivez en direct vos visites, sources de trafic et conversions.</p></div>
-        <Link href="/signup" className="btn-dark relative z-10 mt-6 !h-11 shrink-0 !px-5 lg:mt-0">Connecter mon site <UiIcon name="arrow-right" size={15}/></Link>
+        <div className="relative z-10 max-w-[680px]"><span className="ml-kicker">Votre site</span><h2 className="mt-2 max-w-[590px] text-2xl font-semibold tracking-tight sm:text-3xl">Les bonnes décisions commencent avec les bonnes données.</h2><p className="mt-4 max-w-[580px] text-[14px] leading-relaxed text-ink-3">Branchez votre site et suivez en direct vos visites, sources de trafic et conversions.</p></div>
+        <Link href="/signup" className="btn-dark relative z-10 mt-6 !h-11 shrink-0 !px-5 lg:mt-0">Réserver mon accès <UiIcon name="arrow-right" size={15}/></Link>
       </section>
       <footer className="mt-11 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-7 text-xs text-ink-4"><Logo small/><span>Minilytics · Analytics sans distraction.</span><span>{view?'Mis à jour à '+timeLabel(view.updatedAt):'Données en cours de chargement'}</span></footer>
     </main>

@@ -12,7 +12,7 @@ export function SegmentedTabs<T extends string | number>({ value, options, onCha
       {options.map((option) => (
         <button key={option.value} type="button" aria-pressed={value === option.value}
           className={'min-h-[44px] rounded-md px-3 text-[13px] font-medium transition-colors md:min-h-[30px] ' +
-            (value === option.value ? 'bg-surface text-ink shadow-xs' : 'text-ink-3 hover:text-ink')}
+            (value === option.value ? 'bg-surface text-ink shadow-xs' : 'text-ink-3 hover:bg-surface/70 hover:text-ink')}
           onClick={() => onChange(option.value)}>
           {option.label}
         </button>

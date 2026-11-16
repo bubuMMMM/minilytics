@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fmtAgo, fmtDuration, fmtNumber, fmtPct } from '../../src/dashboard/lib/format';
+import { fmtAgo, fmtDuration, fmtNumber, fmtPct, fmtShare } from '../../src/dashboard/lib/format';
 
 describe('fmtNumber', () => {
   it('formats thousands with a narrow no-break space (fr-FR)', () => {
@@ -17,6 +17,14 @@ describe('fmtPct', () => {
   it('renders a French percent', () => {
     expect(fmtPct(0.25)).toBe('25 %');
     expect(fmtPct(0.002, 0)).toBe('0,20 %');
+  });
+});
+
+describe('fmtShare', () => {
+  it('keeps a rounded percent and never prints 0 % for a non-zero share', () => {
+    expect(fmtShare(25, 100)).toBe('25 %');
+    expect(fmtShare(17, 8639)).toBe('< 1 %');
+    expect(fmtShare(0, 100)).toBe('0 %');
   });
 });
 

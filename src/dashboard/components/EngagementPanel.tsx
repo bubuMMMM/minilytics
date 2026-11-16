@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { UiIcon } from './UiIcon';
 import { qs, type Query } from '../lib/api';
+import { fmtShare } from '../lib/format';
 
 type ScrollStep = { milestone: number; sessions: number };
 type Counts = {
@@ -19,7 +20,7 @@ const secs = (ms: number) => {
   const n = Math.round(ms / 1000);
   return n >= 60 ? Math.floor(n / 60) + ' min ' + (n % 60) + ' s' : n + ' s';
 };
-const pct = (a: number, b: number) => b ? Math.min(100, Math.round(a / b * 100)) + ' %' : '—';
+const pct = (a: number, b: number) => (b ? fmtShare(a, b) : '—');
 
 function Metric({ label, value, caption, icon }: { label: string; value: string; caption: string; icon: 'eye' | 'clock' | 'mouse' | 'target' }) {
   return <div className="min-w-0 rounded-xl border border-line bg-surface p-4 shadow-xs sm:p-5">

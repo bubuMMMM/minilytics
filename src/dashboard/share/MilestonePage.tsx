@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Favicon } from '../components/Icons';
+import { Logo } from '../components/Logo';
 import { UiIcon } from '../components/UiIcon';
 import type { MilestoneItem } from './MilestoneSettings';
 
@@ -31,16 +32,16 @@ export function MilestonePage({ token }: { token: string }) {
   return (
     <div className="min-h-svh bg-canvas px-4 py-10 text-ink">
       <div className="mx-auto flex max-w-2xl flex-col items-center">
-        <a href="/" className="mb-8 text-[13px] font-medium text-ink-3 hover:text-ink">Minilytics</a>
-        <img src={image} alt={item.title} width={1200} height={675} className="w-full rounded-2xl border border-line shadow-sm" />
+        <a href="/" className="mb-8 rounded-md" aria-label="Minilytics, accueil"><Logo small /></a>
+        <h1 className="sr-only">{item.title}</h1>
+        <img src={image} alt={item.title} width={1200} height={675} className="w-full rounded-2xl border border-line shadow-xs" />
         <div className="mt-6 flex items-center gap-2 text-sm text-ink-3">
           <Favicon domain={item.domain} size={16} />
           <span className="font-medium text-ink">{item.siteName}</span>
           <span>· {item.date}</span>
         </div>
-        <h1 className="mt-3 text-center text-2xl font-semibold tracking-tight">{item.title}</h1>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <a className="btn-accent" href={item.intentUrl} target="_blank" rel="noopener noreferrer">
+          <a className="btn-dark" href={item.intentUrl} target="_blank" rel="noopener noreferrer">
             <UiIcon name="share" size={15} /> Partager sur X
           </a>
           <a className="btn" href={`${image}&download=1`} download>

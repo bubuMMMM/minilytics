@@ -195,12 +195,12 @@ export function OverviewCard({ data }: { data: Overview | null }) {
                 ) : null))}
                 {hasRevenue && !hidden.revenue && <Bar yAxisId="r" dataKey="revenue" fill={col.revenue} radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive={false} />}
                 {!hidden.prev && (
-                  <Line yAxisId="v" type="monotone" dataKey="prevVisitors" stroke={col.prev} strokeWidth={1.5} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} />
+                  <Line yAxisId="v" type="linear" dataKey="prevVisitors" stroke={col.prev} strokeWidth={1.5} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} />
                 )}
                 {!hidden.visitors && (
                   <Area
                     yAxisId="v"
-                    type="monotone"
+                    type="linear"
                     dataKey="visitors"
                     stroke={col.visitors}
                     strokeWidth={2}

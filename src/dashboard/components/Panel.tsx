@@ -16,7 +16,8 @@ export interface TabDef {
 /** How each dimension's label and icon are shown. */
 export function renderLabel(dim: string, row: Pick<BreakdownRow, 'label' | 'extra'>): ReactNode {
   const l = row.label;
-  const text = (s: ReactNode) => <span className="truncate">{s}</span>;
+  const isPath = dim === 'page' || dim === 'entry_page' || dim === 'exit_page' || dim === 'exit_link';
+  const text = (s: ReactNode) => <span className={`min-w-0 truncate ${isPath ? 'font-mono text-[12px]' : ''}`} title={typeof s === 'string' ? s : l ?? undefined}>{s}</span>;
   switch (dim) {
     case 'channel':
       return (

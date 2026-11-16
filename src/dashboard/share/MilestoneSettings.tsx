@@ -110,7 +110,7 @@ function MilestoneRow({ item, domain, disabled }: { item: MilestoneItem; domain:
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <a className="btn-accent" href={item.intentUrl} target="_blank" rel="noopener noreferrer" aria-label="Partager sur X">
+        <a className="btn-dark" href={item.intentUrl} target="_blank" rel="noopener noreferrer" aria-label="Partager sur X">
           <UiIcon name="share" size={15} /> Partager sur X
         </a>
         <a className="btn" href={`${item.image}?download=1`} download>

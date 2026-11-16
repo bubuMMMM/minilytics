@@ -23,6 +23,13 @@ export function fmtPct(n: number, digits = 0): string {
   return `${(v < 1 && v > 0 && digits === 0 ? v.toFixed(2) : v.toFixed(digits)).replace('.', ',')} %`;
 }
 
+/** Share of a total. A positive share that would round to 0 is « < 1 % », never « 0 % ». */
+export function fmtShare(value: number, total: number): string {
+  if (!total || value <= 0) return '0 %';
+  const p = (value / total) * 100;
+  return p < 1 ? '< 1 %' : `${Math.round(p)} %`;
+}
+
 export function fmtDuration(ms: number): string {
   const s = Math.round(ms / 1000);
   if (s < 60) return `${s} s`;

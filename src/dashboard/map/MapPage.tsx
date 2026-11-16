@@ -12,7 +12,7 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { Dropdown, PERIODS } from '../components/Toolbar';
 import { UiIcon } from '../components/UiIcon';
 import { api, qs, type Site } from '../lib/api';
-import { fmtNumber } from '../lib/format';
+import { fmtNumber, fmtShare } from '../lib/format';
 import { useApi } from '../lib/useApi';
 import { useQueryState } from '../lib/useQueryState';
 import { achievements, continentProgress, level, newlyReached, streak, timeline, type Achievement, type Discovery } from './game';
@@ -523,7 +523,7 @@ function Ranking({ data, select, discovered, locate, flyToPlace, isPublic }: Pan
                 <span className="relative" aria-hidden>{flag(c.country)}</span>
                 <span className="relative min-w-0 flex-1 truncate font-medium">{countryName(c.country)}</span>
                 <span className="tnum relative text-ink-2">{nf(c.visitors)}</span>
-                <span className="tnum relative w-10 text-right text-[11px] text-ink-4">{Math.round((c.visitors / total) * 100)} %</span>
+                <span className="tnum relative w-10 text-right text-[11px] text-ink-4">{fmtShare(c.visitors, total)}</span>
               </button>
             </li>
           ))}
@@ -653,7 +653,7 @@ function CountryDetail({ iso2, data, select, discovery, tz, live, regionNames, l
           <>
             <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-line bg-line text-[12px] [&>*]:bg-surface">
               <div className="p-3"><dt className="text-ink-3">Visiteurs</dt><dd className="tnum mt-0.5 text-[16px] font-semibold">{nf(row?.visitors ?? 0)}</dd></div>
-              <div className="p-3"><dt className="text-ink-3">Part</dt><dd className="tnum mt-0.5 text-[16px] font-semibold">{row ? Math.round((row.visitors / total) * 100) : 0} %</dd></div>
+              <div className="p-3"><dt className="text-ink-3">Part</dt><dd className="tnum mt-0.5 text-[16px] font-semibold">{row ? fmtShare(row.visitors, total) : '0 %'}</dd></div>
               <div className="p-3"><dt className="text-ink-3">Rang</dt><dd className="tnum mt-0.5 text-[16px] font-semibold">{rank ? `n° ${rank}` : '—'}</dd></div>
             </dl>
             <p className="mt-3 text-[12px] text-ink-3">Débloqué le <span className="font-medium text-ink-2">{fmtDateTime(disc.firstAt, tz)}</span> · {nf(disc.visitors)} visiteur{disc.visitors > 1 ? 's' : ''} depuis le début</p>
