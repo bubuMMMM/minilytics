@@ -63,10 +63,18 @@ export interface VitalPageRow {
   sparse: boolean;
 }
 
+export interface VitalTrendPoint extends VitalP75 {
+  bucket: string;
+  /** Vital events in this bucket. */
+  samples: number;
+  /** Events that included each metric (for the tooltip). */
+  counts: Record<VitalMetric, number>;
+}
+
 export interface VitalsReport {
   pages: VitalPageRow[];
   selected: VitalPageRow | null;
-  trend: ({ bucket: string } & VitalP75)[];
+  trend: VitalTrendPoint[];
   samples: number;
   sparse: boolean;
 }
@@ -145,10 +153,12 @@ export async function vitalsReport(ctx: Ctx, pathFilter?: string | null): Promis
 
   const labels = bucketLabels(ctx.range, ctx.offset);
   const selectedRec = selectedPath ? byPath.get(selectedPath) : undefined;
-  const trend = labels.map((label) => ({
-    bucket: label,
-    ...p75From(selectedRec?.byBucket.get(label) ?? []),
-  }));
+  const trend = labels.map((label) => {
+    const rows = selectedRec?.byBucket.get(label) ?? [];
+    const counts = {} as Record<VitalMetric, number>;
+    for (const m of VITAL_METRICS) counts[m] = rows.filter((r) => r[m] != null).length;
+    return { bucket: label, ...p75From(rows), samples: rows.length, counts };
+  });
 
   return { pages, selected, trend, samples: total, sparse: total < SPARSE_VITALS };
 }
@@ -174,11 +184,18 @@ export interface HeatElement {
   rage: number;
 }
 
+export interface HeatHit {
+  x: number;
+  y: number;
+  selector: string;
+}
+
 export interface HeatmapReport {
   pages: { path: string; clicks: number; rage: number }[];
   path: string | null;
   bucket: 'all' | 'desktop' | 'mobile';
   points: HeatCell[];
+  hits: HeatHit[];
   elements: HeatElement[];
   samples: number;
   rage: number;
@@ -248,8 +265,9 @@ export async function heatmapReport(ctx: Ctx, pathFilter?: string | null, bucket
   const elements = [...elMap.values()].sort((a, b) => b.clicks - a.clicks).slice(0, 25);
   const samples = pointsIn.length;
   const rage = pointsIn.filter((p) => p.rage).length;
+  const hits = pointsIn.slice(0, 500).map((p) => ({ x: p.x, y: p.y, selector: p.selector }));
 
-  return { pages, path, bucket, points, elements, samples, rage, sparse: samples < SPARSE_HEAT };
+  return { pages, path, bucket, points, hits, elements, samples, rage, sparse: samples < SPARSE_HEAT };
 }
 
 function safeJson(raw: string): unknown {

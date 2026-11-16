@@ -2,7 +2,7 @@
   "name": "minilytics",
   "version": "0.1.0",
   "private": true,
-  "description": "Analytique web orient\u00e9e revenu, auto-h\u00e9berg\u00e9e sur Vercel + Neon.",
+  "description": "Analytique web orientée revenu, auto-hébergée sur Vercel + Neon.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -26,9 +26,11 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
     "@resvg/resvg-js": "^2.6.2",
+    "@sparticuz/chromium": "^153.0.0",
     "d3-geo": "^3.1.1",
     "fflate": "^0.8.3",
     "hono": "^4.13.19",
+    "puppeteer-core": "^25.17.0",
     "satori": "^0.63.2",
     "topojson-client": "^3.1.0",
     "ws": "^8.22.0"

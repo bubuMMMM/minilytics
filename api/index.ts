@@ -1,7 +1,9 @@
 import app from '../src/worker/index.js';
 import { workerBindings } from '../src/server/bindings.js';
 
-export const config = { runtime: 'nodejs' };
+export const config = { runtime: 'nodejs', maxDuration: 60, memory: 1024 };
+export const maxDuration = 60;
+
 
 const handler = (req: Request) => app.fetch(req, workerBindings());
 

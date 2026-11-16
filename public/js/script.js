@@ -646,6 +646,9 @@
       try { if (n.isContentEditable || (n.getAttribute && n.getAttribute('contenteditable'))) return ''; } catch (err) {}
     }
     var txt = ((el && (el.innerText || el.textContent)) || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+    if (!txt) {
+      try { txt = ((el.getAttribute && (el.getAttribute('aria-label') || el.getAttribute('title'))) || '').replace(/\s+/g, ' ').trim().slice(0, 40); } catch (err) {}
+    }
     if (!txt || /@|\b\d{8,}\b/.test(txt)) return '';
     return txt;
   }

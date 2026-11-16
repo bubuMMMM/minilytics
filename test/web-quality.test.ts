@@ -66,6 +66,10 @@ describe('vitals report', () => {
     expect(prix?.rating.lcp).toBe('good');
     const selected = await vitalsReport(ctx(), '/prix');
     expect(selected.selected?.path).toBe('/prix');
+    const today = selected.trend.filter((row) => row.samples > 0);
+    expect(today.length).toBeGreaterThanOrEqual(1);
+    expect(today[0].counts.lcp).toBeGreaterThanOrEqual(1);
+    expect(selected.trend.some((row) => row.samples === 0 && row.lcp == null)).toBe(true);
   });
 });
 

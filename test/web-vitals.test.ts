@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { heatElementLabel, shortSelector } from '../src/shared/heatLabel';
 import {
   formatVital,
   p75,
@@ -52,5 +53,16 @@ describe('vital and heat parsers', () => {
     const hidden = parseHeatProps('input#email', { x: 0.1, y: 0.1, s: 'form>input#email', t: 'ada@example.com' });
     expect(hidden?.text).toBeNull();
     expect(parseHeatProps('a', { x: 1.2, y: 0.2 })).toBeNull();
+  });
+});
+
+
+describe('heatmap element labels', () => {
+  it('prefers a human role and visible text over the raw selector', () => {
+    const sel = 'header.sticky.top-0>div.mx-auto.flex>div.flex.items-center:nth-of-type(1)>nav.hidden.items-center>a.ml-nav-link:nth-of-type(4)';
+    expect(heatElementLabel(sel, 'Tarifs')).toBe('Lien · Tarifs');
+    expect(shortSelector(sel)).toBe('nav.hidden.items-center>a.ml-nav-link:nth-of-type(4)');
+    expect(heatElementLabel('button#cta.btn', null)).toBe('Bouton · #cta');
+    expect(heatElementLabel('div.wrapper', '')).toBe('Bloc');
   });
 });

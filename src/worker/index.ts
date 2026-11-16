@@ -18,6 +18,7 @@ import { registerAlerts } from './alerts.js';
 import { registerPlatform } from './platform.js';
 import { registerConnectors } from './connectors.js';
 import { registerWebQuality } from './web-quality.js';
+import { registerHeatmapPreview } from './heatmap-preview.js';
 import { registerWaitlist } from './waitlist.js';
 
 const app = new Hono<AppEnv>();
@@ -61,6 +62,7 @@ registerReplay(app);
 registerProfile(app);
 registerAlerts(app);
 registerWebQuality(app);
+registerHeatmapPreview(app);
 registerConnectors(app);
 
 app.all('/api/*', (c) => c.json({ error: ERR.notFound }, 404));

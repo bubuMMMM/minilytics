@@ -46,7 +46,8 @@ export function VitalsView() {
       key: metric,
       label: VITAL_LABEL[metric],
       color: METRIC_COLOR[metric],
-      values: data.trend.map((row) => row[metric] ?? 0),
+      values: data.trend.map((row) => row[metric]),
+      samples: data.trend.map((row) => row.counts[metric]),
     }];
   }, [data, metric]);
 
