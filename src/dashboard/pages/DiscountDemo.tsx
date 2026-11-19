@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { LiveProductPages, ProductFiles, HeatmapDemo } from './DiscountDemoViews';
+import { CommerceHero, CommercePriorities, CommerceCategories, StockManager } from './DiscountBusiness';
 import { TrendChart } from '../components/TrendChart';
 import { MetricTile } from '../components/StudioUI';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -7,7 +8,7 @@ import { UiIcon, type UiIconName } from '../components/UiIcon';
 import type { Activity } from '../components/LiveGlobe';
 
 const LiveGlobe = lazy(() => import('../components/LiveGlobe').then((m) => ({ default: m.LiveGlobe })));
-type View = 'overview' | 'live' | 'sales' | 'products' | 'heatmap' | 'acquisition' | 'ai' | 'geo';
+type View = 'overview' | 'live' | 'sales' | 'products' | 'stock' | 'heatmap' | 'acquisition' | 'ai' | 'geo';
 type Days = 7 | 30 | 90;
 const nf = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
 const euros = (n: number) => new Intl.NumberFormat('fr-FR', {style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
@@ -15,11 +16,12 @@ const menu: { id:View; label:string; icon:UiIconName; group:string }[] = [
   { id:'overview', label:"Vue d'ensemble", icon:'bar-chart', group:'ANALYSE' },
   { id:'live', label:'En direct', icon:'activity', group:'ANALYSE' },
   { id:'sales', label:'Ventes & conversion', icon:'coins', group:'ANALYSE' },
-  { id:'products', label:'Fiches produits', icon:'grid', group:'COMMERCE' },
-  { id:'heatmap', label:'Carte des clics', icon:'mouse', group:'COMMERCE' },
-  { id:'acquisition', label:'Acquisition', icon:'compass', group:'COMMERCE' },
-  { id:'ai', label:'Trafic IA & robots', icon:'bot', group:'INTELLIGENCE' },
-  { id:'geo', label:'Géographie', icon:'globe', group:'INTELLIGENCE' },
+  { id:'products', label:'Fiches produits', icon:'grid', group:'CATALOGUE' },
+  { id:'stock', label:'Stocks & arrivages', icon:'layers', group:'CATALOGUE' },
+  { id:'heatmap', label:'Carte des clics', icon:'mouse', group:'CATALOGUE' },
+  { id:'acquisition', label:'Sources du trafic', icon:'compass', group:'ACQUISITION' },
+  { id:'ai', label:'Visites issues des IA', icon:'bot', group:'ACQUISITION' },
+  { id:'geo', label:'Géographie', icon:'globe', group:'ACQUISITION' },
 ];
 const products = [
   {
@@ -132,8 +134,8 @@ const stats: Record<Days,{visitors:number;views:number;orders:number;revenue:num
 const flag: Record<string,string>={FR:'🇫🇷',BE:'🇧🇪',CH:'🇨🇭',ES:'🇪🇸',DE:'🇩🇪',IT:'🇮🇹'};
 function Brand() {
   return <div className="flex items-center gap-2.5" translate="no">
-    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-[13px] font-black tracking-[-.08em] text-canvas">D<span className="text-canvas">&</span>Q</span>
-    <span className="min-w-0 leading-tight"><span className="block truncate text-[13px] font-bold tracking-[-.025em] text-ink">Discount & Qualité</span><span className="block text-[10px] font-medium tracking-[.14em] text-ink-4 uppercase">Insights · Démo</span></span>
+    <span className="grid h-9 w-9 shrink-0 grid-cols-2 grid-rows-2 gap-[3px] rounded-xl border border-line bg-surface p-[6px]"><i className="rounded-[2px] bg-[#76ba12]"/><i className="rounded-[2px] bg-[#f16812]"/><i className="rounded-[2px] bg-[#9e1644]"/><i className="rounded-[2px] bg-[#48bde2]"/></span>
+    <span className="min-w-0 leading-tight"><span className="block truncate text-[13px] font-bold tracking-[-.025em] text-ink">Discount & Qualité</span><span className="block text-[10px] font-medium tracking-[.14em] text-ink-4 uppercase">PILOTAGE · DÉMO</span></span>
   </div>;
 }
 function Section({title,desc,children,className=''}:{title:string;desc?:string;children:React.ReactNode;className?:string}) {
@@ -159,23 +161,24 @@ export function DiscountDemo() {
   const totals=stats[days];
   const k=days/30;
   const buckets=useMemo(()=>Array.from({length:days},(_,i)=>new Date(Date.UTC(2026,10,19-days+1+i)).toISOString().slice(0,10)),[days]);
-  const visitors=useMemo(()=>buckets.map((_,i)=>Math.max(20,Math.round((totals.visitors/days)*(0.75+0.22*Math.sin(i*1.5)+0.16*Math.cos(i*.57)+.08*(i/days))))),[buckets,days,totals.visitors]);
-  const orders=useMemo(()=>visitors.map((v,i)=>Math.round(v*(.026+.008*Math.sin(i/3)))),[visitors]);
+  const visitors=useMemo(()=>{const w=buckets.map((_,i)=>1+.22*Math.sin(i*.65)+.16*Math.cos(i*.4)+.08*i/days);const sum=w.reduce((n,x)=>n+x,0);const v=w.slice(0,-1).map(x=>Math.round(x*totals.visitors/sum));v.push(totals.visitors-v.reduce((n,x)=>n+x,0));return v;},[buckets,days,totals.visitors]);
+  const orders=useMemo(()=>{const sum=visitors.reduce((n,x)=>n+x,0);const v=visitors.slice(0,-1).map(x=>Math.round(x*totals.orders/sum));v.push(totals.orders-v.reduce((n,x)=>n+x,0));return v;},[visitors,totals.orders]);
   const show=(v:View)=>view==='overview'||view===v;
   const selected=menu.find(x=>x.id===view);
   const online=58+tick%4;
   const act={...activity, online};
-  const inspect=(index:number)=>{setHeatProduct(index);setView('heatmap');window.scrollTo({top:0,behavior:'smooth'});};
+  const navigate=(target:View)=>{setView(target);setSidebar(false);window.scrollTo({top:0,behavior:'smooth'});};
+  const inspect=(index:number)=>{setHeatProduct(index);navigate('heatmap');};
   const nav=<div className="space-y-4">
-    {['ANALYSE','COMMERCE','INTELLIGENCE'].map(group=><div key={group}><div className="mb-2 px-3 text-[10px] font-semibold tracking-[.13em] text-ink-4">{group}</div><div className="space-y-1">{menu.filter(m=>m.group===group).map(item=><button key={item.id} type="button" onClick={()=>{setView(item.id);setSidebar(false);window.scrollTo({top:0,behavior:'smooth'});}} className={'flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-[13px] transition-colors '+(view===item.id?'bg-well font-semibold text-ink':'text-ink-3 hover:bg-well hover:text-ink')}><UiIcon name={item.icon} size={16}/><span>{item.label}</span>{view===item.id&&<span className="ml-auto h-1.5 w-1.5 rounded-full bg-ink"/>}</button>)}</div></div>)}
+    {['ANALYSE','CATALOGUE','ACQUISITION'].map(group=><div key={group}><div className="mb-2 px-3 text-[10px] font-semibold tracking-[.13em] text-ink-4">{group}</div><div className="space-y-1">{menu.filter(m=>m.group===group).map(item=><button key={item.id} type="button" onClick={()=>navigate(item.id)} className={'flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-[13px] transition-colors '+(view===item.id?'bg-accent-soft font-semibold text-accent':'text-ink-3 hover:bg-well hover:text-ink')}><UiIcon name={item.icon} size={16}/><span>{item.label}</span>{view===item.id&&<span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent"/>}</button>)}</div></div>)}
   </div>;
   return <div className="min-h-screen bg-canvas text-ink">
     <aside className="fixed inset-y-0 left-0 z-50 hidden w-[240px] flex-col border-r border-line bg-canvas px-3 lg:flex">
       <div className="flex h-[74px] items-center px-3"><Brand/></div>
-      <div className="mb-5 rounded-xl border border-line bg-surface px-3 py-3"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-accent"/><span className="text-[12px] font-semibold">discountetqualite.fr</span></div><div className="mt-1 pl-4 text-[11px] text-ink-4">E-commerce · PrestaShop</div></div>
+      <div className="mb-5 rounded-xl border border-line bg-surface px-3 py-3"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-success"/><span className="text-[12px] font-semibold">discountetqualite.fr</span></div><div className="mt-1 pl-4 text-[11px] text-ink-4">E-commerce · PrestaShop</div></div>
       <nav className="flex-1 overflow-y-auto">{nav}</nav>
       <div className="mb-4 rounded-xl border border-line bg-well p-3"><div className="flex items-center gap-2 text-[11px] font-semibold"><UiIcon name="shield" size={14}/> Mode démonstration</div><p className="mt-1.5 text-[11px] leading-relaxed text-ink-3">Données fictives. Aucune connexion au catalogue, aux commandes ou au trafic réel.</p></div>
-      <div className="border-t border-line px-2 py-3 text-[10px] text-ink-4">Propulsé par la base Minilytics</div>
+      <div className="border-t border-line px-2 py-3 text-[10px] text-ink-4">Minilytics · Édition déstockage</div>
     </aside>
     {sidebar && <div className="fixed inset-0 z-[80] bg-black/40 lg:hidden" onClick={()=>setSidebar(false)}><div onClick={e=>e.stopPropagation()} className="h-full w-[275px] overflow-y-auto bg-canvas p-4"><div className="mb-8 flex justify-between"><Brand/><button aria-label="Fermer le menu" onClick={()=>setSidebar(false)}><UiIcon name="x" size={20}/></button></div>{nav}</div></div>}
     <div className="lg:pl-[240px]">
@@ -185,16 +188,17 @@ export function DiscountDemo() {
       </header>
       <main className="mx-auto max-w-[1480px] px-4 pb-20 pt-8 sm:px-7 lg:px-9">
         <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
-          <div><div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[.14em] text-ink-4">DASHBOARD / DISCOUNT & QUALITÉ <span className="text-accent">✦</span></div><h1 className="text-[27px] font-semibold leading-tight tracking-[-.04em] sm:text-[33px]">{selected?.label}</h1><p className="mt-2 text-[13px] text-ink-3">Comprendre ce qui attire, convertit et rapporte à la boutique.</p></div>
+          <div><div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[.14em] text-ink-4">PILOTAGE DU DÉSTOCKAGE / DISCOUNT & QUALITÉ <span className="text-accent">✦</span></div><h1 className="text-[27px] font-semibold leading-tight tracking-[-.04em] sm:text-[33px]">{selected?.label}</h1><p className="mt-2 text-[13px] text-ink-3">Trafic, ventes, fiches produits, stocks et priorités : les données utiles pour décider.</p></div>
           <div className="flex items-center gap-2"><div className="inline-flex rounded-lg border border-line bg-surface p-1">{([7,30,90] as Days[]).map(d=><button key={d} onClick={()=>setDays(d)} aria-pressed={days===d} className={'rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors '+(days===d?'bg-ink text-canvas':'text-ink-3 hover:bg-well')}>{d} j</button>)}</div><button onClick={()=>setTick(x=>x+1)} title="Actualiser la simulation" aria-label="Actualiser la simulation" className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface text-ink-2 hover:bg-well"><UiIcon name="refresh" size={16}/></button></div>
         </div>
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-well px-4 py-2.5 text-[12px] text-ink-3"><span><strong>Prototype · données simulées</strong> — les chiffres illustrent le potentiel, ils ne proviennent pas de Discount & Qualité.</span><span className="shrink-0 font-mono">V2 / 19.11.2026</span></div>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-well px-4 py-2.5 text-[12px] text-ink-3"><span><strong>Prototype · données simulées</strong> — les chiffres illustrent le potentiel, ils ne proviennent pas de Discount & Qualité.</span><span className="shrink-0 font-mono">V3 / 19.11.2026</span></div>
+        {view==='overview'&&<CommerceHero onStock={()=>navigate('stock')} onCatalog={()=>navigate('products')}/>}
         {(view==='overview'||view==='live')&&<LiveProductPages days={days} tick={tick} onInspect={inspect} compact={view==='overview'}/>}
         {show('overview') || show('sales') ? <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <MetricTile focus label="Chiffre d'affaires" icon="eye" number="01" value={euros(totals.revenue)} caption={'Estimé · '+days+' jours'} current={totals.revenue} previous={totals.previous}/>
+          <MetricTile focus label="CA e-commerce" icon="coins" number="01" value={euros(totals.revenue)} caption={'Estimé · '+days+' jours'} current={totals.revenue} previous={totals.previous}/>
           <MetricTile label="Visiteurs uniques" icon="users" number="02" value={nf(totals.visitors)} caption="Audience boutique" current={totals.visitors} previous={Math.round(totals.visitors*.88)}/>
           <MetricTile label="Commandes" icon="layers" number="03" value={nf(totals.orders)} caption="Transactions simulées" current={totals.orders} previous={Math.round(totals.orders*.87)}/>
-          <MetricTile label="Taux de conversion" icon="clock" number="04" value={(totals.orders/totals.visitors*100).toFixed(2).replace('.',',')+' %'} caption="Visiteurs vers commandes" current={totals.orders/totals.visitors} previous={.031}/>
+          <MetricTile label="Conversion boutique" icon="target" number="04" value={(totals.orders/totals.visitors*100).toFixed(2).replace('.',',')+' %'} caption="Visiteurs vers commandes" current={totals.orders/totals.visitors} previous={.031}/>
         </div> : null}
         {show('overview') || show('sales') ? <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,.85fr)]">
           <Section title="Évolution des performances" desc={'Visiteurs et commandes · '+days+' derniers jours (simulation)'}>
@@ -209,7 +213,7 @@ export function DiscountDemo() {
         </div> : null}
         {show('sales') && <div className="mb-4 grid gap-4 md:grid-cols-3">{[{title:'Vue produit → panier',num:'11,8 %',sub:'Intention d’achat'},{title:'Panier → checkout',num:'64,2 %',sub:'Progression tunnel'},{title:'Checkout → achat',num:'71,3 %',sub:'Commandes confirmées'}].map(x=><div key={x.title} className="ml-bento p-6"><div className="text-[12px] text-ink-3">{x.title}</div><div className="mt-3 text-3xl font-semibold tracking-tight">{x.num}</div><div className="mt-2 text-xs text-ink-4">{x.sub} · Simulation</div></div>)}</div>}
         {show('overview') || show('geo') ? <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(290px,1fr)]">
-          <Section title="Le monde de vos visiteurs" desc="Globe interactif, pays et activité simulés" className="overflow-hidden">
+          <Section title="Origine géographique des visiteurs" desc="Globe interactif, pays et activité simulés" className="overflow-hidden">
             <Suspense fallback={<div className="flex h-[300px] items-center justify-center text-sm text-ink-4">Chargement du globe…</div>}><LiveGlobe example={act} exampleLabel hideIntro hideMapLink compact /></Suspense>
           </Section>
           <Section title="Répartition géographique" desc="Provenance estimée des visiteurs">
@@ -219,8 +223,11 @@ export function DiscountDemo() {
         </div> : null}
         {show('overview') || show('products') || show('acquisition') ? <div className="mb-4 grid gap-4 xl:grid-cols-2">
           {(show('overview')||show('acquisition'))&&<Section title="Canaux d'acquisition" desc="Les sources qui génèrent des visites"><HorizontalBars items={channels.map(x=>({label:x.name,num:x.share,detail:x.share.toFixed(1).replace('.',',')+' %'}))}/></Section>}
-          {(show('overview')||show('products'))&&<Section title="Produits les plus consultés" desc="Exemples de références déstockées"><div className="space-y-1">{products.map((p,i)=><div key={p.name} className="flex items-center gap-3 border-b border-line/70 py-3 last:border-0"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-well font-mono text-[11px] text-ink-3">{String(i+1).padStart(2,'0')}</span><span className="min-w-0 flex-1"><span className="block truncate text-[12px] font-medium">{p.name}</span><span className="text-[11px] text-ink-4">{p.ref}</span></span><span className="text-right"><span className="block text-[12px] font-semibold tabular-nums">{nf(p.views)}</span><span className="text-[11px] text-ink-4">vues</span></span></div>)}</div></Section>}
+          {(show('overview')||show('products'))&&<Section title="Fiches les plus consultées" desc="Références inspirées du catalogue · données simulées"><div className="space-y-1">{products.map((p,i)=><div key={p.name} className="flex items-center gap-3 border-b border-line/70 py-3 last:border-0"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-well font-mono text-[11px] text-ink-3">{String(i+1).padStart(2,'0')}</span><span className="min-w-0 flex-1"><span className="block truncate text-[12px] font-medium">{p.name}</span><span className="text-[11px] text-ink-4">{p.ref}</span></span><span className="text-right"><span className="block text-[12px] font-semibold tabular-nums">{nf(p.views)}</span><span className="text-[11px] text-ink-4">vues</span></span></div>)}</div></Section>}
         </div> : null}
+        {view==='overview'&&<div className="my-4"><CommercePriorities days={days} products={products} onProduct={inspect} onStock={()=>navigate('stock')}/></div>}
+        {view==='overview'&&<div className="my-4"><CommerceCategories/></div>}
+        {view==='stock'&&<StockManager products={products} onProduct={inspect}/>}
         {view==='products'&&<ProductFiles days={days} onInspect={inspect}/>}
         {view==='heatmap'&&<HeatmapDemo days={days} productIndex={heatProduct} onSelectProduct={setHeatProduct}/>}
         {view==='acquisition'&&<div className="grid gap-4 md:grid-cols-2"><Section title="Appareils" desc="Visites par type de terminal"><HorizontalBars items={[{label:'Mobile',num:73,detail:'73 %'},{label:'Ordinateur',num:23,detail:'23 %'},{label:'Tablette',num:4,detail:'4 %'}]}/></Section><Section title="Pages d'entrée" desc="Portes d’accès au catalogue"><HorizontalBars items={[{label:'/',num:7820},{label:'/salle-de-bain',num:4510},{label:'/chauffage',num:3210},{label:'/destockage',num:2870},{label:'/nouveautes',num:1250}]}/></Section></div>}
