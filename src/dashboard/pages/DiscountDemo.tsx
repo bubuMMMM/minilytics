@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { LiveProductPages, ProductFiles, HeatmapDemo } from './DiscountDemoViews';
 import { CommerceHero, CommercePriorities, CommerceCategories, StockManager } from './DiscountBusiness';
+import { DiscountReputation, ReputationTeaser } from './DiscountReputation';
 import { TrendChart } from '../components/TrendChart';
 import { MetricTile } from '../components/StudioUI';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -8,7 +9,7 @@ import { UiIcon, type UiIconName } from '../components/UiIcon';
 import type { Activity } from '../components/LiveGlobe';
 
 const LiveGlobe = lazy(() => import('../components/LiveGlobe').then((m) => ({ default: m.LiveGlobe })));
-type View = 'overview' | 'live' | 'sales' | 'products' | 'stock' | 'heatmap' | 'acquisition' | 'ai' | 'geo';
+type View = 'overview' | 'live' | 'sales' | 'products' | 'stock' | 'heatmap' | 'acquisition' | 'ai' | 'geo' | 'reputation';
 type Days = 7 | 30 | 90;
 const nf = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
 const euros = (n: number) => new Intl.NumberFormat('fr-FR', {style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
@@ -22,6 +23,7 @@ const menu: { id:View; label:string; icon:UiIconName; group:string }[] = [
   { id:'acquisition', label:'Sources du trafic', icon:'compass', group:'ACQUISITION' },
   { id:'ai', label:'Visites issues des IA', icon:'bot', group:'ACQUISITION' },
   { id:'geo', label:'Géographie', icon:'globe', group:'ACQUISITION' },
+  { id:'reputation', label:'Mentions & réputation', icon:'megaphone', group:'E-RÉPUTATION' },
 ];
 const products = [
   {
@@ -165,12 +167,13 @@ export function DiscountDemo() {
   const orders=useMemo(()=>{const sum=visitors.reduce((n,x)=>n+x,0);const v=visitors.slice(0,-1).map(x=>Math.round(x*totals.orders/sum));v.push(totals.orders-v.reduce((n,x)=>n+x,0));return v;},[visitors,totals.orders]);
   const show=(v:View)=>view==='overview'||view===v;
   const selected=menu.find(x=>x.id===view);
+  const isReputation=view==='reputation';
   const online=58+tick%4;
   const act={...activity, online};
   const navigate=(target:View)=>{setView(target);setSidebar(false);window.scrollTo({top:0,behavior:'smooth'});};
   const inspect=(index:number)=>{setHeatProduct(index);navigate('heatmap');};
   const nav=<div className="space-y-4">
-    {['ANALYSE','CATALOGUE','ACQUISITION'].map(group=><div key={group}><div className="mb-2 px-3 text-[10px] font-semibold tracking-[.13em] text-ink-4">{group}</div><div className="space-y-1">{menu.filter(m=>m.group===group).map(item=><button key={item.id} type="button" onClick={()=>navigate(item.id)} className={'flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-[13px] transition-colors '+(view===item.id?'bg-accent-soft font-semibold text-accent':'text-ink-3 hover:bg-well hover:text-ink')}><UiIcon name={item.icon} size={16}/><span>{item.label}</span>{view===item.id&&<span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent"/>}</button>)}</div></div>)}
+    {['ANALYSE','CATALOGUE','ACQUISITION','E-RÉPUTATION'].map(group=><div key={group}><div className="mb-2 px-3 text-[10px] font-semibold tracking-[.13em] text-ink-4">{group}</div><div className="space-y-1">{menu.filter(m=>m.group===group).map(item=><button key={item.id} type="button" onClick={()=>navigate(item.id)} className={'flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-[13px] transition-colors '+(view===item.id?'bg-accent-soft font-semibold text-accent':'text-ink-3 hover:bg-well hover:text-ink')}><UiIcon name={item.icon} size={16}/><span>{item.label}</span>{view===item.id&&<span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent"/>}</button>)}</div></div>)}
   </div>;
   return <div className="min-h-screen bg-canvas text-ink">
     <aside className="fixed inset-y-0 left-0 z-50 hidden w-[240px] flex-col border-r border-line bg-canvas px-3 lg:flex">
@@ -188,11 +191,13 @@ export function DiscountDemo() {
       </header>
       <main className="mx-auto max-w-[1480px] px-4 pb-20 pt-8 sm:px-7 lg:px-9">
         <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
-          <div><div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[.14em] text-ink-4">PILOTAGE DU DÉSTOCKAGE / DISCOUNT & QUALITÉ <span className="text-accent">✦</span></div><h1 className="text-[27px] font-semibold leading-tight tracking-[-.04em] sm:text-[33px]">{selected?.label}</h1><p className="mt-2 text-[13px] text-ink-3">Trafic, ventes, fiches produits, stocks et priorités : les données utiles pour décider.</p></div>
+          <div><div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[.14em] text-ink-4">{isReputation?'VEILLE DE MARQUE / VEILLEO':'PILOTAGE DU DÉSTOCKAGE / DISCOUNT & QUALITÉ'} <span className="text-accent">✦</span></div><h1 className="text-[27px] font-semibold leading-tight tracking-[-.04em] sm:text-[33px]">{selected?.label}</h1><p className="mt-2 text-[13px] text-ink-3">{isReputation?'Écouter la marque, les avis et les réseaux sans quitter le cockpit Minilytics.':'Trafic, ventes, fiches produits, stocks et priorités : les données utiles pour décider.'}</p></div>
           <div className="flex items-center gap-2"><div className="inline-flex rounded-lg border border-line bg-surface p-1">{([7,30,90] as Days[]).map(d=><button key={d} onClick={()=>setDays(d)} aria-pressed={days===d} className={'rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors '+(days===d?'bg-ink text-canvas':'text-ink-3 hover:bg-well')}>{d} j</button>)}</div><button onClick={()=>setTick(x=>x+1)} title="Actualiser la simulation" aria-label="Actualiser la simulation" className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface text-ink-2 hover:bg-well"><UiIcon name="refresh" size={16}/></button></div>
         </div>
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-well px-4 py-2.5 text-[12px] text-ink-3"><span><strong>Prototype · données simulées</strong> — les chiffres illustrent le potentiel, ils ne proviennent pas de Discount & Qualité.</span><span className="shrink-0 font-mono">V3 / 19.11.2026</span></div>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-well px-4 py-2.5 text-[12px] text-ink-3"><span><strong>Prototype · données simulées</strong> — les chiffres illustrent le potentiel, ils ne proviennent pas de Discount & Qualité.</span><span className="shrink-0 font-mono">V4 / 19.11.2026</span></div>
         {view==='overview'&&<CommerceHero onStock={()=>navigate('stock')} onCatalog={()=>navigate('products')}/>}
+        {view==='overview'&&<ReputationTeaser days={days} onOpen={()=>navigate('reputation')}/>}
+        {isReputation&&<DiscountReputation days={days}/>}
         {view==='live'&&<LiveProductPages days={days} tick={tick} onInspect={inspect}/>}
         {show('overview') || show('sales') ? <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
           <MetricTile focus label="CA e-commerce" icon="coins" number="01" value={euros(totals.revenue)} caption={'Estimé · '+days+' jours'} current={totals.revenue} previous={totals.previous}/>
@@ -239,7 +244,7 @@ export function DiscountDemo() {
           <Section title="Assistants qui amènent du trafic" desc="Visites attribuées aux référents IA"><HorizontalBars items={[{label:'ChatGPT',num:69,detail:'69 %'},{label:'Perplexity',num:18,detail:'18 %'},{label:'Claude',num:9,detail:'9 %'},{label:'Gemini',num:4,detail:'4 %'}]}/></Section>
           <Section title="Exploration par robots" desc="Exemples de passages de crawlers"><HorizontalBars items={[{label:'GPTBot',num:560},{label:'ClaudeBot',num:322},{label:'PerplexityBot',num:195},{label:'Google-Extended',num:132}]}/></Section>
         </div>}
-        <footer className="mt-10 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-5 text-[11px] text-ink-4"><span>Discount & Qualité Insights · prototype indépendant basé sur Minilytics</span><span>Sans suivi réel, sans accès aux données commerciales · {days} jours</span></footer>
+        <footer className="mt-10 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-5 text-[11px] text-ink-4"><span>Discount & Qualité Insights · Minilytics + interface de veille inspirée de Veilleo</span><span>Données de démonstration · Pas de collecte automatique · {days} jours</span></footer>
       </main>
     </div>
   </div>;
