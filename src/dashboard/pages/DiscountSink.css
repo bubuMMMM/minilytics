@@ -411,3 +411,33 @@
   .dq-sink .dq-command,
   .dq-sink .dq-source-card { animation: none !important; transition: none !important; }
 }
+
+/* Sink-like floating selection dock: active filters stay visible across a long feed. */
+.dq-sink .dq-filter-dock {
+  position: fixed;
+  z-index: 70;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 28px);
+  width: max-content;
+  border-radius: 13px;
+  background: #282724;
+  color: #fff;
+  padding: 7px 7px 7px 15px;
+  box-shadow: 0 12px 38px -12px rgb(22 20 18 / .42);
+  animation: dq-dock-in .2s var(--dq-motion) both;
+}
+.dq-sink .dq-filter-dock button { border-radius: 7px; transition: border-color .16s, background-color .16s; }
+.dq-sink .dq-filter-dock button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+@keyframes dq-dock-in {
+  from { opacity: 0; translate: 0 18px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@media(max-width:640px) {
+  .dq-sink .dq-filter-dock { bottom: max(12px, env(safe-area-inset-bottom)); padding-left: 11px; gap: 6px; }
+  .dq-sink .dq-filter-dock > span { display: none; }
+}
