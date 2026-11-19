@@ -6,11 +6,81 @@ type Days = 7 | 30 | 90;
 const nf = (v:number) => new Intl.NumberFormat('fr-FR').format(v);
 const eur = (v:number) => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
 const products = [
-  { name:'Cabine de douche intégrale', category:'Salle de bain', path:'/cabine-douche-integrale', views:3231, orders:51, revenue:17442 },
-  { name:'Radiateur à inertie 1500 W', category:'Chauffage', path:'/radiateur-inertie-1500w', views:2670, orders:44, revenue:9130 },
-  { name:'Meuble vasque 80 cm', category:'Mobilier', path:'/meuble-vasque-80cm', views:2384, orders:39, revenue:10725 },
-  { name:'Mitigeur thermostatique', category:'Robinetterie', path:'/mitigeur-thermostatique', views:1996, orders:33, revenue:4455 },
-  { name:'Porte de douche coulissante', category:'Salle de bain', path:'/porte-douche-coulissante', views:1853, orders:27, revenue:6625 },
+  {
+    "name": "Radiateur Chaleur Douce 2000W THERMOR",
+    "category": "Chauffage",
+    "path": "/exemple/radiateur-thermor-2000w",
+    "ref": "THERMOR",
+    "id": "TH-2000",
+    "condition": "Neuf déclassé",
+    "views": 3231,
+    "orders": 51,
+    "price": 329,
+    "oldPrice": 584,
+    "stock": 12,
+    "change": 24,
+    "revenue": 16779
+  },
+  {
+    "name": "Paroi de Douche AKW LevelBest 800x1900mm",
+    "category": "Salle de bain",
+    "path": "/exemple/paroi-douche-akw",
+    "ref": "AKW",
+    "id": "LB00216BK",
+    "condition": "Neuf",
+    "views": 2670,
+    "orders": 44,
+    "price": 99,
+    "oldPrice": 477,
+    "stock": 31,
+    "change": 18,
+    "revenue": 4356
+  },
+  {
+    "name": "Chauffe-Eau ATLANTIC Chaufféo 50L",
+    "category": "Chauffe-eau",
+    "path": "/exemple/chauffe-eau-atlantic-50l",
+    "ref": "ATLANTIC",
+    "id": "AT-50L",
+    "condition": "Neuf déclassé",
+    "views": 2384,
+    "orders": 39,
+    "price": 199,
+    "oldPrice": 439,
+    "stock": 9,
+    "change": 12,
+    "revenue": 7761
+  },
+  {
+    "name": "Ponceuse DEWALT XR 18V Brushless",
+    "category": "Bricolage",
+    "path": "/exemple/ponceuse-dewalt-xr",
+    "ref": "DEWALT",
+    "id": "DCW200",
+    "condition": "Neuf",
+    "views": 1996,
+    "orders": 33,
+    "price": 129,
+    "oldPrice": 306,
+    "stock": 3,
+    "change": 9,
+    "revenue": 4257
+  },
+  {
+    "name": "Chaudière à Granulés MORVAN GM Easy 12",
+    "category": "Chauffage",
+    "path": "/exemple/chaudiere-morvan",
+    "ref": "MORVAN",
+    "id": "GM-EASY12",
+    "condition": "Neuf",
+    "views": 1853,
+    "orders": 3,
+    "price": 2849,
+    "oldPrice": 11569,
+    "stock": 4,
+    "change": 7,
+    "revenue": 8547
+  }
 ];
 const feed = [
   {source:'Google',city:'Nantes',device:'Mobile',index:0,age:'À l’instant'},
@@ -46,13 +116,13 @@ export function ProductFiles({days,onInspect}:{days:Days;onInspect:(index:number
   const [query,setQuery]=useState('');
   const [sort,setSort]=useState<'views'|'orders'|'revenue'>('views');
   const factor=days/30;
-  const rows=products.map((p,index)=>({...p,index,views:Math.round(p.views*factor),orders:Math.round(p.orders*factor),revenue:Math.round(p.revenue*factor)})).filter(p=>(p.name+' '+p.category).toLowerCase().includes(query.toLowerCase())).sort((a,b)=>b[sort]-a[sort]);
+  const rows=products.map((p,index)=>({...p,index,views:Math.round(p.views*factor),orders:Math.round(p.orders*factor),revenue:Math.round(p.revenue*factor)})).filter(p=>(p.name+' '+p.category+' '+p.ref+' '+p.id).toLowerCase().includes(query.toLowerCase())).sort((a,b)=>b[sort]-a[sort]);
   const views=Math.round(products.reduce((n,p)=>n+p.views,0)*factor);
   return <div className="space-y-4">
-    <div className="grid gap-3 sm:grid-cols-3"><MetricTile label="Vues des fiches" value={nf(views)} caption={'Toutes les fiches · '+days+' jours'} icon="eye" number="05" current={views} previous={views*.87}/><MetricTile label="Fiches étudiées" value={nf(products.length)} caption="Exemples de produits" icon="layers" number="06"/><MetricTile label="Moyenne par fiche" value={nf(Math.round(views/products.length))} caption="Consultations simulées" icon="users" number="07"/></div>
-    <Panel title="Vues par fiche produit" desc="Classement par consultations, commandes ou chiffre d'affaires simulés">
+    <div className="grid gap-3 sm:grid-cols-3"><MetricTile label="Vues des fiches" value={nf(views)} caption={'Top 5 fiches · '+days+' jours'} icon="eye" number="05" current={views} previous={views*.87}/><MetricTile label="Fiches étudiées" value={nf(products.length)} caption="Références de démonstration" icon="layers" number="06"/><MetricTile label="Moyenne par fiche" value={nf(Math.round(views/products.length))} caption="Consultations simulées" icon="users" number="07"/></div>
+    <Panel title="Vues par fiche produit" desc="Exemples du vrai catalogue. Vues, ventes, stocks et conversions simulés.">
       <div className="mb-5 flex flex-wrap gap-3"><label className="flex min-h-9 min-w-[200px] flex-1 items-center gap-2 rounded-lg border border-line bg-surface px-3"><UiIcon name="search" size={15} className="text-ink-4"/><input aria-label="Rechercher une fiche produit" placeholder="Rechercher une fiche…" value={query} onChange={e=>setQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent text-[12px] text-ink outline-none placeholder:text-ink-4"/></label><label className="flex items-center gap-2 rounded-lg border border-line px-3 text-[12px] text-ink-3">Trier par<select aria-label="Tri des fiches" value={sort} onChange={e=>setSort(e.target.value as typeof sort)} className="bg-transparent py-2 text-[12px] font-semibold text-ink outline-none"><option value="views">Vues</option><option value="orders">Commandes</option><option value="revenue">Revenus</option></select></label></div>
-      <div className="overflow-x-auto"><table className="w-full min-w-[650px] text-left text-[12px]"><thead className="border-b border-line text-ink-4"><tr><th className="pb-3 font-medium">Fiche / URL</th><th className="pb-3 text-right font-medium">Vues</th><th className="pb-3 text-right font-medium">Commandes</th><th className="pb-3 text-right font-medium">Conversion</th><th className="pb-3 text-right font-medium">CA</th><th className="pb-3 text-right font-medium">Clics</th></tr></thead><tbody>{rows.map(p=><tr key={p.path} className="border-b border-line/60 last:border-b-0"><td className="py-3"><div className="font-semibold text-ink">{p.name}</div><div className="font-mono text-[10px] text-ink-4">{p.path}</div></td><td className="py-3 text-right font-semibold tabular-nums">{nf(p.views)}</td><td className="py-3 text-right tabular-nums">{nf(p.orders)}</td><td className="py-3 text-right tabular-nums">{p.views?(100*p.orders/p.views).toFixed(1).replace('.',','):'0'} %</td><td className="py-3 text-right tabular-nums">{eur(p.revenue)}</td><td className="py-3 text-right"><button type="button" onClick={()=>onInspect(p.index)} className="rounded-md border border-line px-2.5 py-1.5 text-[11px] font-semibold text-accent hover:bg-accent-soft">Carte des clics</button></td></tr>)}</tbody></table>{!rows.length&&<p className="py-6 text-center text-ink-4">Aucune fiche trouvée.</p>}</div>
+      <div className="overflow-x-auto"><table className="w-full min-w-[650px] text-left text-[12px]"><thead className="border-b border-line text-ink-4"><tr><th className="pb-3 font-medium">Fiche / URL</th><th className="pb-3 text-right font-medium">Vues</th><th className="pb-3 text-right font-medium">Commandes</th><th className="pb-3 text-right font-medium">Conversion</th><th className="pb-3 text-right font-medium">CA simulé</th><th className="pb-3 text-right font-medium">Clics</th></tr></thead><tbody>{rows.map(p=><tr key={p.path} className="border-b border-line/60 last:border-b-0"><td className="py-3"><div className="font-semibold text-ink">{p.name}</div><div className="font-mono text-[10px] text-ink-4">{p.id} · {p.condition}</div></td><td className="py-3 text-right font-semibold tabular-nums">{nf(p.views)}</td><td className="py-3 text-right tabular-nums">{nf(p.orders)}</td><td className="py-3 text-right tabular-nums">{p.views?(100*p.orders/p.views).toFixed(1).replace('.',','):'0'} %</td><td className="py-3 text-right tabular-nums">{eur(p.revenue)}</td><td className="py-3 text-right"><button type="button" onClick={()=>onInspect(p.index)} className="rounded-md border border-line px-2.5 py-1.5 text-[11px] font-semibold text-accent hover:bg-accent-soft">Carte des clics</button></td></tr>)}</tbody></table>{!rows.length&&<p className="py-6 text-center text-ink-4">Aucune fiche trouvée.</p>}</div>
       <p className="mt-4 border-t border-line pt-3 text-[11px] text-ink-4">Les URL sont des exemples et ne correspondent pas nécessairement aux vraies URL de la boutique.</p>
     </Panel>
   </div>;
@@ -98,17 +168,17 @@ export function HeatmapDemo({days,productIndex,onSelectProduct}:{days:Days;produ
               <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">DÉSTOCKAGE · {p.category}</p>
               <div className="mt-2 text-[16px] font-semibold leading-snug sm:text-[20px]">{p.name}</div>
               <div className="mt-3 text-[10px] text-zinc-500">★★★★☆ <span>Exemple de fiche</span></div>
-              <div className="mt-6 flex items-end gap-3"><strong className="text-[28px] tracking-tight">{eur(p.revenue/p.orders)}</strong><span className="pb-1 text-[11px] text-zinc-400 line-through">{eur(p.revenue/p.orders*1.42)}</span></div>
-              <p className="mt-2 text-[11px] font-medium text-green-700">● En stock (simulation)</p>
+              <div className="mt-6 flex items-end gap-3"><strong className="text-[28px] tracking-tight">{eur(p.price)}</strong><span className="pb-1 text-[11px] text-zinc-400 line-through">{eur(p.oldPrice)}</span></div>
+              <p className="mt-2 text-[11px] font-medium text-green-700">● En stock · simulation</p>
               <div className="mt-5 flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 text-[12px] font-semibold text-white"><UiIcon name="plus" size={14}/> Ajouter au panier</div>
               <p className="mt-5 border-t border-zinc-100 pt-4 text-[11px] text-zinc-500">Livraison disponible, produit neuf ou déclassé selon état.</p>
             </div>
           </div>
           <div className="pointer-events-none absolute inset-0 z-20" style={{opacity:opacity/100}}>
-            {hotspots.map(h=>{const x=device==='mobile'?h.mx:h.x,y=device==='mobile'?h.my:h.y;const size=mode==='density'?Math.round(92+76*h.clicks/Math.max(1,hotspots[0].clicks)):28;return <button key={h.index} type="button" title={h.label+' · '+nf(h.clicks)+' clics fictifs'} onClick={()=>setHighlight(h.index)} className="absolute flex items-center justify-center rounded-full p-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" style={{left:x+'%',top:y+'%',transform:'translate(-50%,-50%)',width:size,height:size,pointerEvents:'auto'}}>{mode==='density'?<span className="h-full w-full rounded-full" style={{background:'radial-gradient(circle, rgb(var(--accent) / .58) 0%, rgb(var(--accent) / .28) 30%, rgb(var(--accent) / .09) 58%, transparent 73%)'}}/>:<span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-accent text-[10px] font-bold text-accent-fg shadow-lg">{h.index+1}</span>}</button>;})}
+            {hotspots.map(h=>{const x=device==='mobile'?h.mx:h.x,y=device==='mobile'?h.my:h.y;const size=mode==='density'?Math.round(92+76*h.clicks/Math.max(1,hotspots[0].clicks)):28;return <button key={h.index} type="button" title={h.label+' · '+nf(h.clicks)+' clics fictifs'} onClick={()=>setHighlight(h.index)} className="absolute flex items-center justify-center rounded-full p-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" style={{left:x+'%',top:y+'%',transform:'translate(-50%,-50%)',width:size,height:size,pointerEvents:'auto'}}>{mode==='density'?<span className="h-full w-full rounded-full" style={{background:'radial-gradient(circle, rgba(239,68,68,.70) 0%, rgba(249,115,22,.48) 28%, rgba(245,158,11,.22) 55%, transparent 75%)'}}/>:<span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-orange-500 text-[10px] font-bold text-white shadow-lg">{h.index+1}</span>}</button>;})}
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[11px] text-ink-4"><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-accent opacity-25"/><i className="h-2 w-2 rounded-full bg-accent opacity-60"/><i className="h-2 w-2 rounded-full bg-accent"/>Faible → forte concentration</span><span>Clique sur une zone pour afficher ses clics</span></div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[11px] text-ink-4"><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-amber-300"/><i className="h-2 w-2 rounded-full bg-orange-400"/><i className="h-2 w-2 rounded-full bg-red-500"/>Faible → forte chaleur</span><span>Clique sur une zone pour afficher ses clics</span></div>
       </div>
       {highlight!==null&&<div className="mt-4 flex items-center justify-between gap-2 rounded-lg border border-accent/30 bg-accent-soft px-4 py-3 text-[12px]"><span><strong>{hotAreas[highlight].label}</strong> · {nf(hotspots.find(h=>h.index===highlight)?.clicks??0)} clics simulés</span><button onClick={()=>setHighlight(null)} aria-label="Fermer le détail"><UiIcon name="x" size={16}/></button></div>}
     </Panel>
