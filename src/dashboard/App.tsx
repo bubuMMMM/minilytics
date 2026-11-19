@@ -1,3 +1,4 @@
+import { DiscountDemo } from './pages/DiscountDemo';
 import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react';
 import { loadMe } from './lib/me';
 import { Landing } from './pages/Landing';
@@ -96,12 +97,12 @@ export function App() {
     return () => window.removeEventListener('ml:logout', out);
   }, []);
 
-  if (path === '/') return <Landing />;
+  if (path === '/') return <DiscountDemo />;
   if (path === '/signup') return <Signup />;
   // A genuine, read-only public demonstration; private customer data stays behind authentication.
   if (path === '/demo/map') return <Suspense fallback={<Loading />}><MapPage publicSiteId={new URLSearchParams(window.location.search).get('site') || '2z1f1t02626v5c5w'} /></Suspense>;
   if (path === '/api-docs') return <Suspense fallback={<Loading />}><ApiDocs /></Suspense>;
-  if (path === '/demo') return <PublicDemoRoute />;
+  if (path === '/demo') return <DiscountDemo />;
   // Read-only shared dashboards: no login, the link (and its optional password) is the credential.
   const share = /^\/share\/([\w-]{20,80})(?:\/(\w+))?$/.exec(path);
   if (share) return <Suspense fallback={<Loading />}><SharePage key={share[1]} token={share[1]} view={share[2]} /></Suspense>;
