@@ -36,7 +36,7 @@ export function MetricTile({ label, value, caption, icon, number, focus = false,
   label: string;
   value: string;
   caption: string;
-  icon: 'users' | 'eye' | 'layers' | 'clock';
+  icon: 'users' | 'eye' | 'layers' | 'clock' | 'coins' | 'target';
   number: string;
   focus?: boolean;
   current?: number;
