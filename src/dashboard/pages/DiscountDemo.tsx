@@ -22,11 +22,81 @@ const menu: { id:View; label:string; icon:UiIconName; group:string }[] = [
   { id:'geo', label:'Géographie', icon:'globe', group:'INTELLIGENCE' },
 ];
 const products = [
-  { name:'Cabine de douche intégrale', ref:'Salle de bain', views:3231, orders:51, revenue:17442, change:24 },
-  { name:'Radiateur à inertie 1500 W', ref:'Chauffage', views:2670, orders:44, revenue:9130, change:18 },
-  { name:'Meuble vasque 80 cm', ref:'Mobilier', views:2384, orders:39, revenue:10725, change:12 },
-  { name:'Mitigeur thermostatique', ref:'Robinetterie', views:1996, orders:33, revenue:4455, change:9 },
-  { name:'Porte de douche coulissante', ref:'Salle de bain', views:1853, orders:27, revenue:6625, change:7 },
+  {
+    "name": "Radiateur Chaleur Douce 2000W THERMOR",
+    "category": "Chauffage",
+    "path": "/exemple/radiateur-thermor-2000w",
+    "ref": "THERMOR",
+    "id": "TH-2000",
+    "condition": "Neuf déclassé",
+    "views": 3231,
+    "orders": 51,
+    "price": 329,
+    "oldPrice": 584,
+    "stock": 12,
+    "change": 24,
+    "revenue": 16779
+  },
+  {
+    "name": "Paroi de Douche AKW LevelBest 800x1900mm",
+    "category": "Salle de bain",
+    "path": "/exemple/paroi-douche-akw",
+    "ref": "AKW",
+    "id": "LB00216BK",
+    "condition": "Neuf",
+    "views": 2670,
+    "orders": 44,
+    "price": 99,
+    "oldPrice": 477,
+    "stock": 31,
+    "change": 18,
+    "revenue": 4356
+  },
+  {
+    "name": "Chauffe-Eau ATLANTIC Chaufféo 50L",
+    "category": "Chauffe-eau",
+    "path": "/exemple/chauffe-eau-atlantic-50l",
+    "ref": "ATLANTIC",
+    "id": "AT-50L",
+    "condition": "Neuf déclassé",
+    "views": 2384,
+    "orders": 39,
+    "price": 199,
+    "oldPrice": 439,
+    "stock": 9,
+    "change": 12,
+    "revenue": 7761
+  },
+  {
+    "name": "Ponceuse DEWALT XR 18V Brushless",
+    "category": "Bricolage",
+    "path": "/exemple/ponceuse-dewalt-xr",
+    "ref": "DEWALT",
+    "id": "DCW200",
+    "condition": "Neuf",
+    "views": 1996,
+    "orders": 33,
+    "price": 129,
+    "oldPrice": 306,
+    "stock": 3,
+    "change": 9,
+    "revenue": 4257
+  },
+  {
+    "name": "Chaudière à Granulés MORVAN GM Easy 12",
+    "category": "Chauffage",
+    "path": "/exemple/chaudiere-morvan",
+    "ref": "MORVAN",
+    "id": "GM-EASY12",
+    "condition": "Neuf",
+    "views": 1853,
+    "orders": 3,
+    "price": 2849,
+    "oldPrice": 11569,
+    "stock": 4,
+    "change": 7,
+    "revenue": 8547
+  }
 ];
 const channels = [
   {name:'Recherche Google', share:47.8, count:10573, tone:'bg-ink'},
@@ -37,7 +107,7 @@ const channels = [
   {name:'Autres', share:4.3, count:955, tone:'bg-ink-3'},
 ];
 const activity: Activity = {
-  online: 38,
+  online: 58,
   updatedAt: 1795100000000,
   activeWindowMinutes: 5,
   recentWindowMinutes: 30,
@@ -93,7 +163,7 @@ export function DiscountDemo() {
   const orders=useMemo(()=>visitors.map((v,i)=>Math.round(v*(.026+.008*Math.sin(i/3)))),[visitors]);
   const show=(v:View)=>view==='overview'||view===v;
   const selected=menu.find(x=>x.id===view);
-  const online=38+tick%4;
+  const online=58+tick%4;
   const act={...activity, online};
   const inspect=(index:number)=>{setHeatProduct(index);setView('heatmap');window.scrollTo({top:0,behavior:'smooth'});};
   const nav=<div className="space-y-4">
