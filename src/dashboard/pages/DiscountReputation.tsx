@@ -56,9 +56,9 @@ function MiniBar({name,percent,count,variant='blue'}:{name:string;percent:number
  return <div><div className="mb-1.5 flex items-center justify-between gap-3 text-[12px]"><span className="truncate text-ink-2">{name}</span><span className="shrink-0 font-semibold tabular-nums text-ink">{fmt(count)} <span className="font-normal text-ink-4">· {percent} %</span></span></div><div className="h-1.5 overflow-hidden rounded-full bg-well"><div className={'h-full rounded-full '+color} style={{width:percent+'%'}}/></div></div>;
 }
 export function ReputationTeaser({days,onOpen}:{days:Days;onOpen:()=>void}){
- return <div className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface p-5 sm:p-6">
+ return <div className="dq-hero mb-4 flex flex-wrap items-center justify-between gap-4 p-5 sm:p-7">
   <div className="flex min-w-0 items-start gap-3"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent"><UiIcon name="megaphone" size={21}/></span><div><div className="flex flex-wrap items-center gap-2"><h2 className="text-[15px] font-semibold tracking-tight text-ink">Ce qu’Internet dit de Discount & Qualité</h2><Chip label="Veilleo · aperçu" tone="blue"/></div><p className="mt-1.5 max-w-[650px] text-[12px] leading-relaxed text-ink-3">Un espace pour centraliser les avis, forums, articles, vidéos et réseaux sociaux. Aperçu interactif en {days} jours, sans suivi réel activé.</p></div></div>
-  <button onClick={onOpen} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-ink px-3.5 text-[12px] font-semibold text-canvas hover:opacity-90">Explorer la réputation <UiIcon name="arrow-right" size={15}/></button>
+  <button onClick={onOpen} className="dq-action dq-action-primary !min-h-10">Explorer la réputation <UiIcon name="arrow-right" size={15}/></button>
  </div>;
 }
 const platforms:Network[]=['google','youtube','web','x','reddit','instagram','tiktok','linkedin'];
@@ -80,24 +80,49 @@ export function DiscountReputation({days}:{days:Days}){
  const filtered=useMemo(()=>items.filter(m=>(network==='all'||m.platform===network)&&(mood==='all'||m.mood===mood)&&(identity==='all'||(identity==='owned'?m.owned:!m.owned))&&(!onlyHigh||m.priority==='haute')&&(m.title+' '+m.author+' '+m.content+' '+m.phrase+' '+m.category).toLowerCase().includes(query.toLowerCase())),[network,mood,identity,query,onlyHigh]);
  const samples=Array.from({length:14},(_,i)=>4+Math.round(3*Math.sin(i*1.5)+2*Math.cos(i*.7))+i%4);
  const graphMax=Math.max(1,...samples);
+ const activeFilters=[
+  ...(network!=='all'?[{label:platformNames[network],clear:()=>setNetwork('all')}]:[]),
+  ...(mood!=='all'?[{label:moodText[mood],clear:()=>setMood('all')}]:[]),
+  ...(identity!=='all'?[{label:identity==='owned'?'Comptes officiels':'Mentions indépendantes',clear:()=>setIdentity('all')}]:[]),
+  ...(query.trim()?[{label:'Recherche : '+query,clear:()=>setQuery('')}]:[]),
+  ...(onlyHigh?[{label:'Urgentes',clear:()=>setOnlyHigh(false)}]:[]),
+ ];
  const external=[{id:'google',name:'Google',desc:'Résultats publics du moteur de recherche',icon:'search' as UiIconName},{id:'news',name:'Google Actualités',desc:'Articles de presse et publications indexées',icon:'globe' as UiIconName},{id:'x',name:'X',desc:'Messages accessibles dans la recherche publique',icon:'share' as UiIconName},{id:'youtube',name:'YouTube',desc:'Vidéos et contenus référencés',icon:'play' as UiIconName},{id:'reddit',name:'Reddit',desc:'Discussions et retours communautaires',icon:'message' as UiIconName},{id:'linkedin',name:'LinkedIn',desc:'Publications professionnelles accessibles',icon:'users' as UiIconName},{id:'tiktok',name:'TikTok',desc:'Vidéos publiques proposées par la plateforme',icon:'play' as UiIconName},{id:'bing',name:'Bing',desc:'Autre moteur pour étendre la recherche',icon:'search' as UiIconName}];
  return <div className="space-y-4">
-  <div className="relative overflow-hidden rounded-2xl border border-line bg-surface p-5 sm:p-7">
+  <div className="dq-hero relative overflow-hidden p-5 sm:p-8">
    <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-accent/10 blur-[76px]"/>
    <div className="relative flex flex-wrap items-start justify-between gap-5">
     <div className="max-w-[710px]"><div className="mb-3 flex items-center gap-2"><Chip label="VEILLE DE MARQUE" tone="blue"/><Chip label="Basé sur Veilleo"/><Chip label="Frontend uniquement"/></div>
-     <h2 className="text-[23px] font-semibold leading-[1.12] tracking-[-.045em] text-ink sm:text-[32px]">Ta réputation se construit <span className="text-accent">aussi hors de ta boutique.</span></h2>
+     <h2 className="text-[29px] font-normal leading-[1.12] tracking-[-.05em] text-ink sm:text-[39px]" style={{fontFamily:"var(--dq-serif)"}}>Ta réputation se construit <span className="dq-serif-emphasis text-accent">aussi hors de ta boutique.</span></h2>
      <p className="mt-3 text-[13px] leading-relaxed text-ink-3">Centralise les conversations autour de Discount & Qualité, repère les sujets sensibles et retrouve directement les sources publiques. Sans installation ni clé API à saisir.</p>
     </div>
-    <a href={queryUrl('google',activeTerm)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-ink px-4 text-[12px] font-semibold text-canvas hover:opacity-90"><UiIcon name="search" size={15}/> Rechercher sur le Web <UiIcon name="arrow-up-right" size={14}/></a>
+    <a href={queryUrl('google',activeTerm)} target="_blank" rel="noopener noreferrer" className="dq-action dq-action-primary !min-h-10"><UiIcon name="search" size={15}/> Rechercher sur le Web <UiIcon name="arrow-up-right" size={14}/></a>
    </div>
    <div className="relative mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4"><span className="flex items-center gap-2 text-[11px] text-ink-3"><UiIcon name="info" size={14} className="text-accent"/><strong className="text-ink">Simulation interactive</strong> · aucun comptage de mentions réel, aucune collecte automatique</span><span className="text-[10px] font-medium text-ink-4">{days} jours · Exemple fictif</span></div>
   </div>
 
-  <nav aria-label="Sections de la veille" className="flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface p-1.5">
-   {([{id:'overview',label:'Vue d’ensemble',icon:'bar-chart'},{id:'mentions',label:'Mentions',icon:'message'},{id:'sources',label:'Sources',icon:'globe'},{id:'keywords',label:'Mots-clés',icon:'search'},{id:'alerts',label:'Alertes',icon:'bell'}] as const).map(v=><button key={v.id} type="button" onClick={()=>setTab(v.id)} className={'flex min-h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-[12px] font-semibold transition '+(tab===v.id?'bg-accent-soft text-accent':'text-ink-3 hover:bg-well hover:text-ink')}><UiIcon name={v.icon} size={15}/>{v.label}</button>)}
+  <nav aria-label="Sections de la veille" role="tablist" className="dq-rep-tabs flex gap-1 overflow-x-auto" onKeyDown={e=>{
+    const tabs=Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    const index=tabs.findIndex(btn=>btn===document.activeElement);
+    if(index<0)return;
+    let next=index;
+    if(e.key==='ArrowRight')next=(index+1)%tabs.length;
+    else if(e.key==='ArrowLeft')next=(index-1+tabs.length)%tabs.length;
+    else if(e.key==='Home')next=0;
+    else if(e.key==='End')next=tabs.length-1;
+    else return;
+    e.preventDefault();
+    tabs[next]?.focus();
+    setTab(tabs[next]?.dataset.repTab as typeof tab);
+   }}>
+   {([{id:'overview',label:'Vue d’ensemble',icon:'bar-chart'},{id:'mentions',label:'Mentions',icon:'message'},{id:'sources',label:'Sources',icon:'globe'},{id:'keywords',label:'Mots-clés',icon:'search'},{id:'alerts',label:'Alertes',icon:'bell'}] as const).map(v=><button
+     key={v.id} id={'dq-rep-tab-'+v.id} type="button" role="tab" aria-selected={tab===v.id} tabIndex={tab===v.id?0:-1} data-rep-tab={v.id} data-active={tab===v.id?'true':'false'}
+     onClick={()=>setTab(v.id)}
+     className="flex min-h-10 shrink-0 items-center gap-2 px-3 text-[12px] font-semibold transition-colors"
+   ><UiIcon name={v.icon} size={15}/>{v.label}</button>)}
   </nav>
 
+  <div role="tabpanel" id={'dq-rep-panel-'+tab} aria-labelledby={'dq-rep-tab-'+tab} className="space-y-4">
   {tab==='overview'&&<>
    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
     {[{label:'Mentions détectées',v:r.total,sub:'Sur le scénario fictif',icon:'message' as UiIconName,cls:'text-ink'},
@@ -152,7 +177,7 @@ export function DiscountReputation({days}:{days:Days}){
   {tab==='sources'&&<div className="space-y-4">
    <Card title="Rechercher une marque, sans clé API" caption="Les boutons ouvrent les moteurs et réseaux sociaux sur la requête sélectionnée. Les résultats sont ceux de leurs plateformes.">
     <label className="block max-w-xl text-[12px] font-medium text-ink-3"><span className="mb-2 block">Expression recherchée</span><select aria-label="Expression à rechercher" value={activeTerm} onChange={e=>setActiveTerm(e.target.value)} className="min-h-10 w-full rounded-lg border border-line bg-surface px-3 text-[12px] text-ink">{searchTerms.map(w=><option key={w} value={w}>{w}</option>)}</select></label>
-    <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{external.map(e=><a key={e.id} href={queryUrl(e.id,activeTerm)} target="_blank" rel="noopener noreferrer" className="group flex min-h-[126px] flex-col justify-between rounded-xl border border-line p-4 transition-colors hover:border-accent/50 hover:bg-well"><div className="flex items-center justify-between"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-soft text-accent"><UiIcon name={e.icon} size={17}/></span><UiIcon name="arrow-up-right" size={15} className="text-ink-4 group-hover:text-accent"/></div><div><div className="mt-3 text-[12px] font-semibold text-ink">{e.name}</div><p className="mt-1 text-[11px] leading-snug text-ink-4">{e.desc}</p></div></a>)}</div>
+    <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{external.map(e=><a key={e.id} href={queryUrl(e.id,activeTerm)} target="_blank" rel="noopener noreferrer" className="dq-source-card group flex min-h-[126px] flex-col justify-between p-4"><div className="flex items-center justify-between"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-soft text-accent"><UiIcon name={e.icon} size={17}/></span><UiIcon name="arrow-up-right" size={15} className="text-ink-4 group-hover:text-accent"/></div><div><div className="mt-3 text-[12px] font-semibold text-ink">{e.name}</div><p className="mt-1 text-[11px] leading-snug text-ink-4">{e.desc}</p></div></a>)}</div>
     <p className="mt-5 text-[11px] text-ink-4">L’accès aux résultats peut dépendre de la connexion au réseau. Un moteur de recherche ouvert n’équivaut pas à un collecteur connecté.</p>
    </Card>
    <Card title="Couverture des sources" caption="Architecture héritée de Veilleo · statut des collecteurs pour ce frontend">
@@ -195,5 +220,11 @@ export function DiscountReputation({days}:{days:Days}){
     <div className="rounded-xl border border-line bg-well p-4"><div className="flex flex-wrap items-center justify-between gap-2"><Chip label="APERÇU FICTIF" tone="amber"/><span className="text-[10px] text-ink-4">Exemple de résumé</span></div><div className="mt-4 flex items-start gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-danger-soft text-danger"><UiIcon name="bell" size={17}/></span><div><div className="text-[12px] font-semibold text-ink">Un commentaire mérite ton attention</div><p className="mt-2 text-[12px] leading-relaxed text-ink-3">Un utilisateur fictif pose une question sur l’état d’un produit déclassé. Vérifier la fiche et répondre depuis la plateforme d’origine.</p></div></div><div className="mt-4 border-t border-line pt-3"><span className="text-[10px] text-ink-4">Aucun message n’a été détecté ni envoyé.</span></div></div>
    </Card>
   </div>}
+  </div>
+  {tab==='mentions'&&activeFilters.length>0&&<div role="status" aria-live="polite" className="dq-filter-dock">
+    <span className="shrink-0 font-mono text-[11px] text-canvas/75">{filtered.length} affichées</span>
+    <div className="flex min-w-0 gap-1 overflow-x-auto">{activeFilters.map((f,i)=><button key={i} onClick={f.clear} type="button" className="flex shrink-0 items-center gap-1.5 border border-white/25 px-2.5 py-1.5 text-[11px] text-white hover:border-white/55"><span className="max-w-[115px] truncate">{f.label}</span><UiIcon name="x" size={12}/></button>)}</div>
+    <button type="button" onClick={()=>{setNetwork('all');setMood('all');setIdentity('all');setQuery('');setOnlyHigh(false);}} className="shrink-0 bg-white px-3 py-2 text-[11px] font-semibold text-zinc-900">Effacer</button>
+   </div>}
  </div>;
 }
