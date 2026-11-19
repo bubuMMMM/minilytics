@@ -78,11 +78,9 @@ export function DiscountReputation({days}:{days:Days}){
  const r=ranges[days];
  const distribution=platforms.map((p,i)=>({platform:p,share:networkRatios[p],count:i===platforms.length-1?r.total-platforms.slice(0,-1).reduce((n,q)=>n+Math.round(r.total*networkRatios[q]/100),0):Math.round(r.total*networkRatios[p]/100)}));
  const filtered=useMemo(()=>items.filter(m=>(network==='all'||m.platform===network)&&(mood==='all'||m.mood===mood)&&(identity==='all'||(identity==='owned'?m.owned:!m.owned))&&(!onlyHigh||m.priority==='haute')&&(m.title+' '+m.author+' '+m.content+' '+m.phrase+' '+m.category).toLowerCase().includes(query.toLowerCase())),[network,mood,identity,query,onlyHigh]);
- const chosen=items.find(m=>m.id===selected);
  const samples=Array.from({length:14},(_,i)=>4+Math.round(3*Math.sin(i*1.5)+2*Math.cos(i*.7))+i%4);
  const graphMax=Math.max(1,...samples);
  const external=[{id:'google',name:'Google',desc:'Résultats publics du moteur de recherche',icon:'search' as UiIconName},{id:'news',name:'Google Actualités',desc:'Articles de presse et publications indexées',icon:'globe' as UiIconName},{id:'x',name:'X',desc:'Messages accessibles dans la recherche publique',icon:'share' as UiIconName},{id:'youtube',name:'YouTube',desc:'Vidéos et contenus référencés',icon:'play' as UiIconName},{id:'reddit',name:'Reddit',desc:'Discussions et retours communautaires',icon:'message' as UiIconName},{id:'linkedin',name:'LinkedIn',desc:'Publications professionnelles accessibles',icon:'users' as UiIconName},{id:'tiktok',name:'TikTok',desc:'Vidéos publiques proposées par la plateforme',icon:'play' as UiIconName},{id:'bing',name:'Bing',desc:'Autre moteur pour étendre la recherche',icon:'search' as UiIconName}];
- const changeRule=(key:keyof typeof rules)=>setRules(s=>({...s,[key]:!s[key]}));
  return <div className="space-y-4">
   <div className="relative overflow-hidden rounded-2xl border border-line bg-surface p-5 sm:p-7">
    <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-accent/10 blur-[76px]"/>
