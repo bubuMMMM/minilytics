@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { LiveProductPages, ProductFiles, HeatmapDemo } from './DiscountDemoViews';
 import { CommerceHero, CommercePriorities, CommerceCategories, StockManager } from './DiscountBusiness';
 import { DiscountReputation, ReputationTeaser } from './DiscountReputation';
+import { DiscountCommand, type CommandEntry } from './DiscountCommand';
+import './DiscountSink.css';
 import { TrendChart } from '../components/TrendChart';
 import { MetricTile } from '../components/StudioUI';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -159,6 +161,7 @@ export function DiscountDemo() {
   const [tick,setTick]=useState(0);
   const [sidebar,setSidebar]=useState(false);
   const [heatProduct,setHeatProduct]=useState(0);
+  const [commandOpen,setCommandOpen]=useState(false);
   useEffect(()=>{const timer=window.setInterval(()=>setTick(n=>n+1),15000);return ()=>window.clearInterval(timer);},[]);
   const totals=stats[days];
   const k=days/30;
@@ -172,29 +175,59 @@ export function DiscountDemo() {
   const act={...activity, online};
   const navigate=(target:View)=>{setView(target);setSidebar(false);window.scrollTo({top:0,behavior:'smooth'});};
   const inspect=(index:number)=>{setHeatProduct(index);navigate('heatmap');};
-  const nav=<div className="space-y-4">
-    {['ANALYSE','CATALOGUE','ACQUISITION','E-RÉPUTATION'].map(group=><div key={group}><div className="mb-2 px-3 text-[10px] font-semibold tracking-[.13em] text-ink-4">{group}</div><div className="space-y-1">{menu.filter(m=>m.group===group).map(item=><button key={item.id} type="button" onClick={()=>navigate(item.id)} className={'flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-[13px] transition-colors '+(view===item.id?'bg-accent-soft font-semibold text-accent':'text-ink-3 hover:bg-well hover:text-ink')}><UiIcon name={item.icon} size={16}/><span>{item.label}</span>{view===item.id&&<span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent"/>}</button>)}</div></div>)}
+  const commandEntries:CommandEntry[]=[
+    ...menu.map(item=>({id:'page-'+item.id,title:item.label,detail:item.group==='E-RÉPUTATION'?'Écouter Internet et les réseaux':item.group.toLocaleLowerCase('fr-FR'),group:'Navigation' as const,icon:item.icon,onSelect:()=>navigate(item.id)})),
+    ...products.map((item,index)=>({id:'product-'+item.id,title:item.name,detail:item.ref+' · Réf. '+item.id+' · analyser les clics',group:'Fiches produits' as const,icon:'grid' as const,keywords:item.category,onSelect:()=>inspect(index)})),
+  ];
+  useEffect(()=>{if(!sidebar)return;const close=(e:KeyboardEvent)=>{if(e.key==='Escape')setSidebar(false);};window.addEventListener('keydown',close);return ()=>window.removeEventListener('keydown',close);},[sidebar]);
+  const nav=<div className="space-y-5">
+    {['ANALYSE','CATALOGUE','ACQUISITION','E-RÉPUTATION'].map(group=><div key={group}>
+      <div className="dq-caption mb-2 px-3">{group}</div>
+      <div className="space-y-1">{menu.filter(m=>m.group===group).map(item=><button
+        key={item.id} type="button" aria-current={view===item.id?'page':undefined}
+        onClick={()=>navigate(item.id)}
+        className={'dq-nav-item flex w-full items-center gap-2.5 px-2 text-left text-[12px] '+(view===item.id?'font-semibold text-ink':'text-ink-3 hover:text-ink')}
+      >
+        <span className="dq-nav-icon"><UiIcon name={item.icon} size={16}/></span>
+        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+        {view===item.id&&<span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent"/>}
+      </button>)}</div>
+    </div>)}
   </div>;
-  return <div className="min-h-screen bg-canvas text-ink">
-    <aside className="fixed inset-y-0 left-0 z-50 hidden w-[240px] flex-col border-r border-line bg-canvas px-3 lg:flex">
-      <div className="flex h-[74px] items-center px-3"><Brand/></div>
-      <div className="mb-5 rounded-xl border border-line bg-surface px-3 py-3"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-success"/><span className="text-[12px] font-semibold">discountetqualite.fr</span></div><div className="mt-1 pl-4 text-[11px] text-ink-4">E-commerce · PrestaShop</div></div>
-      <nav className="flex-1 overflow-y-auto">{nav}</nav>
-      <div className="mb-4 rounded-xl border border-line bg-well p-3"><div className="flex items-center gap-2 text-[11px] font-semibold"><UiIcon name="shield" size={14}/> Mode démonstration</div><p className="mt-1.5 text-[11px] leading-relaxed text-ink-3">Données fictives. Aucune connexion au catalogue, aux commandes ou au trafic réel.</p></div>
+  return <div className="dq-sink min-h-screen bg-canvas text-ink">
+    <aside className="dq-sidebar fixed inset-y-0 left-0 z-50 hidden w-[252px] flex-col border-r px-3 lg:flex">
+      <div className="flex h-[78px] items-center px-3"><Brand/></div>
+      <div className="dq-project-pill mb-6 px-3 py-3"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-success"/><span className="text-[12px] font-semibold">discountetqualite.fr</span></div><div className="mt-1 pl-4 text-[11px] text-ink-4">E-commerce · PrestaShop</div></div>
+      <nav className="dq-scrollbar min-h-0 flex-1 overflow-y-auto">{nav}</nav>
+      <div className="dq-sidebar-footer mb-4 p-3"><div className="flex items-center gap-2 text-[11px] font-semibold"><UiIcon name="shield" size={14}/> Mode démonstration</div><p className="mt-1.5 text-[11px] leading-relaxed text-ink-3">Données fictives. Aucune connexion au catalogue, aux commandes ou au trafic réel.</p></div>
       <div className="border-t border-line px-2 py-3 text-[10px] text-ink-4">Minilytics · Édition déstockage</div>
     </aside>
-    {sidebar && <div className="fixed inset-0 z-[80] bg-black/40 lg:hidden" onClick={()=>setSidebar(false)}><div onClick={e=>e.stopPropagation()} className="h-full w-[275px] overflow-y-auto bg-canvas p-4"><div className="mb-8 flex justify-between"><Brand/><button aria-label="Fermer le menu" onClick={()=>setSidebar(false)}><UiIcon name="x" size={20}/></button></div>{nav}</div></div>}
-    <div className="lg:pl-[240px]">
-      <header className="sticky top-0 z-40 flex h-[66px] items-center justify-between gap-3 border-b border-line bg-canvas/95 px-4 backdrop-blur-xl sm:px-7 lg:px-9">
-        <div className="flex min-w-0 items-center gap-3"><button onClick={()=>setSidebar(true)} className="lg:hidden" aria-label="Ouvrir le menu"><UiIcon name="menu" size={20}/></button><div className="lg:hidden"><Brand/></div><div className="hidden items-center gap-2 text-[12px] text-ink-4 lg:flex"><span>Analytics</span><UiIcon name="chevron-right" size={13}/><span className="font-medium text-ink">{selected?.label}</span></div></div>
-        <div className="flex items-center gap-3"><span className="hidden items-center gap-2 text-[11px] text-ink-3 sm:inline-flex"><span className="h-1.5 w-1.5 rounded-full bg-accent"/>Simulation active</span><ThemeToggle/><span className="rounded-md border border-line px-2 py-1 text-[10px] font-semibold uppercase tracking-[.08em]">Démo</span></div>
-      </header>
-      <main className="mx-auto max-w-[1480px] px-4 pb-20 pt-8 sm:px-7 lg:px-9">
-        <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
-          <div><div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[.14em] text-ink-4">{isReputation?'VEILLE DE MARQUE / VEILLEO':'PILOTAGE DU DÉSTOCKAGE / DISCOUNT & QUALITÉ'} <span className="text-accent">✦</span></div><h1 className="text-[27px] font-semibold leading-tight tracking-[-.04em] sm:text-[33px]">{selected?.label}</h1><p className="mt-2 text-[13px] text-ink-3">{isReputation?'Écouter la marque, les avis et les réseaux sans quitter le cockpit Minilytics.':'Trafic, ventes, fiches produits, stocks et priorités : les données utiles pour décider.'}</p></div>
-          <div className="flex items-center gap-2"><div className="inline-flex rounded-lg border border-line bg-surface p-1">{([7,30,90] as Days[]).map(d=><button key={d} onClick={()=>setDays(d)} aria-pressed={days===d} className={'rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors '+(days===d?'bg-ink text-canvas':'text-ink-3 hover:bg-well')}>{d} j</button>)}</div><button onClick={()=>setTick(x=>x+1)} title="Actualiser la simulation" aria-label="Actualiser la simulation" className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface text-ink-2 hover:bg-well"><UiIcon name="refresh" size={16}/></button></div>
+    {sidebar && <div className="fixed inset-0 z-[80] bg-black/40 lg:hidden" onClick={()=>setSidebar(false)}><div onClick={e=>e.stopPropagation()} className="dq-sidebar h-full w-[290px] overflow-y-auto p-5"><div className="mb-8 flex justify-between"><Brand/><button aria-label="Fermer le menu" onClick={()=>setSidebar(false)}><UiIcon name="x" size={20}/></button></div>{nav}</div></div>}
+    <div className="lg:pl-[252px]">
+      <header className="dq-topbar sticky top-0 z-40 flex h-[70px] items-center justify-between gap-3 border-b px-4 sm:px-7 lg:px-9">
+        <div className="flex min-w-0 items-center gap-3">
+          <button onClick={()=>setSidebar(true)} className="dq-action !h-9 !w-9 !p-0 lg:hidden" aria-label="Ouvrir le menu"><UiIcon name="menu" size={19}/></button>
+          <div className="hidden items-center gap-2 text-[12px] text-ink-4 sm:flex">
+            <span className="font-medium">Discount & Qualité</span><UiIcon name="chevron-right" size={13}/>
+            <span className="max-w-[180px] truncate font-semibold text-ink">{selected?.label}</span>
+          </div>
+          <span className="truncate text-[12px] font-semibold text-ink sm:hidden">{selected?.label}</span>
         </div>
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-well px-4 py-2.5 text-[12px] text-ink-3"><span><strong>Prototype · données simulées</strong> — les chiffres illustrent le potentiel, ils ne proviennent pas de Discount & Qualité.</span><span className="shrink-0 font-mono">V4 / 19.11.2026</span></div>
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <button onClick={()=>setCommandOpen(true)} aria-label="Rechercher dans le tableau de bord, raccourci Ctrl ou Commande K" className="dq-control flex h-9 items-center justify-center gap-2 px-2.5 text-[12px] text-ink-3 transition hover:border-line-strong hover:bg-well sm:w-[230px] sm:justify-start sm:px-3 lg:w-[272px]">
+            <UiIcon name="search" size={15}/><span className="hidden flex-1 text-left sm:inline">Rechercher une fiche, une page…</span><span className="hidden gap-0.5 sm:flex"><kbd className="dq-kbd">⌘</kbd><kbd className="dq-kbd">K</kbd></span>
+          </button>
+          <span className="hidden items-center gap-2 text-[11px] text-ink-3 xl:inline-flex"><span className="dq-live-dot"/>Simulation</span>
+          <ThemeToggle/>
+          <span className="dq-demo-tag hidden sm:inline-flex">DÉMO V5</span>
+        </div>
+      </header>
+      <main className="dq-page mx-auto max-w-[1510px] px-4 pb-20 pt-8 sm:px-7 lg:px-9">
+        <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
+          <div><div className="dq-eyebrow mb-3">{isReputation?'VEILLE DE MARQUE / VEILLEO':'PILOTAGE DU DÉSTOCKAGE / DISCOUNT & QUALITÉ'} <span className="text-accent">✦</span></div><h1 className="dq-display">{selected?.label}</h1><p className="mt-2 text-[13px] text-ink-3">{isReputation?'Écouter la marque, les avis et les réseaux sans quitter le cockpit Minilytics.':'Trafic, ventes, fiches produits, stocks et priorités : les données utiles pour décider.'}</p></div>
+          <div className="flex items-center gap-2"><div className="dq-segmented">{([7,30,90] as Days[]).map(d=><button key={d} onClick={()=>setDays(d)} aria-pressed={days===d} className={'px-3 text-[12px] font-medium '+(days===d?'bg-ink text-canvas':'text-ink-3 hover:bg-well')}>{d} j</button>)}</div><button onClick={()=>setTick(x=>x+1)} title="Actualiser la simulation" aria-label="Actualiser la simulation" className="dq-action !h-[42px] !w-[42px] !p-0 text-ink-2"><UiIcon name="refresh" size={16}/></button></div>
+        </div>
+        <div className="dq-demo-ribbon mb-6 flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-[12px] text-ink-3"><span><strong>Prototype · données simulées</strong> — les chiffres illustrent le potentiel, ils ne proviennent pas de Discount & Qualité.</span><span className="shrink-0 font-mono">V5 / 19.11.2026</span></div>
         {view==='overview'&&<CommerceHero onStock={()=>navigate('stock')} onCatalog={()=>navigate('products')}/>}
         {view==='overview'&&<ReputationTeaser days={days} onOpen={()=>navigate('reputation')}/>}
         {isReputation&&<DiscountReputation days={days}/>}
@@ -247,5 +280,6 @@ export function DiscountDemo() {
         <footer className="mt-10 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-5 text-[11px] text-ink-4"><span>Discount & Qualité Insights · Minilytics + interface de veille inspirée de Veilleo</span><span>Données de démonstration · Pas de collecte automatique · {days} jours</span></footer>
       </main>
     </div>
+    <DiscountCommand open={commandOpen} onOpen={()=>setCommandOpen(true)} onClose={()=>setCommandOpen(false)} entries={commandEntries}/>
   </div>;
 }
