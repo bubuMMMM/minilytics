@@ -193,13 +193,14 @@ export function DiscountDemo() {
         </div>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-well px-4 py-2.5 text-[12px] text-ink-3"><span><strong>Prototype · données simulées</strong> — les chiffres illustrent le potentiel, ils ne proviennent pas de Discount & Qualité.</span><span className="shrink-0 font-mono">V3 / 19.11.2026</span></div>
         {view==='overview'&&<CommerceHero onStock={()=>navigate('stock')} onCatalog={()=>navigate('products')}/>}
-        {(view==='overview'||view==='live')&&<LiveProductPages days={days} tick={tick} onInspect={inspect} compact={view==='overview'}/>}
+        {view==='live'&&<LiveProductPages days={days} tick={tick} onInspect={inspect}/>}
         {show('overview') || show('sales') ? <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
           <MetricTile focus label="CA e-commerce" icon="coins" number="01" value={euros(totals.revenue)} caption={'Estimé · '+days+' jours'} current={totals.revenue} previous={totals.previous}/>
           <MetricTile label="Visiteurs uniques" icon="users" number="02" value={nf(totals.visitors)} caption="Audience boutique" current={totals.visitors} previous={Math.round(totals.visitors*.88)}/>
           <MetricTile label="Commandes" icon="layers" number="03" value={nf(totals.orders)} caption="Transactions simulées" current={totals.orders} previous={Math.round(totals.orders*.87)}/>
           <MetricTile label="Conversion boutique" icon="target" number="04" value={(totals.orders/totals.visitors*100).toFixed(2).replace('.',',')+' %'} caption="Visiteurs vers commandes" current={totals.orders/totals.visitors} previous={.031}/>
         </div> : null}
+        {view==='overview'&&<div className="my-4"><CommercePriorities days={days} products={products} onProduct={inspect} onStock={()=>navigate('stock')}/></div>}
         {show('overview') || show('sales') ? <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,.85fr)]">
           <Section title="Évolution des performances" desc={'Visiteurs et commandes · '+days+' derniers jours (simulation)'}>
             <div className="mb-5 flex gap-5 text-[11px] text-ink-3"><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-ink"/>Visiteurs</span><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-accent"/>Commandes</span></div>
@@ -212,6 +213,7 @@ export function DiscountDemo() {
           </Section>
         </div> : null}
         {show('sales') && <div className="mb-4 grid gap-4 md:grid-cols-3">{[{title:'Vue produit → panier',num:'11,8 %',sub:'Intention d’achat'},{title:'Panier → checkout',num:'64,2 %',sub:'Progression tunnel'},{title:'Checkout → achat',num:'71,3 %',sub:'Commandes confirmées'}].map(x=><div key={x.title} className="ml-bento p-6"><div className="text-[12px] text-ink-3">{x.title}</div><div className="mt-3 text-3xl font-semibold tracking-tight">{x.num}</div><div className="mt-2 text-xs text-ink-4">{x.sub} · Simulation</div></div>)}</div>}
+        {view==='overview'&&<LiveProductPages days={days} tick={tick} onInspect={inspect} compact/>}
         {show('overview') || show('geo') ? <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(290px,1fr)]">
           <Section title="Origine géographique des visiteurs" desc="Globe interactif, pays et activité simulés" className="overflow-hidden">
             <Suspense fallback={<div className="flex h-[300px] items-center justify-center text-sm text-ink-4">Chargement du globe…</div>}><LiveGlobe example={act} exampleLabel hideIntro hideMapLink compact /></Suspense>
@@ -225,7 +227,6 @@ export function DiscountDemo() {
           {(show('overview')||show('acquisition'))&&<Section title="Canaux d'acquisition" desc="Les sources qui génèrent des visites"><HorizontalBars items={channels.map(x=>({label:x.name,num:x.share,detail:x.share.toFixed(1).replace('.',',')+' %'}))}/></Section>}
           {(show('overview')||show('products'))&&<Section title="Fiches les plus consultées" desc="Références inspirées du catalogue · données simulées"><div className="space-y-1">{products.map((p,i)=><div key={p.name} className="flex items-center gap-3 border-b border-line/70 py-3 last:border-0"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-well font-mono text-[11px] text-ink-3">{String(i+1).padStart(2,'0')}</span><span className="min-w-0 flex-1"><span className="block truncate text-[12px] font-medium">{p.name}</span><span className="text-[11px] text-ink-4">{p.ref}</span></span><span className="text-right"><span className="block text-[12px] font-semibold tabular-nums">{nf(p.views)}</span><span className="text-[11px] text-ink-4">vues</span></span></div>)}</div></Section>}
         </div> : null}
-        {view==='overview'&&<div className="my-4"><CommercePriorities days={days} products={products} onProduct={inspect} onStock={()=>navigate('stock')}/></div>}
         {view==='overview'&&<div className="my-4"><CommerceCategories/></div>}
         {view==='stock'&&<StockManager products={products} onProduct={inspect}/>}
         {view==='products'&&<ProductFiles days={days} onInspect={inspect}/>}
