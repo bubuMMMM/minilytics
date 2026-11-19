@@ -4,8 +4,6 @@ import { UiIcon, type UiIconName } from '../components/UiIcon';
 type Days = 7 | 30 | 90;
 export type DemoProduct = {name:string;ref:string;id:string;category:string;condition:string;views:number;orders:number;revenue:number;price:number;oldPrice:number;stock:number;change:number};
 const nf=(n:number)=>new Intl.NumberFormat('fr-FR').format(n);
-const eur=(n:number)=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
-const pct=(n:number)=>n.toFixed(1).replace('.',',')+' %';
 const cat=[{name:'Chauffage & climatisation',share:35},{name:'Chauffe-eau',share:22},{name:'Bricolage & outillage',share:19},{name:'Salle de bain',share:14},{name:'Matériel professionnel',share:7},{name:'Autres',share:3}];
 export const demoInventory={all:2684,neuf:1882,declasse:802,low:47,aging:112,newArrivals:63};
 function IconBox({icon,kind='blue'}:{icon:UiIconName;kind?:'blue'|'amber'|'rose'|'green'}) {
