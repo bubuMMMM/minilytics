@@ -1,4 +1,5 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { LiveProductPages, ProductFiles, HeatmapDemo } from './DiscountDemoViews';
 import { TrendChart } from '../components/TrendChart';
 import { MetricTile } from '../components/StudioUI';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -6,14 +7,16 @@ import { UiIcon, type UiIconName } from '../components/UiIcon';
 import type { Activity } from '../components/LiveGlobe';
 
 const LiveGlobe = lazy(() => import('../components/LiveGlobe').then((m) => ({ default: m.LiveGlobe })));
-type View = 'overview' | 'sales' | 'products' | 'acquisition' | 'ai' | 'geo';
+type View = 'overview' | 'live' | 'sales' | 'products' | 'heatmap' | 'acquisition' | 'ai' | 'geo';
 type Days = 7 | 30 | 90;
 const nf = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
 const euros = (n: number) => new Intl.NumberFormat('fr-FR', {style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
 const menu: { id:View; label:string; icon:UiIconName; group:string }[] = [
   { id:'overview', label:"Vue d'ensemble", icon:'bar-chart', group:'ANALYSE' },
+  { id:'live', label:'En direct', icon:'activity', group:'ANALYSE' },
   { id:'sales', label:'Ventes & conversion', icon:'coins', group:'ANALYSE' },
-  { id:'products', label:'Produits & pages', icon:'grid', group:'COMMERCE' },
+  { id:'products', label:'Fiches produits', icon:'grid', group:'COMMERCE' },
+  { id:'heatmap', label:'Carte des clics', icon:'mouse', group:'COMMERCE' },
   { id:'acquisition', label:'Acquisition', icon:'compass', group:'COMMERCE' },
   { id:'ai', label:'Trafic IA & robots', icon:'bot', group:'INTELLIGENCE' },
   { id:'geo', label:'Géographie', icon:'globe', group:'INTELLIGENCE' },
@@ -59,7 +62,7 @@ const stats: Record<Days,{visitors:number;views:number;orders:number;revenue:num
 const flag: Record<string,string>={FR:'🇫🇷',BE:'🇧🇪',CH:'🇨🇭',ES:'🇪🇸',DE:'🇩🇪',IT:'🇮🇹'};
 function Brand() {
   return <div className="flex items-center gap-2.5" translate="no">
-    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#171717] text-[13px] font-black tracking-[-.08em] text-white">D<span className="text-[#ff995a]">&</span>Q</span>
+    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-[13px] font-black tracking-[-.08em] text-canvas">D<span className="text-canvas">&</span>Q</span>
     <span className="min-w-0 leading-tight"><span className="block truncate text-[13px] font-bold tracking-[-.025em] text-ink">Discount & Qualité</span><span className="block text-[10px] font-medium tracking-[.14em] text-ink-4 uppercase">Insights · Démo</span></span>
   </div>;
 }
@@ -81,6 +84,8 @@ export function DiscountDemo() {
   const [days,setDays]=useState<Days>(30);
   const [tick,setTick]=useState(0);
   const [sidebar,setSidebar]=useState(false);
+  const [heatProduct,setHeatProduct]=useState(0);
+  useEffect(()=>{const timer=window.setInterval(()=>setTick(n=>n+1),15000);return ()=>window.clearInterval(timer);},[]);
   const totals=stats[days];
   const k=days/30;
   const buckets=useMemo(()=>Array.from({length:days},(_,i)=>new Date(Date.UTC(2026,10,19-days+1+i)).toISOString().slice(0,10)),[days]);
@@ -90,13 +95,14 @@ export function DiscountDemo() {
   const selected=menu.find(x=>x.id===view);
   const online=38+tick%4;
   const act={...activity, online};
+  const inspect=(index:number)=>{setHeatProduct(index);setView('heatmap');window.scrollTo({top:0,behavior:'smooth'});};
   const nav=<div className="space-y-4">
     {['ANALYSE','COMMERCE','INTELLIGENCE'].map(group=><div key={group}><div className="mb-2 px-3 text-[10px] font-semibold tracking-[.13em] text-ink-4">{group}</div><div className="space-y-1">{menu.filter(m=>m.group===group).map(item=><button key={item.id} type="button" onClick={()=>{setView(item.id);setSidebar(false);window.scrollTo({top:0,behavior:'smooth'});}} className={'flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-[13px] transition-colors '+(view===item.id?'bg-well font-semibold text-ink':'text-ink-3 hover:bg-well hover:text-ink')}><UiIcon name={item.icon} size={16}/><span>{item.label}</span>{view===item.id&&<span className="ml-auto h-1.5 w-1.5 rounded-full bg-ink"/>}</button>)}</div></div>)}
   </div>;
   return <div className="min-h-screen bg-canvas text-ink">
     <aside className="fixed inset-y-0 left-0 z-50 hidden w-[240px] flex-col border-r border-line bg-canvas px-3 lg:flex">
       <div className="flex h-[74px] items-center px-3"><Brand/></div>
-      <div className="mb-5 rounded-xl border border-line bg-surface px-3 py-3"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#ff995a]"/><span className="text-[12px] font-semibold">discountetqualite.fr</span></div><div className="mt-1 pl-4 text-[11px] text-ink-4">E-commerce · PrestaShop</div></div>
+      <div className="mb-5 rounded-xl border border-line bg-surface px-3 py-3"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-accent"/><span className="text-[12px] font-semibold">discountetqualite.fr</span></div><div className="mt-1 pl-4 text-[11px] text-ink-4">E-commerce · PrestaShop</div></div>
       <nav className="flex-1 overflow-y-auto">{nav}</nav>
       <div className="mb-4 rounded-xl border border-line bg-well p-3"><div className="flex items-center gap-2 text-[11px] font-semibold"><UiIcon name="shield" size={14}/> Mode démonstration</div><p className="mt-1.5 text-[11px] leading-relaxed text-ink-3">Données fictives. Aucune connexion au catalogue, aux commandes ou au trafic réel.</p></div>
       <div className="border-t border-line px-2 py-3 text-[10px] text-ink-4">Propulsé par la base Minilytics</div>
@@ -105,14 +111,15 @@ export function DiscountDemo() {
     <div className="lg:pl-[240px]">
       <header className="sticky top-0 z-40 flex h-[66px] items-center justify-between gap-3 border-b border-line bg-canvas/95 px-4 backdrop-blur-xl sm:px-7 lg:px-9">
         <div className="flex min-w-0 items-center gap-3"><button onClick={()=>setSidebar(true)} className="lg:hidden" aria-label="Ouvrir le menu"><UiIcon name="menu" size={20}/></button><div className="lg:hidden"><Brand/></div><div className="hidden items-center gap-2 text-[12px] text-ink-4 lg:flex"><span>Analytics</span><UiIcon name="chevron-right" size={13}/><span className="font-medium text-ink">{selected?.label}</span></div></div>
-        <div className="flex items-center gap-3"><span className="hidden items-center gap-2 text-[11px] text-ink-3 sm:inline-flex"><span className="h-1.5 w-1.5 rounded-full bg-[#ff995a]"/>Simulation active</span><ThemeToggle/><span className="rounded-md border border-line px-2 py-1 text-[10px] font-semibold uppercase tracking-[.08em]">Démo</span></div>
+        <div className="flex items-center gap-3"><span className="hidden items-center gap-2 text-[11px] text-ink-3 sm:inline-flex"><span className="h-1.5 w-1.5 rounded-full bg-accent"/>Simulation active</span><ThemeToggle/><span className="rounded-md border border-line px-2 py-1 text-[10px] font-semibold uppercase tracking-[.08em]">Démo</span></div>
       </header>
       <main className="mx-auto max-w-[1480px] px-4 pb-20 pt-8 sm:px-7 lg:px-9">
         <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
-          <div><div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[.14em] text-ink-4">DASHBOARD / DISCOUNT & QUALITÉ <span className="text-[#e78145]">✦</span></div><h1 className="text-[27px] font-semibold leading-tight tracking-[-.04em] sm:text-[33px]">{selected?.label}</h1><p className="mt-2 text-[13px] text-ink-3">Comprendre ce qui attire, convertit et rapporte à la boutique.</p></div>
+          <div><div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[.14em] text-ink-4">DASHBOARD / DISCOUNT & QUALITÉ <span className="text-accent">✦</span></div><h1 className="text-[27px] font-semibold leading-tight tracking-[-.04em] sm:text-[33px]">{selected?.label}</h1><p className="mt-2 text-[13px] text-ink-3">Comprendre ce qui attire, convertit et rapporte à la boutique.</p></div>
           <div className="flex items-center gap-2"><div className="inline-flex rounded-lg border border-line bg-surface p-1">{([7,30,90] as Days[]).map(d=><button key={d} onClick={()=>setDays(d)} aria-pressed={days===d} className={'rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors '+(days===d?'bg-ink text-canvas':'text-ink-3 hover:bg-well')}>{d} j</button>)}</div><button onClick={()=>setTick(x=>x+1)} title="Actualiser la simulation" aria-label="Actualiser la simulation" className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface text-ink-2 hover:bg-well"><UiIcon name="refresh" size={16}/></button></div>
         </div>
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#e7d9c7] bg-[#fff9f0] px-4 py-2.5 text-[12px] text-[#885e30] dark:border-[#5c452c] dark:bg-[#261f17] dark:text-[#f3be82]"><span><strong>Prototype · données simulées</strong> — les chiffres illustrent le potentiel, ils ne proviennent pas de Discount & Qualité.</span><span className="shrink-0 font-mono">V1 / 19.11.2026</span></div>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-well px-4 py-2.5 text-[12px] text-ink-3"><span><strong>Prototype · données simulées</strong> — les chiffres illustrent le potentiel, ils ne proviennent pas de Discount & Qualité.</span><span className="shrink-0 font-mono">V2 / 19.11.2026</span></div>
+        {(view==='overview'||view==='live')&&<LiveProductPages days={days} tick={tick} onInspect={inspect} compact={view==='overview'}/>}
         {show('overview') || show('sales') ? <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
           <MetricTile focus label="Chiffre d'affaires" icon="eye" number="01" value={euros(totals.revenue)} caption={'Estimé · '+days+' jours'} current={totals.revenue} previous={totals.previous}/>
           <MetricTile label="Visiteurs uniques" icon="users" number="02" value={nf(totals.visitors)} caption="Audience boutique" current={totals.visitors} previous={Math.round(totals.visitors*.88)}/>
@@ -121,11 +128,11 @@ export function DiscountDemo() {
         </div> : null}
         {show('overview') || show('sales') ? <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,.85fr)]">
           <Section title="Évolution des performances" desc={'Visiteurs et commandes · '+days+' derniers jours (simulation)'}>
-            <div className="mb-5 flex gap-5 text-[11px] text-ink-3"><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-ink"/>Visiteurs</span><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-[#e59c69]"/>Commandes</span></div>
-            <TrendChart buckets={buckets} granularity="day" height={252} variant={days===90?'line':'auto'} series={[{key:'visits',label:'Visiteurs',color:'rgb(var(--ink))',values:visitors},{key:'orders',label:'Commandes',color:'#e59c69',values:orders,axis:'right'}]}/>
+            <div className="mb-5 flex gap-5 text-[11px] text-ink-3"><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-ink"/>Visiteurs</span><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-accent"/>Commandes</span></div>
+            <TrendChart buckets={buckets} granularity="day" height={252} variant={days===90?'line':'auto'} series={[{key:'visits',label:'Visiteurs',color:'rgb(var(--ink))',values:visitors},{key:'orders',label:'Commandes',color:'rgb(var(--accent))',values:orders,axis:'right'}]}/>
           </Section>
           <Section title="En ce moment" desc="Activité de démonstration · cinq dernières minutes">
-            <div className="flex items-end gap-3 border-b border-line pb-5"><div className="text-[47px] font-semibold leading-none tracking-[-.06em] tabular-nums">{online}</div><div className="pb-1 text-[12px] text-ink-3"><span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#e59c69]"/>visiteurs simulés</div></div>
+            <div className="flex items-end gap-3 border-b border-line pb-5"><div className="text-[47px] font-semibold leading-none tracking-[-.06em] tabular-nums">{online}</div><div className="pb-1 text-[12px] text-ink-3"><span className="mr-1 inline-block h-2 w-2 rounded-full bg-accent"/>visiteurs simulés</div></div>
             <div className="mt-5 grid grid-cols-2 gap-5"><div><div className="text-[11px] text-ink-4">Panier moyen</div><div className="mt-1 text-xl font-semibold">{euros(totals.revenue/totals.orders)}</div></div><div><div className="text-[11px] text-ink-4">Pages vues</div><div className="mt-1 text-xl font-semibold">{nf(totals.views)}</div></div><div><div className="text-[11px] text-ink-4">Ajouts panier</div><div className="mt-1 text-xl font-semibold">{nf(Math.round(totals.orders*2.8))}</div></div><div><div className="text-[11px] text-ink-4">Checkout commencé</div><div className="mt-1 text-xl font-semibold">{nf(Math.round(totals.orders*1.42))}</div></div></div>
             <div className="mt-6 flex items-center justify-between border-t border-line pt-4 text-[12px]"><span className="text-ink-3">Revenu par visiteur</span><strong>{euros(totals.revenue/totals.visitors)}</strong></div>
           </Section>
@@ -144,10 +151,11 @@ export function DiscountDemo() {
           {(show('overview')||show('acquisition'))&&<Section title="Canaux d'acquisition" desc="Les sources qui génèrent des visites"><HorizontalBars items={channels.map(x=>({label:x.name,num:x.share,detail:x.share.toFixed(1).replace('.',',')+' %'}))}/></Section>}
           {(show('overview')||show('products'))&&<Section title="Produits les plus consultés" desc="Exemples de références déstockées"><div className="space-y-1">{products.map((p,i)=><div key={p.name} className="flex items-center gap-3 border-b border-line/70 py-3 last:border-0"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-well font-mono text-[11px] text-ink-3">{String(i+1).padStart(2,'0')}</span><span className="min-w-0 flex-1"><span className="block truncate text-[12px] font-medium">{p.name}</span><span className="text-[11px] text-ink-4">{p.ref}</span></span><span className="text-right"><span className="block text-[12px] font-semibold tabular-nums">{nf(p.views)}</span><span className="text-[11px] text-ink-4">vues</span></span></div>)}</div></Section>}
         </div> : null}
-        {view==='products'&&<Section title="Performance commerciale par produit" desc="Commandes et chiffre d’affaires fictifs par référence"><div className="overflow-x-auto"><table className="w-full min-w-[560px] text-left text-[12px]"><thead className="border-b border-line text-ink-4"><tr><th className="pb-3 font-medium">Produit</th><th className="pb-3 text-right font-medium">Vues</th><th className="pb-3 text-right font-medium">Commandes</th><th className="pb-3 text-right font-medium">Revenus</th><th className="pb-3 text-right font-medium">Évolution</th></tr></thead><tbody>{products.map(p=><tr key={p.name} className="border-b border-line/70"><td className="py-3 font-medium">{p.name}</td><td className="py-3 text-right tabular-nums">{nf(p.views)}</td><td className="py-3 text-right tabular-nums">{p.orders}</td><td className="py-3 text-right tabular-nums">{euros(p.revenue)}</td><td className="py-3 text-right font-medium text-emerald-600">+{p.change} %</td></tr>)}</tbody></table></div></Section>}
+        {view==='products'&&<ProductFiles days={days} onInspect={inspect}/>}
+        {view==='heatmap'&&<HeatmapDemo days={days} productIndex={heatProduct} onSelectProduct={setHeatProduct}/>}
         {view==='acquisition'&&<div className="grid gap-4 md:grid-cols-2"><Section title="Appareils" desc="Visites par type de terminal"><HorizontalBars items={[{label:'Mobile',num:73,detail:'73 %'},{label:'Ordinateur',num:23,detail:'23 %'},{label:'Tablette',num:4,detail:'4 %'}]}/></Section><Section title="Pages d'entrée" desc="Portes d’accès au catalogue"><HorizontalBars items={[{label:'/',num:7820},{label:'/salle-de-bain',num:4510},{label:'/chauffage',num:3210},{label:'/destockage',num:2870},{label:'/nouveautes',num:1250}]}/></Section></div>}
         {show('ai')&&<div className="grid gap-4 lg:grid-cols-3">
-          <div className="ml-bento p-6"><div className="flex items-center justify-between"><span className="text-[12px] text-ink-3">Visiteurs venus des IA</span><UiIcon name="sparkles" size={16}/></div><div className="mt-3 text-3xl font-semibold tracking-tight">{nf(Math.round(2119*k))}</div><div className="mt-2 text-[12px] text-emerald-600">+28 % vs période précédente</div></div>
+          <div className="ml-bento p-6"><div className="flex items-center justify-between"><span className="text-[12px] text-ink-3">Visiteurs venus des IA</span><UiIcon name="sparkles" size={16}/></div><div className="mt-3 text-3xl font-semibold tracking-tight">{nf(Math.round(2119*k))}</div><div className="mt-2 text-[12px] text-success">+28 % vs période précédente</div></div>
           <div className="ml-bento p-6"><div className="flex items-center justify-between"><span className="text-[12px] text-ink-3">Citations de produits</span><UiIcon name="link" size={16}/></div><div className="mt-3 text-3xl font-semibold tracking-tight">{nf(Math.round(184*k))}</div><div className="mt-2 text-[12px] text-ink-4">Exemple de suivi des mentions IA</div></div>
           <div className="ml-bento p-6"><div className="flex items-center justify-between"><span className="text-[12px] text-ink-3">Bots explorateurs</span><UiIcon name="bot" size={16}/></div><div className="mt-3 text-3xl font-semibold tracking-tight">{nf(Math.round(1209*k))}</div><div className="mt-2 text-[12px] text-ink-4">Exemple de requêtes des robots</div></div>
           <Section title="Assistants qui amènent du trafic" desc="Visites attribuées aux référents IA"><HorizontalBars items={[{label:'ChatGPT',num:69,detail:'69 %'},{label:'Perplexity',num:18,detail:'18 %'},{label:'Claude',num:9,detail:'9 %'},{label:'Gemini',num:4,detail:'4 %'}]}/></Section>
